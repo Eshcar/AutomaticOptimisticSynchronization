@@ -1,0 +1,44 @@
+%%This is a very basic article template.
+%%There is just one section and two subsections.
+\title{Automatic Specialized Synchronization for Dynamic Data Structures}
+\documentclass{article}
+
+\newcommand{\code}[1]{\textsf{#1}}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+\section{Preliminaries}
+A module defines a set of abstract data types and a 
+set of operations that may be invoked by
+clients of the module. 
+%A type consists of a set of fields of type boolean, integer or pointer to a user-defined type. 
+The parameters and local variables 
+of an operation are private to the
+invocation of the operation. 
+There are no static or global variables shared by  
+different invocations of the operations. 
+An operation is a sequence of atomic steps. 
+Atomic step is either an operation on local 
+variables or a load (``\code{x=y.f}'') or 
+a store (``\code{x.f=y}'') operation on shared variables.
+
+A configuration .. 
+An execution is an alternating sequence of 
+configurations and steps,
+$C_0,s_1,\ldots,s_i,C_i,\ldots,$ 
+where $C_i$ is the initial configuration,
+and each configuration $C_i$ is the result of
+executing step $s_i$ on configuration $C_{i-1}$.
+
+\section{Global Version Algorithm}
+Each write operation acquires a unique version 
+from a global version object. Before every store step,  
+the operation writes its unique version to the object.
+ 
+
+\section{Local Version Algorithm} 
+ 
+\end{document}
