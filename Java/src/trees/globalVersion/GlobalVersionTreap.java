@@ -212,7 +212,7 @@ public class GlobalVersionTreap<K,V> implements Map<K,V>{
       		return null;
       	}
         
-		TreapNode<K,V> x = (TreapNode<K, V>) readWritePhaseStrategy.acquire(new TreapNode<K,V>(key, value, prio), self);
+		TreapNode<K,V> x = (TreapNode<K, V>) readWritePhaseStrategy.acquire(new TreapNode<K,V>(key, value, prio), self, writeVersion);
 		TreapNode<K,V> lessParent = null;
 		TreapNode<K,V> moreParent = null;
         Direction lessDir;
@@ -240,20 +240,20 @@ public class GlobalVersionTreap<K,V> implements Map<K,V>{
                 parent.setChild(dir, x, self, writeVersion); // add the new node
                 if (c0 < 0) {
                     x.setChild(Direction.RIGHT, node, self, writeVersion);  
-                    moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent,node,self);
+                    moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent, node, self, writeVersion);
                     moreDir = Direction.LEFT;
-                    lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent,x,self);
+                    lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent, x, self, writeVersion);
                     lessDir = Direction.LEFT;
-                    node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node,node.left,self);
+                    node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node, node.left, self, writeVersion);
                     
                     moreParent.setChild(Direction.LEFT, null, self, writeVersion);
                 } else {
                 	x.setChild(Direction.LEFT, node, self, writeVersion); 
-                    lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent,node,self);
+                    lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent, node, self, writeVersion);
                     lessDir = Direction.RIGHT;
-                    moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent,x,self);
+                    moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent, x, self, writeVersion);
                     moreDir = Direction.RIGHT;
-                    node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node,node.right,self);
+                    node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node, node.right, self, writeVersion);
                    
                     lessParent.setChild(Direction.RIGHT,null,self, writeVersion);
                 }
@@ -270,16 +270,16 @@ public class GlobalVersionTreap<K,V> implements Map<K,V>{
                     }
                     else if (cmpRes < 0) {
                         moreParent.setChild(moreDir, node, self, writeVersion);
-                        moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent,node,self);
+                        moreParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(moreParent, node, self, writeVersion);
                         moreDir = Direction.LEFT;
-                        node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node,moreParent.left,self);
+                        node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node, moreParent.left, self, writeVersion);
                         moreParent.setChild(Direction.LEFT, null, self, writeVersion);
                     }
                     else {
                         lessParent.setChild(lessDir, node, self, writeVersion);
-                        lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent,node,self);
+                        lessParent = (TreapNode<K, V>) readWritePhaseStrategy.assign(lessParent, node, self, writeVersion);
                         lessDir = Direction.RIGHT;
-                        node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node,lessParent.right,self);
+                        node = (TreapNode<K, V>) readWritePhaseStrategy.assign(node, lessParent.right, self, writeVersion);
                         lessParent.setChild(Direction.RIGHT, null, self, writeVersion);
                     }
                 }
@@ -361,16 +361,16 @@ public class GlobalVersionTreap<K,V> implements Map<K,V>{
                 break;
             }
             else {
-                nL = (TreapNode<K, V>) readWritePhaseStrategy.assign(nL,node.left,self);
-                nR = (TreapNode<K, V>) readWritePhaseStrategy.assign(nR,node.right,self);
+                nL = (TreapNode<K, V>) readWritePhaseStrategy.assign(nL,node.left,self, writeVersion);
+                nR = (TreapNode<K, V>) readWritePhaseStrategy.assign(nR,node.right,self, writeVersion);
             
                 if (nL.priority > nR.priority) {
-                	TreapNode<K, V> nLR =  (TreapNode<K, V>) readWritePhaseStrategy.acquire(nL.right,self); // ???
+                	TreapNode<K, V> nLR =  (TreapNode<K, V>) readWritePhaseStrategy.acquire(nL.right,self, writeVersion); // ???
                     node.setChild(Direction.LEFT, nLR, self, writeVersion);
                     parent.setChild(dir, nL, self, writeVersion);
                     nL.setChild(Direction.RIGHT, node, self, writeVersion);
              
-                    parent = (TreapNode<K, V>) readWritePhaseStrategy.assign(parent,nL,self);
+                    parent = (TreapNode<K, V>) readWritePhaseStrategy.assign(parent,nL,self, writeVersion);
                     dir = Direction.RIGHT;
                     readWritePhaseStrategy.release(nLR); //???
                 }
@@ -379,7 +379,7 @@ public class GlobalVersionTreap<K,V> implements Map<K,V>{
                     parent.setChild(dir, nR, self, writeVersion);
                     nR.setChild(Direction.LEFT, node, self, writeVersion);
                
-                    parent = (TreapNode<K, V>) readWritePhaseStrategy.assign(parent,nR,self);
+                    parent = (TreapNode<K, V>) readWritePhaseStrategy.assign(parent,nR,self, writeVersion);
                     dir = Direction.LEFT;
                 }
             }

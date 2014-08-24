@@ -177,7 +177,7 @@ public class GlobalVersionBinaryTree<K,V> implements Map<K,V> {
 			readWritePhaseStrategy.release(curr);
 			return oldValue;
 		}
-		Node<K, V> node = readWritePhaseStrategy.acquire(new Node<K, V>(key,val),self);
+		Node<K, V> node = readWritePhaseStrategy.acquire(new Node<K, V>(key,val),self,writeVersion);
 		if (res > 0 ) { 
 			prev.setChild(Direction.RIGHT,node,self, writeVersion); //true => right
 		} else {
@@ -247,8 +247,8 @@ public class GlobalVersionBinaryTree<K,V> implements Map<K,V> {
 		}
 				
 		//Read-write phase//
-		Node<K, V> currL = readWritePhaseStrategy.acquire(curr.left,self); 
-		Node<K, V> currR = readWritePhaseStrategy.acquire(curr.right,self); 
+		Node<K, V> currL = readWritePhaseStrategy.acquire(curr.left, self, writeVersion); 
+		Node<K, V> currR = readWritePhaseStrategy.acquire(curr.right, self, writeVersion); 
 		boolean isLeft = prev.left == curr; 
 		if (currL == null){ //no left child
 			if(isLeft){
@@ -265,17 +265,17 @@ public class GlobalVersionBinaryTree<K,V> implements Map<K,V> {
 			}
 			curr.setChild(Direction.LEFT,null,self, writeVersion);
 		}else { //both children
-			Node<K, V> prevSucc =  readWritePhaseStrategy.acquire(curr,self); //TODO re-acquire ?? 
-			Node<K, V> succ = readWritePhaseStrategy.acquire(currR,self);  //TODO re-acquire ?? 
-			Node<K, V> succL =  readWritePhaseStrategy.acquire(succ.left,self); 
+			Node<K, V> prevSucc =  readWritePhaseStrategy.acquire(curr, self, writeVersion); //TODO re-acquire ?? 
+			Node<K, V> succ = readWritePhaseStrategy.acquire(currR, self, writeVersion);  //TODO re-acquire ?? 
+			Node<K, V> succL =  readWritePhaseStrategy.acquire(succ.left, self, writeVersion); 
 			while(succL != null){
-				prevSucc =readWritePhaseStrategy.assign(prevSucc,succ,self);
-				succ = readWritePhaseStrategy.assign(succ,succL,self);
-				succL =  readWritePhaseStrategy.assign(succL,succ.left,self);
+				prevSucc =readWritePhaseStrategy.assign(prevSucc,succ, self, writeVersion);
+				succ = readWritePhaseStrategy.assign(succ,succL, self, writeVersion);
+				succL =  readWritePhaseStrategy.assign(succL, succ.left, self, writeVersion);
 			}
 			
 			if (prevSucc != curr){	
-				Node<K, V> succR=  readWritePhaseStrategy.acquire(succ.right,self); 
+				Node<K, V> succR=  readWritePhaseStrategy.acquire(succ.right, self, writeVersion); 
 				prevSucc.setChild(Direction.LEFT,succR,self, writeVersion);				
 				succ.setChild(Direction.RIGHT,currR,self, writeVersion);
 				readWritePhaseStrategy.release(succR);

@@ -20,18 +20,19 @@ public class Node<K, V> extends SpinHeapReentrant {
 		this.value = value;
 		this.left = null;
 		this.right = null;
-		this.version = 0; //TODO set version according to operation writeVersion??? 
+		//this.version = 0; 
 	}
 	
-	private int version; 
+	//private int version; 
 	final K key;
 	V value;
 	Node<K, V> left;
 	Node<K, V> right; 
 
+	/*
 	public int getVersion(){
 	    	return this.version; 
-	}
+	}*/
 	
 	void setChild(final Direction dir, final Node<K,V> n, final Thread self, int newVersion) {
         if (n != null)
@@ -39,10 +40,11 @@ public class Node<K, V> extends SpinHeapReentrant {
         if(this.lockedBy()!= self){
         	assert(false);
         }
+        /*
         if(newVersion < this.version ){
         	assert(false);
         }
-        this.version = newVersion;
+        this.version = newVersion;*/
         //this.version = GlobalVersion.incrementVersion();
         if (dir == Direction.LEFT) {
             if (left != null)
@@ -57,10 +59,11 @@ public class Node<K, V> extends SpinHeapReentrant {
 	
 	
 	void setValue(V val, int newVersion){
+		/*
 		if(newVersion < this.version){
         	assert(false);
 		}
-		this.version = newVersion;
+		this.version = newVersion;*/
 		//this.version = GlobalVersion.incrementVersion();
 		this.value = val; 
 	}

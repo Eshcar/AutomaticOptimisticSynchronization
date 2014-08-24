@@ -44,7 +44,8 @@ public class GlobalVersionValidationPhase<K,V>{
 			}
 			
 		}
-		
+		if(local1!=null) { local1.changeVersion(writeVersion); }
+		if(local2!=null) { local2.changeVersion(writeVersion); }
 		return writeVersion;
 	}
 

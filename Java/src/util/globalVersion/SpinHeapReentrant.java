@@ -13,14 +13,21 @@ public class SpinHeapReentrant extends AtomicReference<Object>
 
     private int depth = 0;
     private int incoming = 0;
+    int version = 0; 
     
     public boolean isLocked(){
     	return this.get()!=null;
     }
     
-    public void acquire(final Thread self) {
+    public void acquire(final Thread self, int newVersion) {
         lock(self);
         depth++;
+        if(depth == 1){
+        	if(newVersion < this.version ){
+            	assert(false);
+            }
+            this.version = newVersion;
+        }
        
     }
     
@@ -30,6 +37,19 @@ public class SpinHeapReentrant extends AtomicReference<Object>
     		 return true;
         }
     	return false; 
+    }
+    
+    public void changeVersion( int newVersion){
+    	if(depth == 1){
+        	if(newVersion < this.version ){
+            	assert(false);
+            }
+            this.version = newVersion;
+        }
+    }
+    
+    public int getVersion(){
+    	return version; 
     }
 
     public void reacquire() {        
