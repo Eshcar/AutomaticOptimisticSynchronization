@@ -1,9 +1,37 @@
 %%This is a very basic article template.
 %%There is just one section and two subsections.
+
 \title{Automatic Specialized Synchronization for Dynamic Data Structures}
 \documentclass{article}
+\usepackage{xspace}
+
+%-------------Theorem Definitions ---------------%
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\newenvironment{proof}[1][Proof]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\qedsymb\end{trivlist}}
+\newenvironment{definition}[1][Definition]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{example}[1][Example]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{remark}[1][Remark]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\newcommand{\qed}{\nobreak \ifvmode \relax \else
+      \ifdim\lastskip<1.5em \hskip-\lastskip
+      \hskip1.5em plus0em minus0.5em \fi \nobreak
+      \vrule height0.75em width0.5em depth0.25em\fi}
+\newcommand{\qedsymb}{\hfill{\rule{2mm}{2mm}}}
+
+%--------------------------------------------------%
 
 \newcommand{\code}[1]{\textsf{#1}}
+\newcommand{\readV}{\code{read\_version}\xspace} 
+\newcommand{\readSet}{\code{read\_set}\xspace}
+\newcommand{\writeV}{\code{write\_version}\xspace}
 
 \begin{document}
 \maketitle
@@ -11,34 +39,250 @@
 \section{Introduction}
 
 \section{Preliminaries}
-A module defines a set of abstract data types and a 
-set of operations that may be invoked by
-clients of the module. 
-%A type consists of a set of fields of type boolean, integer or pointer to a user-defined type. 
+%A \emph{concurrent system} (module) consists of a set of threads, 
+A \emph{module} defines a set of \emph{abstract data types} and a 
+set of \emph{operations} that may be invoked by
+clients of the module.
+Each operation is invoked with possible parameters
+and returns with a response. 
+The invocation is a local step of a thread, 
+followed by a execution of a sequence of atomic steps. 
+Atomic step is either a computation on local 
+variables or a primitive operation on shared variable.
+Read and write to shared memory are 
+denoted load and store.  
+%a load (``\code{x=y.f}'') or 
+%a store (``\code{x.f=y}'') operation on shared variables.
 The parameters and local variables 
 of an operation are private to the
-invocation of the operation. 
+invocation of the operation (thread local). 
 There are no static or global variables shared by  
 different invocations of the operations. 
-An operation is a sequence of atomic steps. 
-Atomic step is either an operation on local 
-variables or a load (``\code{x=y.f}'') or 
-a store (``\code{x.f=y}'') operation on shared variables.
 
-A configuration .. 
-An execution is an alternating sequence of 
+A \emph{configuration} is an instantaneous representation 
+of the system, including the state of the shared memory
+and the local variables. In the \emph{initial configuration} 
+all variables hold an initial value. 
+An \emph{execution} is an alternating sequence of 
 configurations and steps,
 $C_0,s_1,\ldots,s_i,C_i,\ldots,$ 
-where $C_i$ is the initial configuration,
+where $C_0$ is the initial configuration,
 and each configuration $C_i$ is the result of
 executing step $s_i$ on configuration $C_{i-1}$.
-
-\section{Global Version Algorithm}
-Each write operation acquires a unique version 
-from a global version object. Before every store step,  
-the operation writes its unique version to the object.
  
-
-\section{Local Version Algorithm} 
+An execution is \emph{non-interleaved} 
+(abbreviated NI-execution) if primitive operation of 
+different operations are not interleaved, i.e., 
+for every pair of operations invocations $p_i \neq p_j$ 
+either all primitive operations of $p_i$ come before any 
+primitive operation of $p_j$, or vice versa.
  
+Given an execution, we say that two primitive operations 
+\emph{conflict} if (i) they are executed by two different threads, 
+(ii) they access some common global variable or a heap allocated object 
+(iii) at least one of the conflicting instruction is a write.
+
+
+%Let $\pi$ be an execution and $op_i,op_j$ are primitive operations in $\pi$ the
+% conflict relation of $\pi$ is: \\ $conf(\pi)=\{(op_i,op_j)\mid op_i$ and $op_j$ are in conflict and $op_i<_{\pi}op_j\}$\\
+
+%Let $\pi$ be an execution the conflict graph $G(\pi)=(V,E)$ is defined by:\\ $V
+% = \{$ all operations (threads) of $\pi\}$\\
+%$E = \{ (t_i,t_j) \mid t_i\neq t_j$ and $\exists op_i\in t_i, \exists op_j\in
+% t_j$ such that $(op_i,op_j)\in conf(\pi) \}$\\
+
+Executions $\pi_1$ and $\pi_2$ are \emph{conflict-equivalent} 
+if they include the same primitive operations and they 
+agree on the order between conflicting operations. 
+An execution is \emph{conflict-serializable} if it is 
+conflict-equivalent with a non-interleaved execution.
+
+
+%TODO: more definitions about executions
+%TODO: hidden and exposed! 
+
+\subsection{Domination Locking}
+\emph{Domination Locking Protocol} is a conflict serializable
+locking protocol presented in \cite{Gueta2011}. 
+It requires a fixed total order $\leq$ on all heap objects. 
+An execution satisfies the the Domination Locking protocol,
+with respect to $\leq$ if it satisfies the following conditions:
+\begin{enumerate}
+  \item A thread $t$ can access a field of 
+  an object $u$ only if $u$ is
+  currently locked by $t$.
+  \item \ldots
+  \item \ldots 
+  \item \ldots
+\end{enumerate}
+
+\section{Automatic Optimistic Synchronization}
+%The main idea: 
+We address the problem of adding an 
+optimistic synchronization to a module. 
+The idea of optimistic synchronization is to read 
+shared variables without locks and start using a 
+locking protocol only when the operation reaches a store step. 
+In order to implement such synchronization scheme, 
+we divide the operation to three \emph{phases}:
+\begin{description}
+  \item[Read Phase] Stats at the beginning of the operation and
+  ends at any point before the first store operation. 
+  During this phase the operation maintains a \readSet, containing references to
+  objects loaded and any other information needed to later ensure that the read saw 
+  a consistent snapshot of the data. 
+  
+  \item[Validation Phase] This phase connects the read phase
+  with the read-write phase. It has two requirements: (i) lock 
+  local variables of the operation and (ii) ensure that the 
+  values read during the read phase are consistent, i.e.
+  as if the values were read while executing the locking 
+  protocol. To avoid deadlocks, the locks are acquired using 
+  a \code{try\_lock} operation, if the \code{try\_lock} fails, 
+  the operation restarts from the beginning. Next, the \readSet 
+  is validated, if the validation fails the operation restarts from the
+  beginning.
+  
+  \item[Read-Write Phase] This phase enforces domination 
+  locking protocol as described in \cite{Gueta2011}. Once 
+  the read-write phase begins, the operation is guaranteed to to 
+  finish without restarts.  
+\end{description}
+
+\subsection{Global Version Algorithm}
+The module maintains a counter denoted \emph{global version}.
+In high level, the global version is used to identify 
+the order of write operations and freshness of objects.   
+
+In the beginning of the read phase, the operation atomically
+reads the global counter and saves the returned value in 
+a \readV variable. After each load step, the
+operation checks that the version field of the object read
+is not larger than the value of \readV. If the checks fails,
+the operation restarts from the beginning 
+(with a new \readV value). Since the version of the object 
+is not changed atomically with the write to the object, 
+the object is also checked to be unlocked. 
+In this implementation the \readSet contains only 
+references to all objects read by the operation.
+ 
+The validation phase have an 
+additional  requirement, to acquire a unique \writeV. 
+To ensure that versions of objects are not decremented, 
+acquiring the \writeV needs to be done atomically with 
+the validation of the \readSet. One possibility is holding a
+lock on the global version during the validation, 
+an optimistic approach is to read the global version 
+before validation and incrementing it using a CAS 
+operation after the validation. In the \readSet validation 
+each object's version is compared with the \readV, 
+and is checked to be unlocked. 
+%TODO why we check the lock 
+%(example of an operation higher in the tree). 
+
+The only addition to the read-write phase is writing the 
+operation's \writeV to every object that is locked. 
+
+%TODO - is the use of validation phase and read set validation
+%       confusing??? 
+
+\subsection{Local Version Algorithm} 
+Each objects maintains a counter, incremented every time the 
+object is locked. During the read phase, the \readSet maintains
+both object reference and the local version when it was read.
+The local versions are incremented during the read-write phase,
+when the object is locked. Incrementing the version is not atomic 
+with the lock, thus, the object is also checked to be unlocked. 
+The read phase does not validate reads, in order to avoid infinite
+loops, a timeout is set. If the operation reaches the timeout, 
+a \readSet validation takes place, if it fails the operation
+restarts from the beginning. 
+
+The \readSet validation first checks that the node is unlocked,
+(or locked by the current operation), then it checks that the 
+current version is equal to the version saved in the \readSet. 
+
+During the read-write phase, the operation increment the local 
+version of every node that it locks. 
+%TODO can we do this during a store?? 
+ 
+\section{Algorithm's Correctness} 
+%TODO some definitions may be required for the proof:
+%conflict-equivalent
+Let $\pi$ be an execution of our optimistic automation on a 
+sequential algorithm. We will construct an execution $\pi_{DL}$ 
+which is an execution following domination locking. We will prove
+that both executions are conflict-equivalent. Since any execution
+of domination locking is conflict-serializable, this proves that 
+$\pi$ is conflict-serializable. 
+
+Let $p_1,p_2,\ldots,p_n$ be the operations $\in\pi$ ordered by the 
+order of execution of the first step of a successful \readSet 
+validation. (If some operation does not have such point we omit it).
+Let $\pi_{DL} = \pi_{dl1},\pi_{1},\ldots,\pi_{dli},\pi_{i}$ where 
+$\pi_{dli}$ is a $p_i$-only execution of domination locking from 
+the root until $p_i$ holds locks only on the local variable locked
+in the validation phase of $p_i \in \pi$, and $\pi_i$ is
+the interval of $\pi$ starting from the return from the validation of
+$pi$ until the first step of the successful \readSet validation of 
+$p_{i+1}$ that includes only the operations by $\{p_1,\ldots,p_i\}$.
+In other words, we replace the read-phase and validation phase with 
+an execution of domination locking, taking place at the point just 
+before the \readSet validation starts. 
+
+\begin{lemma}
+The construction of $\pi_{DL}$ is feasible.  
+\end{lemma}
+\begin{proof}
+Proof by induction on $t_1,t_2,\ldots,t_n$. Base case is immediate. 
+
+Let $\pi' = \pi_{dl1},\pi_{1},\ldots,\pi_{dlk-1},\pi_{k-1}$ be the feasible
+construction so far, and let $t_{k}$ be the next operation to be 
+added. 
+
+Assume by contradiction that $\pi'\cdot\pi_{dlk}\cdot\pi_{k}$ 
+cannot be constructed, thus, some object $v$ that $p_{k}$ locks 
+in $\pi_{dlk}$ is already locked 
+by $p_j \in \{p_1,p_2,\ldots,p_{k-1}\}$ in
+the last configuration of $\pi'$. 
+If $p_j$ locked $v$ before $p_k$ read $v$ for the first time, 
+then $v$ was locked during the read phase of $p_k$, 
+in contradiction to $p_k$ reaching its validation. 
+Otherwise, $p_j$ locked $v$ after $p_k$ read $v$. 
+If $v$ is still locked during the validation of $p_k$ then 
+the validation will fail, contradiction. Alternatively, $v$ 
+was unlocked by $p_j$ before $p_k$ validated $v$, 
+its version incremented, either to a version bigger than the local version
+read by $p_k$ (in local version mode), or to a version larger than 
+$p_k$'s \readV (in global version mode), contradicting the 
+successful validation of $p_k$.  
+\end{proof}
+
+\begin{lemma}
+$\pi_{DL}$ is conflict-equivalent to $\pi$
+\end{lemma}
+\begin{proof}
+Each operation performs a double collect on all the values it reads. 
+The first collect is the read phase and the second is the \readSet 
+validation of the validation phase. Since validation was successful, 
+both collect are identical, meaning that the values of the \readSet
+do not change from the return of the last read of the read phase,
+until the first read of the \readSet validation. Therefore, executing 
+domination locking of $p_k$ after $\pi' =
+\pi_{dl1},\pi_{1},\ldots,\pi_{dlk-1},\pi_{k-1}$ is conflict-equivalent
+to the original read phase. The read-write phase remains unchanged, 
+maintaining conflict-equivalence to $\pi$.
+\end{proof}
+
+\begin{lemma}
+In the global version algorithm, \readSet validation is not required
+for read-only operations. 
+\end{lemma}
+\begin{proof}
+different construction\ldots
+\end{proof}
+
+
+\bibliography{myRef}
+\bibliographystyle{plain}
 \end{document}
