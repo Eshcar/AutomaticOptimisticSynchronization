@@ -1,8 +1,11 @@
 package treesTest;
 
+import java.util.Random;
+
 import org.junit.Test;
 
 import trees.Map;
+import trees.localVersion.TimeoutBinaryTree;
 import trees.localVersion.TimeoutTreap;
 
 public class TimeoutTreapTest {
@@ -59,4 +62,5 @@ public class TimeoutTreapTest {
 		test.runTest(tree,numThreads, maxKey, insertProbability,
 				removeProbability, numOps);
 	}
+
 }

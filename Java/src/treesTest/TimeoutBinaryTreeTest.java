@@ -1,5 +1,7 @@
 package treesTest;
 
+import java.util.Random;
+
 import org.junit.Test;
 
 import trees.Map;

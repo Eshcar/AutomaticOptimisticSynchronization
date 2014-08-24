@@ -109,7 +109,7 @@ public class TimeoutTreap<K,V> implements Map<K,V>{
 		}
 		return value; 
 	}
-
+    
     private V getImpl(final Comparable<K> key, final Thread self, Error err){
     	ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear();
@@ -145,6 +145,7 @@ public class TimeoutTreap<K,V> implements Map<K,V>{
 				}
 			}
         }
+		
     	if(node!=null){
 			V value = node.value;
 			if (!validationStrategy.validateReadOnly(readSet, self)) err.set();

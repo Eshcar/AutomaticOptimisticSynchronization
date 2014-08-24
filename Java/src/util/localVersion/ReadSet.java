@@ -51,6 +51,10 @@ public class ReadSet<K,V>{
 			}
 		}
 	}
+
+	public int getCount() {
+		return count; 
+	}
 	
 	
 }

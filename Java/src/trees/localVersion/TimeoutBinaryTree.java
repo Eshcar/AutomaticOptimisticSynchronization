@@ -92,6 +92,7 @@ public class TimeoutBinaryTree<K,V> implements Map<K,V>{
 		return value; 
 	}
 	
+
 	private V getImpl(final Comparable<K> k , final Thread self, Error err){
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
@@ -116,7 +117,7 @@ public class TimeoutBinaryTree<K,V> implements Map<K,V>{
 				}
 			}
 		}
-		
+
 		if(curr!=null){
 			V value = curr.value;
 			if (!validationStrategy.validateReadOnly(readSet, self)) err.set();
