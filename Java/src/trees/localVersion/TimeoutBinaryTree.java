@@ -249,64 +249,100 @@ public class TimeoutBinaryTree<K,V> implements Map<K,V>{
 			return oldValue;
 		}
 		
-		//Validation phase//
-		if(!validationStrategy.validateTwo(readSet,prev,curr,self)){
-			err.set();
-			return null; 
-		}
 		
-		Node<K, V> currL = readWritePhaseStrategy.acquire(curr.left,self); 
-		Node<K, V> currR = readWritePhaseStrategy.acquire(curr.right,self); 
+		Node<K, V> currL = readPhaseStrategy.readRef(curr.left,readSet,err); 
+		if(err.isSet()) return null;
+		Node<K, V> currR = readPhaseStrategy.readRef(curr.right,readSet,err);
+		if(err.isSet()) return null;
+		
 		boolean isLeft = prev.left == curr; 
 		if (currL == null){ //no left child
+			
+			//Validation phase//
+			if(!validationStrategy.validateFour(readSet,prev,curr,currL, currR, self)){
+				err.set();
+				return null; 
+			}			
+			
 			if(isLeft){
 				prev.setChild(Direction.LEFT,currR,self);
 			}else {
 				prev.setChild(Direction.RIGHT,currR,self);
 			}
 			curr.setChild(Direction.RIGHT,null,self);
-		} else if (currR == null){ //no right child
+			
+			readWritePhaseStrategy.release(prev);
+			readWritePhaseStrategy.release(curr);
+			readWritePhaseStrategy.release(currL);
+			readWritePhaseStrategy.release(currR);
+			return oldValue;
+		} 
+		
+		
+		if (currR == null){ //no right child
+			
+			//Validation phase//
+			if(!validationStrategy.validateFour(readSet,prev,curr,currL, currR, self)){
+				err.set();
+				return null; 
+			}	
+			
 			if(isLeft){
 				prev.setChild(Direction.LEFT,currL,self);
 			}else {
 				prev.setChild(Direction.RIGHT,currL,self);
 			}
 			curr.setChild(Direction.LEFT,null,self);
-		}else { //both children
-			Node<K, V> prevSucc =  readWritePhaseStrategy.acquire(curr,self); //TODO re-acquire ?? 
-			Node<K, V> succ = readWritePhaseStrategy.acquire(currR,self);  //TODO re-acquire ?? 
-			Node<K, V> succL =  readWritePhaseStrategy.acquire(succ.left,self); 
-			while(succL != null){
-				prevSucc =readWritePhaseStrategy.assign(prevSucc,succ,self);
-				succ = readWritePhaseStrategy.assign(succ,succL,self);
-				succL =  readWritePhaseStrategy.assign(succL,succ.left,self);
-			}
 			
-			if (prevSucc != curr){	
-				Node<K, V> succR=  readWritePhaseStrategy.acquire(succ.right,self); 
-				prevSucc.setChild(Direction.LEFT,succR,self);				
-				succ.setChild(Direction.RIGHT,currR,self);
-				readWritePhaseStrategy.release(succR);
-			}
-			succ.setChild(Direction.LEFT,currL,self);
-			if (isLeft){
-				prev.setChild(Direction.LEFT,succ,self); 
-			} else{
-				prev.setChild(Direction.RIGHT,succ,self); 
-			}
+			readWritePhaseStrategy.release(prev);
+			readWritePhaseStrategy.release(curr);
+			readWritePhaseStrategy.release(currL);
+			readWritePhaseStrategy.release(currR);
+			return oldValue;
 			
-			curr.setChild(Direction.RIGHT,null,self);
-			curr.setChild(Direction.LEFT,null,self);
-			readWritePhaseStrategy.release(prevSucc);
-			readWritePhaseStrategy.release(succ);
-			readWritePhaseStrategy.release(succL);
-			
+		}   
+		//both children
+		Node<K, V> prevSucc =  curr; 
+		Node<K, V> succ = currR;
+		Node<K, V> succL =  readPhaseStrategy.readRef(succ.left,readSet,err); 
+		if(err.isSet()) return null;
+		
+		while(succL != null){
+			prevSucc = succ;
+			succ = succL;
+			succL =  readPhaseStrategy.readRef(succ.left,readSet,err);
+			if(err.isSet()) return null;
 		}
 		
+		//Validation phase//
+		if(!validationStrategy.validateSix(readSet,prev,curr,currL,currR,prevSucc,succ, self)){
+			err.set();
+			return null; 
+		}	
+		
+		if (prevSucc != curr){	
+			Node<K, V> succR=  readWritePhaseStrategy.acquire(succ.right,self); 
+			prevSucc.setChild(Direction.LEFT,succR,self);				
+			succ.setChild(Direction.RIGHT,currR,self);
+			readWritePhaseStrategy.release(succR);
+		}
+		succ.setChild(Direction.LEFT,currL,self);
+		if (isLeft){
+			prev.setChild(Direction.LEFT,succ,self); 
+		} else{
+			prev.setChild(Direction.RIGHT,succ,self); 
+		}
+		
+		curr.setChild(Direction.RIGHT,null,self);
+		curr.setChild(Direction.LEFT,null,self);
+		readWritePhaseStrategy.release(prevSucc);
+		readWritePhaseStrategy.release(succ);
+		readWritePhaseStrategy.release(succL);		
 		readWritePhaseStrategy.release(prev);
 		readWritePhaseStrategy.release(curr);
 		readWritePhaseStrategy.release(currL);
 		readWritePhaseStrategy.release(currR);
+		
 		assert(prev ==null || prev.lockedBy()!=self );
 		assert(curr ==null || curr.lockedBy()!=self);
 		assert(currL ==null || currL.lockedBy()!=self);
