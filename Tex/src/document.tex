@@ -218,6 +218,12 @@ loops, a timeout is set. If the operation reaches the timeout,
 a \readSet validation takes place, if it fails the operation
 restarts from the beginning. 
 
+The use of timeout does not guarantee
+\emph{opacity}~\cite{GuerraouiK2008} or 
+\emph{validity}\cite{LevAriCK2014}. 
+
+
+
 The \readSet validation first checks that the node is unlocked,
 (or locked by the current operation), then it checks that the 
 current version is equal to the version saved in the \readSet. 
