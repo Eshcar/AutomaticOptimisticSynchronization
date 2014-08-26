@@ -33,6 +33,9 @@
 \newcommand{\readSet}{\code{read\_set}\xspace}
 \newcommand{\writeV}{\code{write\_version}\xspace}
 
+\newcommand{\reqI}{\textbf{LPR1}\xspace}
+\newcommand{\reqII}{\textbf{LPR2}\xspace}
+
 \begin{document}
 \maketitle
 
@@ -101,28 +104,27 @@ conflict-equivalent with a non-interleaved execution.
 %TODO: more definitions about executions
 %TODO: hidden and exposed! 
 
-\subsection{Domination Locking}
-\emph{Domination Locking Protocol} is a conflict serializable
-locking protocol presented in \cite{Gueta2011}. 
-It requires a fixed total order $\leq$ on all heap objects. 
-An execution satisfies the the Domination Locking protocol,
-with respect to $\leq$ if it satisfies the following conditions:
-\begin{enumerate}
-  \item A thread $t$ can access a field of 
-  an object $u$ only if $u$ is
-  currently locked by $t$.
-  \item \ldots
-  \item \ldots 
-  \item \ldots
-\end{enumerate}
+%DOMINATION LOCKING
+%\emph{Domination Locking Protocol} is a conflict serializable
+%locking protocol presented in \cite{Gueta2011}. 
+%It requires a fixed total order $\leq$ on all heap objects. 
+%An execution satisfies the the Domination Locking protocol,
+%with respect to $\leq$ if it satisfies the following conditions:
+
 
 \section{Automatic Optimistic Synchronization}
 %The main idea: 
 We address the problem of adding an 
-optimistic synchronization to a module. 
-The idea of optimistic synchronization is to read 
-shared variables without locks and start using a 
-locking protocol only when the operation reaches a store step. 
+optimism to a pessimistic locking protocol. 
+Given a sequential implementation and some pessimistic
+locking protocol, that performs store steps 
+only to locked objects,
+we add optimistic synchronization. 
+The idea of optimistic synchronization is to load 
+shared variables without locks and start using the 
+locking protocol only when the operation reaches a store step.
+In practice our algorithm shows that there is no need to 
+acquire locks if they are freed before any change is made.    
 In order to implement such synchronization scheme, 
 we divide the operation to three \emph{phases}:
 \begin{description}
@@ -143,11 +145,29 @@ we divide the operation to three \emph{phases}:
   is validated, if the validation fails the operation restarts from the
   beginning.
   
-  \item[Read-Write Phase] This phase enforces domination 
-  locking protocol as described in \cite{Gueta2011}. Once 
-  the read-write phase begins, the operation is guaranteed to to 
+  \item[Read-Write Phase] This phase enforces the locking protocol. 
+  Once the read-write phase begins, the operation is guaranteed to to 
   finish without restarts.  
 \end{description}
+
+\subsection{Requirements on The Locking Protocol}
+In order for our algorithm to work, the initial locking
+protocol must have one of the following properties: 
+
+\begin{description}
+\item[\reqI] The protocols allows early lock release. 
+\item[\reqII] The protocols requires that all locks are acquired 
+before the first store step.    
+\end{description}
+    
+
+For example the \emph{two phase locking (2PL)} protocol 
+does not allow early lock release (no locks can be acquired after a 
+lock was released), also, it does not require acquiring all locks
+before the first store operation. However, a stricter version 
+of 2PL locking that requires \reqII can be used to achieve optimism. 
+The resulting optimistic protocol would be very similar to 
+\emph{Transactional Locking 2}\cite{DiceSS2006}.   
 
 \subsection{Global Version Algorithm}
 The module maintains a counter denoted \emph{global version}.
@@ -207,42 +227,44 @@ version of every node that it locks.
 %TODO can we do this during a store?? 
  
 \section{Algorithm's Correctness} 
-%TODO some definitions may be required for the proof:
-%conflict-equivalent
+We will prove that if the original locking protocol is 
+conflict-serializable then our algorithm is conflict-serializable.
+
 Let $\pi$ be an execution of our optimistic automation on a 
-sequential algorithm. We will construct an execution $\pi_{DL}$ 
-which is an execution following domination locking. We will prove
-that both executions are conflict-equivalent. Since any execution
-of domination locking is conflict-serializable, this proves that 
-$\pi$ is conflict-serializable. 
+sequential algorithm. We will construct an execution $\pi_{LP}$ 
+which is an execution following the original locking protocol. 
+We will prove that both executions are conflict-equivalent. 
+Since any execution of the original locking protocol
+is conflict-serializable, then $\pi$ is conflict-serializable. 
 
 Let $p_1,p_2,\ldots,p_n$ be the operations $\in\pi$ ordered by the 
 order of execution of the first step of a successful \readSet 
 validation. (If some operation does not have such point we omit it).
-Let $\pi_{DL} = \pi_{dl1},\pi_{1},\ldots,\pi_{dli},\pi_{i}$ where 
-$\pi_{dli}$ is a $p_i$-only execution of domination locking from 
-the root until $p_i$ holds locks only on the local variable locked
+Let $\pi_{LP} = \pi_{lp1},\pi_{1},\ldots,\pi_{lpi},\pi_{i}$ where 
+$\pi_{lpi}$ is a $p_i$-only execution of original locking protocol 
+from until $p_i$ holds locks only on the local variable locked
 in the validation phase of $p_i \in \pi$, and $\pi_i$ is
 the interval of $\pi$ starting from the return from the validation of
 $pi$ until the first step of the successful \readSet validation of 
 $p_{i+1}$ that includes only the operations by $\{p_1,\ldots,p_i\}$.
 In other words, we replace the read-phase and validation phase with 
-an execution of domination locking, taking place at the point just 
-before the \readSet validation starts. 
+an execution of the original locking protocol, 
+taking place at the point just before the \readSet validation starts. 
 
+%TODO connect the requirement on the locking protocol to the construction.
 \begin{lemma}
-The construction of $\pi_{DL}$ is feasible.  
+The construction of $\pi_{LP}$ is feasible.  
 \end{lemma}
 \begin{proof}
-Proof by induction on $t_1,t_2,\ldots,t_n$. Base case is immediate. 
+Proof by induction on $p_1,p_2,\ldots,p_n$. Base case is immediate. 
 
-Let $\pi' = \pi_{dl1},\pi_{1},\ldots,\pi_{dlk-1},\pi_{k-1}$ be the feasible
-construction so far, and let $t_{k}$ be the next operation to be 
+Let $\pi' = \pi_{lp1},\pi_{1},\ldots,\pi_{lpk-1},\pi_{k-1}$ be the feasible
+construction so far, and let $p_{k}$ be the next operation to be 
 added. 
 
-Assume by contradiction that $\pi'\cdot\pi_{dlk}\cdot\pi_{k}$ 
+Assume by contradiction that $\pi'\cdot\pi_{lpk}\cdot\pi_{k}$ 
 cannot be constructed, thus, some object $v$ that $p_{k}$ locks 
-in $\pi_{dlk}$ is already locked 
+in $\pi_{lpk}$ is already locked 
 by $p_j \in \{p_1,p_2,\ldots,p_{k-1}\}$ in
 the last configuration of $\pi'$. 
 If $p_j$ locked $v$ before $p_k$ read $v$ for the first time, 
@@ -252,14 +274,15 @@ Otherwise, $p_j$ locked $v$ after $p_k$ read $v$.
 If $v$ is still locked during the validation of $p_k$ then 
 the validation will fail, contradiction. Alternatively, $v$ 
 was unlocked by $p_j$ before $p_k$ validated $v$, 
-its version incremented, either to a version bigger than the local version
-read by $p_k$ (in local version mode), or to a version larger than 
-$p_k$'s \readV (in global version mode), contradicting the 
-successful validation of $p_k$.  
+its version incremented, either to a version bigger 
+than the local version read by $p_k$ (in local version mode), 
+or to a version larger than $p_k$'s \readV 
+(in global version mode), contradicting the successful 
+validation of $p_k$.  
 \end{proof}
 
 \begin{lemma}
-$\pi_{DL}$ is conflict-equivalent to $\pi$
+$\pi_{LP}$ is conflict-equivalent to $\pi$
 \end{lemma}
 \begin{proof}
 Each operation performs a double collect on all the values it reads. 
@@ -268,8 +291,8 @@ validation of the validation phase. Since validation was successful,
 both collect are identical, meaning that the values of the \readSet
 do not change from the return of the last read of the read phase,
 until the first read of the \readSet validation. Therefore, executing 
-domination locking of $p_k$ after $\pi' =
-\pi_{dl1},\pi_{1},\ldots,\pi_{dlk-1},\pi_{k-1}$ is conflict-equivalent
+the original locking of $p_k$ after $\pi' =
+\pi_{lp1},\pi_{1},\ldots,\pi_{lpk-1},\pi_{k-1}$ is conflict-equivalent
 to the original read phase. The read-write phase remains unchanged, 
 maintaining conflict-equivalence to $\pi$.
 \end{proof}
