@@ -1,4 +1,4 @@
-package threes.citrus;
+package trees.citrus;
 
 import java.util.Comparator;
 import java.util.HashSet;

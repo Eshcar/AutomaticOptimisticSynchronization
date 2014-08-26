@@ -1,11 +1,6 @@
-package threes.citrus;
-
-import java.util.concurrent.atomic.AtomicLong;
-
+package trees.citrus;
 
 public class RCU {
-	
-	
 	
 	static private int numThreads;
 	static private RCUNode rcuTable[]; 

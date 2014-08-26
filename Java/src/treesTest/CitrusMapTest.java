@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
-import threes.citrus.RCU;
 import trees.Map;
+import trees.citrus.RCU;
 
 
 public class CitrusMapTest {

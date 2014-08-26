@@ -2,8 +2,8 @@ package treesTest;
 
 import org.junit.Test;
 
-import threes.citrus.Citrus;
 import trees.Map;
+import trees.citrus.Citrus;
 
 public class CitrusTreeTest {
 	
@@ -48,11 +48,11 @@ public class CitrusTreeTest {
 		
 		@Test
 		public void multiTest3() {
-			int numThreads = 8;
-			int maxKey = 50000; 
+			int numThreads = 2;
+			int maxKey = 500000; 
 			int insertProbability = 50; 
-			int removeProbability = 50; 
-			int numOps = 20000000; 
+			int removeProbability = 0; 
+			int numOps = 200000000; 
 			Map<Integer,Integer> tree = new Citrus<Integer,Integer>(-1,maxKey);
 			
 			CitrusMapTest test = new CitrusMapTest(); 
