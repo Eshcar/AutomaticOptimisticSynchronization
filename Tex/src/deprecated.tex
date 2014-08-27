@@ -1,0 +1,33 @@
+\subsection{Global Version Algorithm}
+The module maintains a counter denoted \emph{global version}.
+In high level, the global version is used to identify 
+the order of write operations and freshness of objects.   
+
+In the beginning of the read phase, the operation atomically
+reads the global counter and saves the returned value in 
+a \readV variable. After each load step, the
+operation checks that the version field of the object read
+is not larger than the value of \readV. If the checks fails,
+the operation restarts from the beginning 
+(with a new \readV value). Since the version of the object 
+is not changed atomically with the write to the object, 
+the object is also checked to be unlocked. 
+In this implementation the \readSet contains only 
+references to all objects read by the operation.
+ 
+The validation phase have an 
+additional  requirement, to acquire a unique \writeV. 
+To ensure that versions of objects are not decremented, 
+acquiring the \writeV needs to be done atomically with 
+the validation of the \readSet. One possibility is holding a
+lock on the global version during the validation, 
+an optimistic approach is to read the global version 
+before validation and incrementing it using a CAS 
+operation after the validation. In the \readSet validation 
+each object's version is compared with the \readV, 
+and is checked to be unlocked. 
+%TODO why we check the lock 
+%(example of an operation higher in the tree).
+
+The only addition to the read-write phase is writing the 
+operation's \writeV to every object that is locked. 
