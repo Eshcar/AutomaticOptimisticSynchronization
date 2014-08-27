@@ -4,6 +4,10 @@
 \title{Automatic Optimistic Synchronization for Dynamic Data Structures}
 \documentclass{article}
 \usepackage{xspace}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{caption}
+\usepackage{subcaption}
 
 %-------------Theorem Definitions ---------------%
 \newtheorem{theorem}{Theorem}[section]
@@ -175,7 +179,8 @@ of the optimistic read phase.
   If the operation reaches the timeout, 
   a \readSet validation takes place, if it fails 
   the operation restarts from the beginning.
-  A pseudo code of the transformation can be found in \ref{}. 
+  A pseudo code of the transformation can be found in 
+  Figure \ref{figure:readPhaseTransformation}. 
   
   \item[Validation Phase] This phase connects the read phase
   with the read-write phase. It has two requirements: (i) lock 
@@ -189,7 +194,8 @@ of the optimistic read phase.
   beginning. During the \readSet validation, each reference saved 
   in the \readSet is checked to be unlocked and that the current 
   version matches the version saved in the \readSet. 
-  A pseudo code of the \readSet validation can be found in \ref{}. 
+  A pseudo code of the \readSet validation can be found in
+  Figure \ref{figure:readSetValidation}.
   
   \item[Read-Write Phase] This phase enforces the locking protocol
   while maintaining the local versions, i.e., the local version of 
@@ -205,6 +211,60 @@ The use of timeout does not guarantee
 %The \readSet validation first checks that the node is unlocked,
 %(or locked by the current operation), then it checks that the 
 %current version is equal to the version saved in the \readSet. 
+ 
+%ALGORITHM CODE
+
+\begin{figure}
+
+	\begin{subfigure}{.35\textwidth}
+		\begin{algorithmic}[1]{}
+			\Function{foo}{\ldots} \label{code:begin}
+			\Statex \ldots
+			\State x = ptrExp \label{code:readRef}
+			\Statex \ldots
+			\EndFunction
+		\end{algorithmic}
+	\end{subfigure}
+    \begin{subfigure}{.60\textwidth}
+		\begin{algorithmic}[1]{}
+			\State temp = ptrExp
+			\State version = temp.getVersion()
+			\If{y.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+			\State readSet.add(temp,version) 
+			\State x = temp
+		\end{algorithmic}
+	\end{subfigure}
+	\caption{Read phase transformation, the code in line \ref{code:readRef} 
+	is replaced with the code on the right. 
+			\label{figure:readPhaseTransformation}}
+\end{figure}
+
+
+\begin{figure}
+	\begin{algorithmic}[1]{}
+	\Function{foo}{\ldots}
+			\Statex \ldots
+			\Statex \Comment begin \readSet validation
+		\ForAll{ (ref,version)$\in$ readSet}
+			\If{ref.isLocked() \textbf{and} ref.lockedBy!= self} 
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+			\If{version!= ref.getVersion()}
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+		\EndFor
+		\Statex \ldots
+		\EndFunction
+	\end{algorithmic}
+	\caption{\readSet validation \label{figure:readSetValidation}}
+\end{figure}
+%END CODE 
+ 
  
 \section{Algorithm's Correctness} 
 We will prove that if the original locking protocol is 
