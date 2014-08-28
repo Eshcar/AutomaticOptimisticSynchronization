@@ -207,4 +207,35 @@ public class BinaryTree<K, V> implements Map<K, V> {
 		Node<K, V> right; 
 		
 	}
+	
+	
+	public int getMedianPath(){
+		int[] counters = new int[100]; 
+		doGetMedianPath(root.left, 0, counters);
+		int numLeaves = 0; 
+		for(int i=0; i<100; i++){
+			numLeaves+= counters[i];
+		}
+		int median = numLeaves/2; 
+		int i =0; 
+		while( median > 0){
+			median-=counters[i];
+			i++;
+		}
+		return i;
+	}
+	
+	private void doGetMedianPath(Node<K,V> node, int depth, int[] counters){
+		if(node == null) return; 
+		if(node.left == null && node.right == null){
+			counters[depth]++;
+		}
+		if(node.left!= null){
+			doGetMedianPath(node.left, depth+1, counters);
+		}
+		if(node.right != null){
+			doGetMedianPath(node.right, depth+1, counters);
+		}
+	}
+	
 }

@@ -1,6 +1,9 @@
 package treesTest;
 
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Random;
 
 import org.junit.Test;
 
@@ -26,5 +29,58 @@ public class TreapTest {
 		}
 		System.out.println("Done");
 	}
+	
+	
+	@Test
+	public void test2() {
+		System.out.println("Starting AutoSimpleTreapTest - TestSequential");
+		Treap<Integer,Integer> tree = new Treap<Integer,Integer>();
+		Random rand = new Random(); 
+		int k;
+		int count = 0;
+		while(count < 10000){
+			k = rand.nextInt(20000);
+			if(tree.put(k, k)==null){
+				count++; 
+			}	
+		}
+		System.out.println("Done");
+		System.out.println("median is: " + tree.getMedianPath());
+	}
+	
+	@Test
+	public void test3() {
+		System.out.println("Starting AutoSimpleTreapTest - TestSequential");
+		Treap<Integer,Integer> tree = new Treap<Integer,Integer>();
+		Random rand = new Random(); 
+		int k;
+		int count = 0;
+		while(count < 100000){
+			k = rand.nextInt(200000);
+			if(tree.put(k, k)==null){
+				count++; 
+			}	
+		}
+		System.out.println("Done");
+		System.out.println("median is: " + tree.getMedianPath());
+	}
+	
+	@Test
+	public void test4() {
+		System.out.println("Starting AutoSimpleTreapTest - TestSequential");
+		Treap<Integer,Integer> tree = new Treap<Integer,Integer>();
+		Random rand = new Random(); 
+		int k;
+		int count = 0;
+		while(count < 1000000){
+			k = rand.nextInt(2000000);
+			if(tree.put(k, k)==null){
+				count++; 
+			}	
+		}
+		System.out.println("Done");
+		System.out.println("median is: " + tree.getMedianPath());
+	}
+	
 
 }
