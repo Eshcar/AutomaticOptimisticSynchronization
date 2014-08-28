@@ -1,12 +1,14 @@
 package trees;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 
-public class RedBlackTree<K,V>{
+
+import java.util.Comparator;
+import java.util.HashSet;
+
+
+
+
+public class RedBlackTree<K,V> implements Map<K, V>{
 	
 	private static class Node<K,V>  {
         K key;
@@ -412,32 +414,44 @@ public class RedBlackTree<K,V>{
 	  }
     }
 
-    private void append(final Node<K,V> node, final ArrayList<Map.Entry<K,V>> buffer) {
-        if (node == null) {
-            return;
-        } 
- 		
-        append(node.left, buffer);
-        buffer.add(new AbstractMap.SimpleImmutableEntry<K,V>(node.key, node.value));
-        final Node<K,V> right = node.right;
-   
-        append(right, buffer);
+	@Override
+	public boolean validate() {
+		return IsSane();
+	}
+
+	@Override
+	public HashSet<K> getAllKeys() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public int getMedianPath(){
+		int[] counters = new int[100]; 
+		doGetMedianPath(rootHolder.right, 0, counters);
+		int numLeaves = 0; 
+		for(int i=0; i<100; i++){
+			numLeaves+= counters[i];
+		}
+		int median = numLeaves/2; 
+		int i =0; 
+		while( median > 0){
+			median-=counters[i];
+			i++;
+		}
+		return i;
+	}
 	
-    }
-
-    public List<Map.Entry<K,V>> toList() // not thread safe !! - for debug 
-    {        
-		
-        final ArrayList<Map.Entry<K,V>> buffer = new ArrayList<Map.Entry<K,V>>();
-      
-        append(rootHolder.right, buffer);		
-        
-		return buffer;
-    }
-
-    public String toString() // not thread safe !! - for debug 
-    {
-        return toList().toString();
-    }
+	private void doGetMedianPath(Node<K,V> node, int depth, int[] counters){
+		if(node == null) return; 
+		if(node.left == null && node.right == null){
+			counters[depth]++;
+		}
+		if(node.left!= null){
+			doGetMedianPath(node.left, depth+1, counters);
+		}
+		if(node.right != null){
+			doGetMedianPath(node.right, depth+1, counters);
+		}
+	}
 
 }

@@ -16,7 +16,7 @@ public class MapTest {
 		int k;
 		for (int i=0; i<20 ; i++){
 			k = rand.nextInt(50);
-			//System.out.print(k+", ");
+			System.out.print(k+", ");
 			if(map.containsKey(k)){
 				Integer oldValue = map.get(k);
 				assertEquals(tree.put(k, i),oldValue); 
