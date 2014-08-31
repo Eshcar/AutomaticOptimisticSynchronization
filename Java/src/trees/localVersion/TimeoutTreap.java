@@ -10,6 +10,7 @@ import trees.Map;
 import trees.localVersion.Node.Direction;
 import util.Error;
 import util.FastSimpleRandom;
+import util.NonSharedFastSimpleRandom;
 import util.ReadWritePhaseStrategy;
 import util.localVersion.LocalVersionReadWritePhase;
 import util.localVersion.ReadSet;
@@ -20,7 +21,7 @@ public class TimeoutTreap<K,V> implements Map<K,V>{
 	private final long LIMIT = 2000;
 	
 	@SuppressWarnings("hiding")
-	private class TreapNode<K,V> extends Node<K,V>{
+	static private class TreapNode<K,V> extends Node<K,V>{
 
 		/**
 		 * Default 
@@ -45,6 +46,14 @@ public class TimeoutTreap<K,V> implements Map<K,V>{
         protected Thread initialValue()
         {
             return Thread.currentThread();
+        }
+    };
+    
+    private final ThreadLocal<NonSharedFastSimpleRandom> fastRandom = new ThreadLocal<NonSharedFastSimpleRandom>(){
+        @Override
+        protected NonSharedFastSimpleRandom initialValue()
+        {
+            return new NonSharedFastSimpleRandom(Thread.currentThread().getId());
         }
     };
     
@@ -172,7 +181,7 @@ public class TimeoutTreap<K,V> implements Map<K,V>{
 		readSet.clear(); 
 		long count = 0; 
         V prevValue = null;      
-        final int prio = FastSimpleRandom.nextInt();
+        final int prio = fastRandom.get().nextInt();
         
         //Read-only phase//
         TreapNode<K,V> parent = (TreapNode<K, V>) readPhaseStrategy.readRef(this.rootHolder, readSet, err);
