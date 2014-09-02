@@ -1,0 +1,68 @@
+\section{Algorithm's Correctness} 
+We will prove that if the original locking protocol is 
+conflict-serializable then our algorithm is conflict-serializable.
+
+Let $\pi$ be an execution of our optimistic automation on a 
+sequential algorithm. We will construct an execution $\pi_{LP}$ 
+which is an execution following the original locking protocol. 
+We will prove that both executions are conflict-equivalent. 
+Since any execution of the original locking protocol
+is conflict-serializable, then $\pi$ is conflict-serializable. 
+
+Let $p_1,p_2,\ldots,p_n$ be the operations $\in\pi$ ordered by the 
+order of execution of the first step of a successful \readSet 
+validation. (If some operation does not have such point we omit it).
+Let $\pi_{LP} = \pi_{lp1},\pi_{1},\ldots,\pi_{lpi},\pi_{i}$ where 
+$\pi_{lpi}$ is a $p_i$-only execution of original locking protocol 
+until $p_i$ holds locks only on the local variable locked
+in the validation phase of $p_i \in \pi$, and $\pi_i$ is
+the interval of $\pi$ starting from the return from the validation of
+$pi$ until the first step of the successful \readSet validation of 
+$p_{i+1}$ that includes only the operations by $\{p_1,\ldots,p_i\}$.
+In other words, we replace the read-phase and validation phase with 
+an execution of the original locking protocol, 
+taking place at the point just before the \readSet validation starts. 
+
+%TODO connect the requirement on the locking protocol to the construction.
+\begin{lemma}
+The construction of $\pi_{LP}$ is feasible.  
+\end{lemma}
+\begin{proof}
+Proof by induction on $p_1,p_2,\ldots,p_n$. Base case is immediate. 
+
+Let $\pi' = \pi_{lp1},\pi_{1},\ldots,\pi_{lpk-1},\pi_{k-1}$ be the feasible
+construction so far, and let $p_{k}$ be the next operation to be 
+added. 
+
+Assume by contradiction that $\pi'\cdot\pi_{lpk}\cdot\pi_{k}$ 
+cannot be constructed, thus, some object $v$ that $p_{k}$ locks 
+in $\pi_{lpk}$ is already locked 
+by $p_j \in \{p_1,p_2,\ldots,p_{k-1}\}$ in
+the last configuration of $\pi'$. 
+If $p_j$ locked $v$ before $p_k$ read $v$ for the first time, 
+then $v$ was locked during the read phase of $p_k$, 
+in contradiction to $p_k$ reaching its validation. 
+Otherwise, $p_j$ locked $v$ after $p_k$ read $v$. 
+If $v$ is still locked during the validation of $p_k$ then 
+the validation will fail, contradiction. Alternatively, $v$ 
+was unlocked by $p_j$ before $p_k$ validated $v$, 
+its version incremented to a version bigger 
+than the local version read by $p_k$, 
+contradicting the successful validation of $p_k$.  
+\end{proof}
+
+\begin{lemma}
+$\pi_{LP}$ is conflict-equivalent to $\pi$
+\end{lemma}
+\begin{proof}
+Each operation performs a double collect on all the values it reads. 
+The first collect is the read phase and the second is the \readSet 
+validation of the validation phase. Since validation was successful, 
+both collect are identical, meaning that the values of the \readSet
+do not change from the return of the last read of the read phase,
+until the first read of the \readSet validation. Therefore, executing 
+the original locking of $p_k$ after $\pi' =
+\pi_{lp1},\pi_{1},\ldots,\pi_{lpk-1},\pi_{k-1}$ is conflict-equivalent
+to the original read phase. The read-write phase remains unchanged, 
+maintaining conflict-equivalence to $\pi$.
+\end{proof}

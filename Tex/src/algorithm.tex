@@ -1,0 +1,125 @@
+\section{\ldots}
+%The main idea: 
+We address the problem of adding an 
+optimism to a pessimistic locking protocol. 
+Given a sequential implementation and some pessimistic
+locking protocol, that performs store steps 
+only to locked objects,
+we add optimistic synchronization. 
+The idea of optimistic synchronization is to load 
+shared variables without locks and start using the 
+locking protocol only when the operation reaches a store step.
+In practice our algorithm shows that there is no need to 
+acquire locks if they are freed before any change is made.    
+%In order to implement such synchronization scheme, 
+%we divide the operation to three \emph{phases}:
+
+This optimistic scheme separates the operation to three
+\emph{phases}, an optimistic \emph{read phase},
+a pessimistic \emph{read-write phase} and a 
+\emph{validation phase} that connect them. 
+
+\subsection{Detailed Algorithm}
+Each objects maintains a counter, incremented every time the 
+object is locked. This counter is used to validate the correctness
+of the optimistic read phase. 
+
+\begin{description}
+  \item[Read Phase] Stats at the beginning of the operation and
+  ends at any point before the first store operation. 
+  During this phase the operation maintains a \readSet, 
+  containing references to objects loaded and the local 
+  version when it was read. The local versions are incremented 
+  during the read-write phase, when the object is locked. 
+  Incrementing the version is not atomic with the lock, thus, 
+  the object is also checked to be unlocked. 
+  The read phase does not validate reads, 
+  in order to avoid infinite loops, a timeout is set. 
+  If the operation reaches the timeout, 
+  a \readSet validation takes place, if it fails 
+  the operation restarts from the beginning.
+  A pseudo code of the transformation can be found in 
+  Figure \ref{figure:readPhaseTransformation}. 
+  
+  \item[Validation Phase] This phase connects the read phase
+  with the read-write phase. It has two requirements: (i) lock 
+  local variables of the operation and (ii) ensure that the 
+  values read during the read phase are consistent, i.e.
+  as if the values were read while executing the locking 
+  protocol. To avoid deadlocks, the locks are acquired using 
+  a \code{try\_lock} operation, if the \code{try\_lock} fails, 
+  the operation restarts from the beginning. Next, the \readSet 
+  is validated, if the validation fails the operation restarts from the
+  beginning. During the \readSet validation, each reference saved 
+  in the \readSet is checked to be unlocked and that the current 
+  version matches the version saved in the \readSet. 
+  A pseudo code of the \readSet validation can be found in
+  Figure \ref{figure:readSetValidation}.
+  
+  \item[Read-Write Phase] This phase enforces the locking protocol
+  while maintaining the local versions, i.e., the local version of 
+  an object is incremented every time it is locked.  
+  Once the read-write phase begins, the operation is guaranteed to to 
+  finish without restarts.  
+\end{description}
+
+The use of timeout does not guarantee
+\emph{opacity}~\cite{GuerraouiK2008} or 
+\emph{validity}\cite{LevAriCK2014}. 
+
+%The \readSet validation first checks that the node is unlocked,
+%(or locked by the current operation), then it checks that the 
+%current version is equal to the version saved in the \readSet. 
+ 
+%ALGORITHM CODE
+
+\begin{figure}
+
+	\begin{subfigure}{.35\textwidth}
+		\begin{algorithmic}[1]{}
+			\Function{foo}{\ldots} \label{code:begin}
+			\Statex \ldots
+			\State x = ptrExp \label{code:readRef}
+			\Statex \ldots
+			\EndFunction
+		\end{algorithmic}
+	\end{subfigure}
+    \begin{subfigure}{.60\textwidth}
+		\begin{algorithmic}[1]{}
+			\State temp = ptrExp
+			\State version = temp.getVersion()
+			\If{y.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+			\State readSet.add(temp,version) 
+			\State x = temp
+		\end{algorithmic}
+	\end{subfigure}
+	\caption{Read phase transformation, the code in line \ref{code:readRef} 
+	is replaced with the code on the right. 
+			\label{figure:readPhaseTransformation}}
+\end{figure}
+
+
+\begin{figure}
+	\begin{algorithmic}[1]{}
+	\Function{foo}{\ldots}
+			\Statex \ldots
+			\Statex \Comment begin \readSet validation
+		\ForAll{ (ref,version)$\in$ readSet}
+			\If{ref.isLocked() \textbf{and} ref.lockedBy!= self} 
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+			\If{version!= ref.getVersion()}
+				\State \textbf{goto} \ref{code:begin} 
+				\Comment Restart Operation
+			\EndIf
+		\EndFor
+		\Statex \ldots
+		\EndFunction
+	\end{algorithmic}
+	\caption{\readSet validation \label{figure:readSetValidation}}
+\end{figure}
+%END CODE 

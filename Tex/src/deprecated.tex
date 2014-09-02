@@ -31,3 +31,14 @@ and is checked to be unlocked.
 
 The only addition to the read-write phase is writing the 
 operation's \writeV to every object that is locked. 
+
+
+
+\subsection{Requirements on The Locking Protocol}
+For example the \emph{two phase locking (2PL)} protocol 
+does not allow early lock release (no locks can be acquired after a 
+lock was released), also, it does not require acquiring all locks
+before the first store operation. However, a stricter version 
+of 2PL locking that requires \reqII can be used to achieve optimism. 
+The resulting optimistic protocol would be similar to 
+\emph{Transactional Locking 2}\cite{DiceSS2006}.   
