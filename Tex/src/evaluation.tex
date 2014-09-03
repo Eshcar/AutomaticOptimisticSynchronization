@@ -1,1 +1,74 @@
 \section{Evaluation}
+In order to apply our approach to a data structure, a
+''black-box'' pessimistic locking is required. One such 
+approach was presented in \cite{Gueta2011}, automatically 
+applying domination locking protocol to forest based data structures.  
+We applied domination locking followed by our optimistic 
+transformation to two tree based data structures, 
+a simple unbalanced binary search tree 
+and a treap (randomized binary search tree) \cite{AragonS1989}.
+
+\paragraph{Setup}
+We compared the performance of our automatic implementations, 
+the automatic binary search tree (\autoTree) and the automatic
+treap (\autoTreap), to the following custom tailored approaches: 
+\begin{itemize}
+\item \danaTree - The locked-based 
+				unbalanced tree of Drachsler at al.\cite{DrachslerVY2014}. 
+\item \danaAVL - The locked-based relaxed balanced AVL tree of 
+				Drachsler et al.\cite{DrachslerVY2014}.
+\item \bronson - The locked based relaxed balanced AVL tree
+				of Bronson et al.\cite{BronsonCCO2010}.
+\item \skiplist - The non-blocking skip-list by Doug 
+				Lea included in the 
+				the Java standard library.
+\end{itemize}
+
+We also compared our algorithms to previous automatic approaches, 
+mainly global locking (\globalTree, \globalTreap) 
+and domination locking (\domTree, \domTreap). 
+
+%TODO 
+We ran our experiments on a \ldots
+
+We evaluated the performance on a variety of workloads, 
+each workload is defined by the percentage of read-only
+operations (\getOP queries) and the remaining operations 
+are divided equally between insert and delete operations.
+Our workloads include heavy read-only workloads
+(100\%,70\% \getOP operations), medium read-only workload 
+(50\% \getOP operations) and update only workload
+(0\% \getOP operations). 
+
+We used two key ranges $[0,2\cdot10^5]$ and $[0,2\cdot10^6]$,
+for each range, the tree was pre-filled until the tree size was 
+within 5\% of half the key range.   
+
+We ran five seconds trials measuring the total throughput
+(number of operations per second) of all threads.
+During the trial, each thread continuously executed randomly
+chosen operations according to the workload distribution 
+using uniformly random keys from the key range.  
+
+%TODO
+We ran every trial 7 times and calculated the average, 
+with a warm-up phase before the actual trials. 
+We eliminated two \ldots , 
+reporting the average of the remaining 5 experiments. 
+
+\paragraph{Results} Figure \ref{evaluation:results:unbalanced} 
+reports the throughput of unbalanced data structures and Figure 
+\ref{evaluation:results:balanced} reports
+the throughput of the balanced data structures. 
+
+
+\begin{figure}
+\caption{Throughput of unbalanced data
+structures.\label{evaluation:results:unbalanced}}
+\end{figure}
+
+
+\begin{figure}
+\caption{Throughput of balanced data
+structures.\label{evaluation:results:balanced}}
+\end{figure}
