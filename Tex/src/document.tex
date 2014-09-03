@@ -1,7 +1,7 @@
 %%This is a very basic article template.
 %%There is just one section and two subsections.
 
-\title{Automatic Optimistic Synchronization for Dynamic Data Structures}
+\title{Scalable Automatic Synchronization Combining Optimism with Pessimism}
 \documentclass{article}
 \usepackage{xspace}
 \usepackage{algorithm}
@@ -43,7 +43,28 @@
 \begin{document}
 \maketitle
 
-\abstract{}
+\abstract{We present an \emph{automatic} approach for 
+parallelizing sequential data structures in a way that 
+is both safe and scalable. While there exist pessimistic 
+transformations that make code thread-safe by adding 
+(either global or fine-grained) locks, this approach is 
+limited in its performance due to synchronization bottlenecks, 
+for example, locking the root in a tree data structure. 
+In this paper, we improve the performance and scalability 
+of such synthesized code by reducing bottlenecks. 
+Specifically, we present an automatic approach to eliminate 
+many of the locking steps, relying instead on optimistic 
+partial traversals of the data structure. 
+We realize our approach for tree data structures, 
+using the domination locking technique. 
+The resulting code scales well, 
+significantly outperforms pessimistic approaches, 
+and achieves performance close to those of 
+custom-tailored concurrent data structures. 
+Our work thus shows the promise that automated approaches 
+bear for overcoming the difficulty involved in manually 
+hand crafting concurrent data structures. 
+}
 \input{introduction}
 \input{preliminaries}
 \input{algorithm}
