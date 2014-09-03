@@ -9,36 +9,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 
-%-------------Theorem Definitions ---------------%
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{corollary}[theorem]{Corollary}
-
-\newenvironment{proof}[1][Proof]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\qedsymb\end{trivlist}}
-\newenvironment{definition}[1][Definition]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
-\newenvironment{example}[1][Example]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
-\newenvironment{remark}[1][Remark]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
-
-\newcommand{\qed}{\nobreak \ifvmode \relax \else
-      \ifdim\lastskip<1.5em \hskip-\lastskip
-      \hskip1.5em plus0em minus0.5em \fi \nobreak
-      \vrule height0.75em width0.5em depth0.25em\fi}
-\newcommand{\qedsymb}{\hfill{\rule{2mm}{2mm}}}
-
-%--------------------------------------------------%
-
-\newcommand{\code}[1]{\textsf{#1}}
-\newcommand{\readV}{\code{read\_version}\xspace} 
-\newcommand{\readSet}{\code{read\_set}\xspace}
-\newcommand{\writeV}{\code{write\_version}\xspace}
-
-\newcommand{\reqI}{\textbf{LPR1}\xspace}
-\newcommand{\reqII}{\textbf{LPR2}\xspace}
+\input{macros}
 
 \begin{document}
 \maketitle
