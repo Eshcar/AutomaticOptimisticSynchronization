@@ -70,7 +70,8 @@
 \titlebanner{banner above paper title}        % These are ignored unless
 \preprintfooter{short description of paper}   % 'preprint' option specified.
 
-\title{Scalable Automatic Synchronization for Concurrent Data Structures}
+\title{Automatic Lock Removal for Scalable Synchronization}
+%\title{Scalable Automatic Synchronization for Concurrent Data Structures}
 %\subtitle{Subtitle Text, if any}
 
 \authorinfo{}
@@ -80,27 +81,25 @@
 \maketitle
 
 \begin{abstract}
-We present an \emph{automatic} approach for 
-parallelizing sequential data structures in a way that 
-is both safe and scalable. While there exist pessimistic 
-transformations that make code thread-safe by adding 
-(either global or fine-grained) locks, this approach is 
-limited in its performance due to synchronization bottlenecks, 
-for example, locking the root in a tree data structure. 
-In this paper, we improve the performance and scalability 
-of such synthesized code by reducing bottlenecks. 
-Specifically, we present an automatic approach to eliminate 
-many of the locking steps, relying instead on optimistic 
-partial traversals of the data structure. 
-We realize our approach for tree data structures, 
-using the domination locking technique. 
-The resulting code scales well, 
-significantly outperforms pessimistic approaches, 
-and achieves performance close to those of 
-custom-tailored concurrent data structures. 
+We present an \emph{automatic} approach for parallelizing sequential 
+data structures in a way that is both safe and scalable. 
+While there exist pessimistic transformations that make 
+code thread-safe by adding (either global or fine-grained) locks, 
+this approach is limited in its performance due to synchronization 
+bottlenecks, for example, locking the root in a tree data structure. 
+In this paper, we improve the performance and scalability of such 
+synthesized code by reducing bottlenecks. Specifically, 
+we present an automatic approach to eliminate many of the locking steps, 
+relying instead on optimistic partial traversals of the data structure. 
+We realize our approach for tree data structures using 
+the domination locking technique. 
+The resulting code scales well, significantly outperforms 
+pessimistic approaches, and its performance is comparable 
+to that achieved by custom-tailored implementations. 
 Our work thus shows the promise that automated approaches 
 bear for overcoming the difficulty involved in manually 
-hand crafting concurrent data structures. 
+hand-crafting concurrent data structures. 
+
 \end{abstract}
 
 \category{CR-number}{subcategory}{third-level}
