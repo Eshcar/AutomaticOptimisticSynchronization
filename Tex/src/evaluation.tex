@@ -49,12 +49,8 @@ We ran five seconds trials measuring the total throughput
 During the trial, each thread continuously executed randomly
 chosen operations according to the workload distribution 
 using uniformly random keys from the key range.  
-
-%TODO
-We ran every trial 7 times and calculated the average, 
-with a warm-up phase before the actual trials. 
-We eliminated two \ldots , 
-reporting the average of the remaining 5 experiments. 
+We ran every trial 7 times, we report the average throughput
+while eliminating outliers.
 
 \paragraph{Results} Figure \ref{evaluation:results:unbalanced} 
 reports the throughput of unbalanced data structures and Figure 
@@ -62,13 +58,19 @@ reports the throughput of unbalanced data structures and Figure
 the throughput of the balanced data structures. 
 
 
-\begin{figure}
+\begin{figure*}
+\begin{center}
+\input{plots/unbalanced}
+\end{center}
 \caption{Throughput of unbalanced data
 structures.\label{evaluation:results:unbalanced}}
-\end{figure}
+\end{figure*}
 
 
-\begin{figure}
+\begin{figure*}
+\begin{center}
+\input{plots/balanced}
+\end{center}
 \caption{Throughput of balanced data
 structures.\label{evaluation:results:balanced}}
-\end{figure}
+\end{figure*}

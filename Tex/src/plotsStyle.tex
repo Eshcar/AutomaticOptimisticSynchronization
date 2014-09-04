@@ -1,0 +1,35 @@
+
+\definecolor{blues1}{RGB}{198, 219, 239}
+\definecolor{blues2}{RGB}{158, 202, 225}
+\definecolor{blues3}{RGB}{107, 174, 214}
+\definecolor{blues4}{RGB}{49, 130, 189}
+\definecolor{blues5}{RGB}{8, 81, 156}
+\definecolor{antiquefuchsia}{rgb}{0.57, 0.36, 0.51}
+\definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+\definecolor{darkspringgreen}{rgb}{0.09, 0.45, 0.27}
+\definecolor{darkslategray}{rgb}{0.18, 0.31, 0.31}
+\definecolor{coralred}{rgb}{1.0, 0.25, 0.25}
+
+\pgfplotsset{mystyle/.style={%
+        %width=6cm,
+        %ylabel={mystyle (kg)},
+        %xlabel={Eggs (no.)},
+        xmin=1,xmax=32,
+        grid=major,
+        symbolic x coords={1,2,4,8,16,32},
+}}
+
+\pgfplotsset{unbalanced/.style={%
+	   width=0.35\textwidth,
+       legend columns=-1,
+	   legend entries={\autoTree, \danaTree, \globalTree, \domTree},
+	   legend to name=unbalancedLegened,
+}}
+
+
+\pgfplotsset{balanced/.style={%
+	   width=0.35\textwidth,
+       legend columns=-1,
+	   legend entries={\autoTreap, \danaAVL,\bronson, \skiplist, \globalTreap,
+	   \domTreap}, legend to name=balancedLegened,
+}}
