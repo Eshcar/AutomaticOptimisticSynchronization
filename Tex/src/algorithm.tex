@@ -73,51 +73,101 @@ of the optimistic read phase.
  
 %ALGORITHM CODE
 
-\begin{figure}
-
-	\begin{subfigure}{.35\textwidth}
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}{.49\textwidth}
 		\begin{algorithmic}[1]{}
-			\Function{foo}{\ldots} \label{code:begin}
-			\State x = ptrExp \label{code:readRef}
+			{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			
+			\State prev = head
+			\State succ = prev.next
+			\State prev = succ
+			\State succ = succ.next
+			\State new.next = succ
+			\State prev.next = new
+			
 			\EndFunction
+			}
 		\end{algorithmic}
-	\end{subfigure}
-    \begin{subfigure}{.60\textwidth}
+	%\end{subfigure}
+   % \begin{subfigure}{.3\textwidth}
+   	\bigskip
 		\begin{algorithmic}[1]{}
-			\State temp = ptrExp
-			\State version = temp.getVersion()
-			\If{y.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
-				\Comment Restart Operation
-			\EndIf
-			\State readSet.add(temp,version) 
-			\State x = temp
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State Node prev = head
+			\State prve.lock()
+			\State Node succ = prev.next
+			\State succ.lock()
+			\State prev.unlock()
+			\State prev = succ
+			\State succ = succ.next
+			\State succ.lock()
+			\State new.next = succ
+			\State prev.next = new
+			\State prev.unlock()
+			\State succ.unlock()
+			\EndFunction
+			}
 		\end{algorithmic}
 	\end{subfigure}
-	\caption{Read phase transformation, the code in line \ref{code:readRef} 
-	is replaced with the code on the right. 
-			\label{figure:readPhaseTransformation}}
-\end{figure}
+	\begin{subfigure}{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State Node prev = head
+			\State long version = prev.getVersion()
+			\If{prev.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf
+			\State readSet.add(prev,version) 
+			\State Node succ = prev.next
+			\If{succ.isLocked()}
+				\State {\textbf goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf
+			\State readSet.add(succ,version) 
+			\State prev = succ
+			\State succ = succ.next
+			\If{succ.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf
+			\State readSet.add(succ,version) 
+			%\Statex
+			\If{!prev.tryLock()} 		
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf	
+			\If{!succ.tryLock()} 		
+				\State prev.unlock()
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf	
+			\If{!readSet.validate()} 		
+				\State prev.unlock()
+				\State succ.unlock()
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf	
+			%\Statex
+			\State new.next = succ
+			\State prev.next = new
+			\State prev.unlock()
+			\State succ.unlock()
+
+			\EndFunction
+			}
+		\end{algorithmic}
+	\end{subfigure}
+	\bigskip
+	\hline
+	\end{center}
+	\caption{
+			\label{figure:transformation}}
+\end{figure*}
 
 
-\begin{figure}
-	\begin{algorithmic}[1]{}
-	\Function{foo}{\ldots}
-			\Statex \ldots
-			\Statex \Comment begin \readSet validation
-		\ForAll{ (ref,version)$\in$ readSet}
-			\If{ref.isLocked() \textbf{and} ref.lockedBy!= self} 
-				\State \textbf{goto} \ref{code:begin} 
-				\Comment Restart Operation
-			\EndIf
-			\If{version!= ref.getVersion()}
-				\State \textbf{goto} \ref{code:begin} 
-				\Comment Restart Operation
-			\EndIf
-		\EndFor
-		\Statex \ldots
-		\EndFunction
-	\end{algorithmic}
-	\caption{\readSet validation \label{figure:readSetValidation}}
-\end{figure}
 %END CODE 
