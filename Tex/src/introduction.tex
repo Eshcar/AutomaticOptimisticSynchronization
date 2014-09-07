@@ -1,1 +1,53 @@
 \section{Introduction}
+
+The steady increase in the number of  cores in today's computers is driving software developers to allow more parallelism. 
+Indeed, many recent works have developed scalable concurrent data structures~\cite{bronson,dana,citrus,etc}. 
+Such efforts are often very successful, achieving performance that scales linearly with the number of threads. 
+Nevertheless, each of these project generally focuses on a single data structure 
+(for example, a binary search tree~\cite{citrus} or \Idit{give another example}) and manually optimizes its implementation. 
+Proving the correctness of such custom-tailored data structures is painstaking 
+(for example, the proofs of \cite{x,y,z} are XX,YY, and ZZ pages long \Idit{add info}, respectively). 
+We propose an approach to replace this labor-intensive process by automatic means.
+
+One way to automatically convert a sequential data structure into a correct (thread-safe) concurrent one using locks. 
+The trivial way to do so is to add a single global lock protecting the entire data structure 
+(as in \emph{synchronized methods} in Java$^{TM}$, for example), but this allows no parallelism whatsoever. 
+A more sophisticated approach can instrument the code (at compile time) and add fine-grained lock and unlock instructions~\cite{domination,tree-locking,dag,etc}. Such methods are applicable to certain data structure families, for example, Domination Locking~\cite{domination} is applicable to all trees or forests  (including binary search trees, BTrees, Treaps, etc \Idit{more?}), and employs a variant of hand-over-hand locking~\cite{hand-over-hand}, acquiring and releasing locks as it goes down the tree.  Other approaches are applicable to DAGS~\cite{dag-locking}. Unfortunately, to date, solutions of this sort scale poorly. This is due to synchronization bottlenecks such as the root of the tree, which is locked by all operations.
+
+In this paper, we circumvent such synchronization bottlenecks via judicious use of optimism. 
+Specifically, we replace many (but not all) locks with speculative execution and later re-validation. 
+If re-validation fails, the speculative phase is restarted. 
+In striking the balance between optimism and pessimism, we exploit the common nature of data structure operations, 
+which typically begin by traversing the data structure to a designated location, and then perform (mostly local) updates at that location. 
+Our optimistic execution is limited to the initial read-only part of the code (the data structure traversal)\footnote{Our solution may be seen as a form of software lock elision for read-only operation prefixes.}. 
+Unlike most software transactional memory approaches~\cite{stm,tls},  
+our synthesized code neither speculatively modifies shared memory contents, nor does it defer writes. 
+Hence it never needs to rollback, and saves the overhead for tracking writes in dedicated data structures. 
+Further comparison with related work appears in Section~\ref{sec:related}.
+
+Our approach works as follows: Given a sequential data structure implementation, 
+it first invokes a given (black-box) mechanism that instruments the code and adds  
+fine-grained locks, e.g.,~\cite{domination,tree-locking,dag}. We assume that the locking protocol 
+allows early release in the sense that it no longer holds locks on parts of the data structure that it has finished traversing; 
+our assumptions are detailed in Section~\ref{sec:model}. We then invoke our algorithm, detailed in Section~\ref{sec:algorithm}, which 
+(1) adds version numbers to shared memory objects, 
+(2) identifies the read-only prefix of the code, 
+(3) replaces locks in the read-only prefix with tracking of the read objects' versions, and 
+(4) introduces appropriate re-validation mechanisms.  
+Re-validation occurs at the end of the read-only phase, as well as during timeouts and exceptions. 
+The latter addresses exceptions and infinite loops that may arise when an operation sees an inconsistent view of the data structure. 
+Our code transformation is general, in the sense that it applies to any data structure for which an appropriate locking protocol exists, 
+as proven in Section ~\ref{sec:proof}. The transformation is trivial to implement at compile time.
+
+We realize our approach with the Domination Locking scheme~\cite{domination}, 
+which is applicable to tree and forest data structures. 
+We apply the appropriate code transformations to balanced and unbalanced tree data structure implementations in Java$^{TM}$. 
+In Section~\ref{sec:eval} we evaluate the resulting code on a 32-core machine, 
+and compare it to fully pessimistic as well as state-of-the-art hand-crafted data structure implementations~\cite{dana,bronson}. 
+Our results show that the optimistic approach successfully overcomes synchronization bottlenecks, 
+allows the synthesized code to scale linearly with the number of threads, 
+and achieve comparable performance to that of custom-tailored solutions.
+
+To conclude, this paper illustrates that automatic synchronization is a promising approach for bringing legacy code to emerging computer architectures. 
+While this paper illustrates the method for tree data structures, we believe that the general direction may be more broadly applicable.
+Section~\ref{sec:discussion} concludes the paper and touches on some directions for future work.
