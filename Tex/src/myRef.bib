@@ -17,6 +17,20 @@
  address = {New York, NY, USA},
 } 
 
+@incollection{BayerS1988,
+ author = { Rudolf Bayer and Mario Schkolnick},
+ title = {Concurrency of operations on B-trees},
+ booktitle = {Readings in database systems},
+ editor = {Stonebraker, Michael},
+ year = {1988},
+ isbn = {0-934613-65-6},
+ pages = {129--139},
+ numpages = {11},
+ url = {http://dl.acm.org/citation.cfm?id=48751.48760},
+ acmid = {48760},
+ publisher = {Morgan Kaufmann Publishers Inc.},
+}
+
 @inproceedings{AragonS1989,
   author    = {Cecilia R. Aragon and
                Raimund Seidel},
@@ -62,6 +76,15 @@
   bibsource = {DBLP, http://dblp.uni-trier.de}
 }
 
+@inproceedings{HerlihyLLS2007,
+ author = {Maurice Herlihy and Yossi Lev  and Victor Luchangco  and Nir Shavit},
+ title = {A Simple Optimistic Skiplist Algorithm},
+ booktitle = {14th International Conference on Structural Information and Communication Complexity (SIROCCO)},
+ year = {2007},
+ pages = {124--138},
+ numpages = {15},
+}
+
 @inproceedings{GuerraouiK2008,
   author    = {Rachid Guerraoui and
                Michal Kapalka},
@@ -93,6 +116,15 @@
   bibsource = {dblp computer science bibliography, http://dblp.org}
 }
 
+@inproceedings{EllenFRB2010,
+ author = {Faith Ellen and Panagiota Fatourou and Eric Ruppert and Franck van Breugel},
+ title = {Non-blocking Binary Search Trees},
+ booktitle = {29th ACM Symposium on Principles of Distributed Computing (PODC)},
+ year = {2010},
+ pages = {131--140},
+ keywords = {binary search tree, cas, non-blocking, shared memory},
+}
+
 @inproceedings{Gueta2011,
   author    = {Guy Golan-Gueta and
                Nathan Grasso Bronson and
@@ -109,6 +141,66 @@
   bibsource = {DBLP, http://dblp.uni-trier.de}
 }
 
+@inproceedings{AfekKKMT2012,
+ author = {Yehuda Afek and Haim Kaplan and Boris Korenfeld and Adam Morrison and Robert E. Tarjan},
+ title = {{CBTree}: A Practical Concurrent Self-adjusting Search Tree},
+ booktitle = {26th International Conference on Distributed 	Computing (DISC)},
+ year = {2012},
+ isbn = {978-3-642-33650-8},
+ location = {Salvador, Brazil},
+ pages = {1--15},
+ numpages = {15},
+ url = {http://dx.doi.org/10.1007/978-3-642-33651-5_1},
+ doi = {10.1007/978-3-642-33651-5_1},
+ acmid = {2427875},
+}
+
+@inproceedings{BraginskyP2012,
+ author = {Anastasia Braginsky and Erez Petrank},
+ title = {A Lock-free {B}+Tree},
+ booktitle = {24th ACM Symposium on Parallelism in Algorithms and Architectures (SPAA)},
+ year = {2012},
+ isbn = {978-1-4503-1213-4},
+ location = {Pittsburgh, Pennsylvania, USA},
+ pages = {58--67},
+ numpages = {10},
+ url = {http://doi.acm.org/10.1145/2312005.2312016},
+ doi = {10.1145/2312005.2312016},
+ acmid = {2312016},
+ keywords = {B+tree, concurrent data structures, lock-freedom, parallel programming, progress guarantee},
+}
+
+@inproceedings{CrainGR2013,
+ author = {Tyler Crain and Vincent Gramoli and Michel Raynal},
+ title = {A Contention-friendly Binary Search Tree},
+ booktitle = {19th International Conference on Parallel Processing (Euro-Par)},
+ year = {2013},
+ isbn = {978-3-642-40046-9},
+ location = {Aachen, Germany},
+ pages = {229--240},
+ numpages = {12},
+ url = {http://dx.doi.org/10.1007/978-3-642-40047-6_25},
+ doi = {10.1007/978-3-642-40047-6_25},
+ acmid = {2529849},
+ keywords = {binary tree, concurrent data structures, efficient implementation},
+}
+
+@inproceedings{BrownER2014,
+ author = {Trevor Brown and Faith Ellen and Eric Ruppert},
+ title = {A General Technique for Non-blocking Trees},
+ booktitle = {19th ACM Symposium on Principles and Practice of Parallel Programming (PPoPP)},
+ pages={329--342},
+ year = {2014},
+}
+
+@inproceedings{NatarajanM2014,
+ author = {Aravind Natarajan and Neeraj Mittal},
+ title = {Fast Concurrent Lock-free Binary Search Trees},
+ booktitle = {19th ACM Symposium on Principles and Practice of Parallel Programming (PPoPP)},
+ pages={317--328},
+ year = {2014},
+}
+
 @inproceedings{DrachslerVY2014,
   author    = {Dana Drachsler and
                Martin T. Vechev and
@@ -118,7 +210,6 @@
                PPoPP '14, Orlando, FL, USA, February 15-19, 2014},
   year      = {2014},
   pages     = {343--356},
-  crossref  = {DBLP:conf/ppopp/2014},
   url       = {http://doi.acm.org/10.1145/2555243.2555269},
   doi       = {10.1145/2555243.2555269},
   timestamp = {Wed, 03 Sep 2014 09:36:52 +0200},
@@ -126,8 +217,22 @@
   bibsource = {dblp computer science bibliography, http://dblp.org}
 }
 
-@InProceedings{LevAriCK2014,
+@inproceedings{ArbelA2014,
+  author    = {Maya Arbel and
+               Hagit Attiya},
+  title     = {Concurrent updates with {RCU:} search tree as an example},
+  booktitle = {{ACM} Symposium on Principles of Distributed Computing, {PODC} '14,
+               Paris, France, July 15-18, 2014},
+  year      = {2014},
+  pages     = {196--205},
+  url       = {http://doi.acm.org/10.1145/2611462.2611471},
+  doi       = {10.1145/2611462.2611471},
+  timestamp = {Sun, 07 Sep 2014 09:46:38 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/podc/ArbelA14},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
 
+@InProceedings{LevAriCK2014,
   author = 	 {Kfir Lev-Ari and
 			  Gregory Chockler and 
 			  Idit Keidar},
@@ -136,3 +241,5 @@
   year = 	 {2014},
   month = 	 {October},
 }
+
+
