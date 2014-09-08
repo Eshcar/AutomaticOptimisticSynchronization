@@ -33,7 +33,7 @@ A \emph{lock} is a primitive type that supports atomic \emph{lock}, \emph{try\_l
 where try\_lock is a non-blocking attempt to acquire a lock that may fail. 
 
 We assume in this paper a \emph{locking protocol}, which transforms a sequential data-structure to a correct concurrent one by adding locks;
-correctness is defined in Section~\ref{sec:linearizable} below.
+correctness is defined in Section~\ref{ssec:linearizable} below.
 Examples of such protocols are Tree Locking~\cite{SilberschatzK1980}, and Domination Locking~\cite{Gueta2011}. 
 The locking protocol associates a lock with every primitive shared object used by the data structure, and instruments the sequential code 
 by adding lock and unlock operations. Intuitively, such protocols automatically perform some sort of ``hand-over-hand'' locking, acquiring locks as
