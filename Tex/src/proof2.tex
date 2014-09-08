@@ -1,0 +1,160 @@
+\newcommand{\op}{\emph{\textsc{op}}}
+\newcommand{\opt}{\textsc{opt}}
+
+\section{Correctness Proof}
+\label{sec:proof}
+
+We prove that each execution of the optimistic algorithm is equivalent to a
+concurrent execution of the sequential code instrumented with the locking
+protocol. 
+This proves that the optimistic algorithm provides serializability or strict
+serializability with respect to the safety guarantees of the locking protocol.
+
+Let $\pi$ be a finite execution of the optimistic algorithm. 
+First we remove from the execution all steps that access (read or write to)
+versions. We note that accesses to versions are not included in the locking
+protocol nor in the sequential code, they are added only as part of the
+optimistic instrumentation, therefore removing them does not affect the return
+value of the operations in this execution. \eshcar{need to make this argument
+stronger?} We then perturb the resulting execution, $\pi'$, in iterations to
+construct an execution, $\pi''$, of the locking protocol.
+
+Since a failure of the validation phase triggers a re-try, we assume all
+operations \op\ in $\pi$ execute a (single) successful validation phase. We
+denote by $e_1, e_2, \ldots, e_i, \ldots$ the sequence of the first steps of the
+read set validation in these successful phases, by their order in
+$\pi$, where $e_i$ is a step of the operation $op_{e_i}$ executed by process $p_{e_i}$.
+
+Two executions are \emph{equivalent} if every process in their associated
+histories invokes the same operations in the same order and gets the
+same results for each operation.
+
+Two executions are \emph{indistinguishable} to a set of operations if each
+operation in the set executes the same steps on primitive shared objects, and
+receives the same value from those primitives in both executions. 
+
+For every operation $op_{e_i}$, consider the partition of $\pi$ to
+the following intervals $\pi=\alpha_i\beta_i\gamma_i$, such that
+$\alpha_i$ includes the execution interval of $op_{e_i}$'s read phase (denote
+$op_{e_i}$'s read set $rs_{e_i}$); $\beta_i=\beta_{i_1}\beta_{i_2}$, is the
+execution interval of $op_{e_i}$'s successful validation phase; in
+$\beta_{i_1}$, $op_{e_i}$ acquires 
+locks on objects pointed by its local variables, denoted $locals_{e_i}$; 
+$e_i$ is the first step of $\beta_{i_2}$, namely the read set validation
+interval.
+
+The next claim follows from the fact that the validation phase of $op_{e_i}$
+in $\beta_i$ is successful, and includes locks and versions
+re-validation: \eshcar{need to prove this?}
+
+\begin{claim}
+\label{claim:locks}
+No operation in $\op\setminus\{op_{e_i}\}$ holds or acquires a lock in
+$\alpha_i\beta_{i_1}$ on an object $obj$ in $rs_{e_i}$ after $op_{e_i}$ last
+read $obj$ in $\alpha_i$.
+\end{claim}
+
+
+Let $\pi'$ be a projection of $\pi$ excluding all steps accessing versions.
+Since the result values returned by all operations in \op\ are the same
+in $\pi$ and $\pi'$
+\begin{claim}
+\label{claim:pipitag}
+$\pi$ and $\pi'$ are equivalent.
+\end{claim}
+
+
+Our main lemma construct the execution of the code with full instrumentation of
+the locking protocol.
+\begin{lemma}
+Given a locking protocol, there is an execution $\pi''$ of the code
+instrumented with the locking protocol that is equivalent to $\pi'$.
+\end{lemma}
+\begin{proof}
+We start with the execution
+$\pi_1^{'}=\alpha_1^{'}\beta_{1}^{'}\gamma_1^{'}$, where $\alpha_1^{'}$
+($\beta_1^{'}$ and $\gamma_1^{'}$) is the projection of $\alpha_1$
+($\beta_1$ and $\gamma_1$, respectively) excluding the steps accessing the
+versions.
+For every $i \geq 1$, we show how to perturb $\pi_i^{'}$ to
+obtain an execution $\pi_{i}^{''}=\pi_{i+1}^{'}$ in which
+\begin{enumerate}
+  \item \label{cond:lp} The operations $op_{e_1},\ldots,op_{e_i}$ follow the
+  full locking protocol, while the rest of the operations
+  $\opt_{i+1}=\op\setminus\{op_{e_1},\ldots,op_{e_i}\}$ do not follow the
+  full locking protocol
+  \item \label{cond:locks} For each $j\geq i+1$, Let $\beta_j^{'}$ be
+the minimal interval containing $op_{e_i}$'s validation phase in
+$\pi_{i}^{'}$.
+  No operation in $\op\setminus\{op_{e_{j}}\}$ holds a lock in
+  $\beta_j^{'}$ on an object $obj$ in $rs_{e_{j}}$ 
+  %after $op_{e_{j}}$ last read $obj$ before $\beta_j^{'}$
+  \item \label{cond:equiv} $\pi^{'}$ and $\pi_{i+1}^{'}$ are equivalent
+\end{enumerate}
+
+For $\opt_{i+1}=\emptyset$, we get an execution where all operations follow the
+locking protocol, and by Condition~\ref{cond:equiv} $\pi''=\pi_{i+1}^{'}$ is
+equivalent to $\pi^{'}$ and we are done.
+
+The proof is by induction on $i$. For the base case we consider
+the execution $\pi^{'}=\pi_1^{'}$. Condition~\ref{cond:lp} holds since none of
+the operations in this execution follow the full locking protocol.
+Condition~\ref{cond:locks} holds by
+Claim~\ref{claim:locks} and since
+accesses to objects (other than versions) and locks are similar in $\pi$ and $\pi'$.
+Condition~\ref{cond:equiv} vacuously holds since $\pi'$ and $\pi_1^{'}$ are the
+same execution.
+
+For the induction step, assume $\opt_i \neq \emptyset$ and
+the execution
+$\pi_i^{'}=\alpha_i^{'}\beta_i^{'}\gamma_i^{'}$ satisfies the above conditions.
+We replace $\pi_i^{'}$ with
+$\pi_i^{''}=\alpha_i^{''}\delta_i\beta_i^{''}\gamma_i^{'}$, such that
+$\alpha_i^{''}$ and $\beta_i^{''}$ are the projection of $\alpha_i^{'}$ and
+$\beta_i^{'}$, respectively, excluding the steps by $op_{e_i}$, while
+$\delta_i=\delta_{i_1}\delta_{i_2}$ is a $p_{e_i}$-only execution
+interval. In $\delta_{i_1}$, $p_{e_i}$ follows the locking protocol while
+reading $rs_{e_i}$; in $\delta_{i_2}$, $p_{e_i}$ unlocks all objects that are
+not in $locals_{e_i}$. 
+In other words, we replace the optimistic read phase and validation phase of
+$op_{e_i}$ with an execution of a read phase instrumented with the
+locking protocol, taking place at the point just before the validation phase starts.
+
+By Condition~\ref{cond:locks} of the induction hypothesis no operation holds 
+locks on objects in the read set of $op_{e_i}$ at the configuration after
+$\alpha_i^{'}$ therefore $p_{e_i}$ can acquire the locks on these
+objects while executing $\delta_{i_1}$.
+Moreover, by the correctness properties of the locking protocol, it is safe to
+release the locks on objects not in $locals_{e_i}$ while executing
+$\delta_{i_2}$. The projection of the execution $\pi_i^{''}$ on $op_{e_i}$
+follows the full locking protocol and thus Condition~\ref{cond:lp} holds and
+$op_{e_i}$ returns the same value in $\pi_i^{''}$ as in $\pi^{'}$.
+
+By Condition~\ref{cond:locks} of the induction hypothesis no operation acquires
+locks on objects in $locals_{e_i}$ during $\beta_i^{'}$. Therefore, the executions $\alpha_i^{'}\beta_i^{'}$,
+ending with configuration $C'$, and $\alpha_i^{''}\delta_i\beta_i^{''}$, ending
+with configuration $C''$, are indistinguishable to all operations in
+$\op\setminus\{op_{e_{i}}\}$. Since the values of all shared objects and locks
+are the same in $C'$ and $C''$, the
+executions $\alpha_i^{'}\beta_i^{'}\gamma_i^{'}$ and
+$\alpha_i^{''}\delta_i\beta_i^{''}\gamma_i^{'}$ are indistinguishable to all operations in
+$\op\setminus\{op_{e_{i}}\}$. With $op_{e_i}$ having the same return value in
+$\pi_i^{''}$ as in $\pi^{'}$ we conclude that Condition~\ref{cond:equiv} holds.
+
+It is left to show that $\pi_i^{''}$ satisfies Condition~\ref{cond:locks}. 
+This is straightforward from the induction hypothesis and the fact that only
+$op_{e_i}$ changed its locking pattern in the last iteration. \eshcar{this
+is were the proof gets incorrect} More specifically, since the additional locks
+$op_{e_i}$ acquired are released by the end of $\delta_i$, and by our construction for all $j\geq i+1$, $\beta_j^{'}$ start  
+
+
+
+
+
+
+\begin{lemma}
+\end{lemma}
+\begin{proof}
+\end{proof}
+
+
