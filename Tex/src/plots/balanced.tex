@@ -1,5 +1,8 @@
 \begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
+\begin{axis}[mystyle,balanced,
+				title=100\% read-only operations,
+				ylabel = {Key range [$0,2\cdot10^4$]},
+				]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
 {results/100C20K.txt}; 
 \addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
@@ -15,121 +18,54 @@
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
+\begin{axis}[mystyle,balanced,title=50\% read-only operations]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/100C200K.txt}; 
+{results/50C20K.txt}; 
 \addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/100C200K.txt}; 
+{results/50C20K.txt}; 
 \addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/100C200K.txt}; 
+{results/50C20K.txt}; 
 \addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/100C200K.txt};
+{results/50C20K.txt};
 \addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/100C200K.txt};
+{results/50C20K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/100C200K.txt};
+{results/50C20K.txt};
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
+\begin{axis}[mystyle,balanced,title=0\% read-only operations]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/100C2000K.txt}; 
+{results/0C20K.txt}; 
 \addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/100C2000K.txt}; 
+{results/0C20K.txt}; 
 \addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/100C2000K.txt}; 
+{results/0C20K.txt}; 
 \addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/100C2000K.txt};
+{results/0C20K.txt};
 \addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/100C2000K.txt};
+{results/0C20K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/100C2000K.txt};
-%\addplot  [magenta,mark=pentagon] table [x={threads}, y={rb}]
-% {results/100C200K.txt};
+{results/0C20K.txt};
 \end{axis}
 \end{tikzpicture}
 
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/70C20K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/70C20K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/70C20K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/70C20K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/70C20K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/70C20K.txt};
-\end{axis}
-\end{tikzpicture}
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/70C200K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/70C200K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/70C200K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/70C200K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/70C200K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/70C200K.txt};
-\end{axis}
-\end{tikzpicture}
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/70C2000K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/70C2000K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/70C2000K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/70C2000K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/70C2000K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/70C2000K.txt};
-%\addplot  [magenta,mark=pentagon] table [x={threads}, y={rb}]
-% {results/100C200K.txt};
-\end{axis}
-\end{tikzpicture}
 
 \begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
+\begin{axis}[mystyle,balanced, 
+				ylabel = {Key range [$0,2\cdot10^6$]}, ]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/50C20K.txt}; 
+{results/100C2000K.txt}; 
 \addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/50C20K.txt}; 
+{results/100C2000K.txt}; 
 \addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/50C20K.txt}; 
+{results/100C2000K.txt}; 
 \addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/50C20K.txt};
+{results/100C2000K.txt};
 \addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/50C20K.txt};
+{results/100C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/50C20K.txt};
-\end{axis}
-\end{tikzpicture}
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/50C200K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/50C200K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/50C200K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/50C200K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/50C200K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/50C200K.txt};
+{results/100C2000K.txt};
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
@@ -146,41 +82,6 @@
 {results/50C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
 {results/50C2000K.txt};
-%\addplot  [magenta,mark=pentagon] table [x={threads}, y={rb}]
-% {results/100C200K.txt};
-\end{axis}
-\end{tikzpicture}
-
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/0C20K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/0C20K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/0C20K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/0C20K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/0C20K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/0C20K.txt};
-\end{axis}
-\end{tikzpicture}
-\begin{tikzpicture}
-\begin{axis}[mystyle,balanced]
-\addplot [blues3,mark=square*] table [x={threads}, y={TimeoutTreap}]
-{results/0C200K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={DanaAVL}]
-{results/0C200K.txt}; 
-\addplot [darkspringgreen,mark=triangle*] table [x={threads}, y={Bronson}]
-{results/0C200K.txt}; 
-\addplot [coralred,mark=*] table [x={threads}, y={JavaSkipList}]
-{results/0C200K.txt};
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockTreap}]
-{results/0C200K.txt};
-\addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
-{results/0C200K.txt};
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
@@ -197,9 +98,6 @@
 {results/0C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingTreap}]
 {results/0C2000K.txt};
-%\addplot  [magenta,mark=pentagon] table [x={threads}, y={rb}]
-% {results/100C200K.txt};
 \end{axis}
 \end{tikzpicture}
-
 \ref{balancedLegened}

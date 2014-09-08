@@ -15,8 +15,14 @@
         %ylabel={mystyle (kg)},
         %xlabel={Eggs (no.)},
         xmin=1,xmax=32,
+        enlargelimits=true,
+        %xmajorgrids=false,
+		ymajorgrids=true,
         grid=major,
-        symbolic x coords={1,2,4,8,16,32},
+        grid style={dashed, gray!30},
+        %symbolic x coords={1,2,4,8,16,32},
+        xtick={1,4,8,16,32}, 
+        %tick align=outside,
 }}
 
 \pgfplotsset{unbalanced/.style={%

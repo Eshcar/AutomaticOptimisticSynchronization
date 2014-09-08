@@ -28,19 +28,23 @@ We also compared our algorithms to previous automatic approaches,
 mainly global locking (\globalTree, \globalTreap) 
 and domination locking (\domTree, \domTreap). 
 
-%TODO 
-We ran our experiments on a \ldots
+We ran our experiments on four Inter Xeon E-4650 processors, 
+each with 8 cores for a total of 32 threads 
+(with hyper-threading disabled). 
+We used Ubuntu 12.04.4 LTS and Java$^{TM}$ Runtime Environment (build
+1.7.0\_51-b13) using the 64-Bit Server VM (build 24.51-b03, mixed mode).
+
 
 We evaluated the performance on a variety of workloads, 
 each workload is defined by the percentage of read-only
 operations (\getOP queries) and the remaining operations 
 are divided equally between insert and delete operations.
 Our workloads include heavy read-only workloads
-(100\%,70\% \getOP operations), medium read-only workload 
+(100\% \getOP operations), medium read-only workload 
 (50\% \getOP operations) and update only workload
 (0\% \getOP operations). 
 
-We used two key ranges $[0,2\cdot10^5]$ and $[0,2\cdot10^6]$,
+We used two key ranges $[0,2\cdot10^4]$ and $[0,2\cdot10^6]$,
 for each range, the tree was pre-filled until the tree size was 
 within 5\% of half the key range.   
 
@@ -56,6 +60,28 @@ while eliminating outliers.
 reports the throughput of unbalanced data structures and Figure 
 \ref{evaluation:results:balanced} reports
 the throughput of the balanced data structures. 
+The results for the read-only workload show the main overhead
+of our automatic approach. Unlike the hand crafted implementations
+that have no overhead on reads in this scenario, either by wait free reads in
+\danaTree and \danaAVL or the optimistic validation of \bronson, 
+our implementation requires full \readSet validation.
+This overhead cannot be avoided without prior knowledge on the
+data structure.
+%, however, given knowledge on the semantics of
+%the data structure a small modification to the automatic code 
+%can be applied. 
+%For example, we took the \autoTree and removed 
+%the \readSet validation for a \getOP operation
+%that found the required key. The new operation immediately returns 
+%the value without the any validation. 
+%Correctness in maintained because if an operation finds the node then
+%it is reachable at some configuration during the operation interval, 
+%given that the insert operation is correct 
+%(never adds a node to detached part of the tree).
+%The results of the new optimized code can be found in \ldots 
+ 
+As the update workload increases \ldots 
+ 
 
 
 \begin{figure*}
