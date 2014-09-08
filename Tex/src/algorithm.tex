@@ -1,24 +1,66 @@
-\section{\ldots}\label{sec:algorithm}
+\section{Automatic Transformation}\label{sec:algorithm}
 %The main idea: 
 We address the problem of introducing 
 optimism to a pessimistic locking protocol. 
-Given an implementation using a 
-pessimistic locking protocol, performing load and store steps 
-on locked objects only, we add optimistic synchronization. 
+Given a sequential algorithm and a ``black box'' transformation
+that ensures pessimistic locking, performing load and store steps on
+locked objects only, we add optimistic synchronization.
 The idea of optimistic synchronization is to load 
 shared variables without locks and start using the 
 locking protocol only when the operation reaches a store step.
+This scheme is applicable to many data structure implementations
+since the common behaviour of data structure operations 
+is to first traverse the data structure and only eventually 
+perform mostly local modifications.
 Our algorithm shows that it is redundant to 
 acquire locks if they are freed before any change is made.    
 
-This optimistic scheme separates the operation to three
+Conceptually, the optimistic scheme separates the operation to three
 \emph{phases}, an optimistic \emph{read phase},
 a pessimistic \emph{read-write phase} and a 
-\emph{validation phase} that connect them. 
+\emph{validation phase} that connects them. 
+The optimistic read phase traverse the data structure without
+taking any locks while maintaining minimal sufficient 
+information to later ensure the correctness of the traversal.
+The read-write phase maintains the original locking protocol. 
+In order to bridge between the optimistic read phase and the  
+pessimistic read-write phase we use the validation phase. 
+The validation phase has two requirements: 
+(i) lock local variables of the operation required for the 
+pessimistic read-write phase and 
+(ii) ensure that the values read during the read 
+phase are consistent.  
+  
+\subsection{Transformation Details}
+We invoke the following steps to a code that implements 
+fine grained locking and follows a correct locking
+protocol.  
 
+\begin{enumerate}
+  \item Add version numbers to shared memory objects, 
+  incremented every time the object is locked. These 
+  version numbers are used to validate the correctness
+  of the optimistic read phase during the validation phase
+  as well as timeouts and exceptions.
+  
+  \item Identify the read only prefix of each data structure 
+  operation. In the beginning of the read phase allocate 
+  and initialize local \emph{read set} and \emph{timeout}
+  objects. The read set object is a storage object used to save 
+  references to objects along with version numbers. 
+  The timeout object tracks the progress of the operation\ldots 
+    
+  \item Transform the read only prefix to optimistic traversal 
+   by replacing lock steps \ldots 
+   Incrementing the version is not atomic with the lock, thus, 
+   the object is also checked to be unlocked. 
+
+\end{enumerate}
+
+\Xomit{
 \subsection{Detailed Algorithm}
-Each object maintains a counter, incremented every time the 
-object is locked. This counter is used to validate the correctness
+Each object maintains a version number, incremented every time the 
+object is locked. The version number is used to validate the correctness
 of the optimistic read phase. 
 
 \begin{description}
@@ -62,6 +104,7 @@ of the optimistic read phase.
   Once the read-write phase begins, the operation is guaranteed to to 
   finish without restarts.  
 \end{description}
+}
 
 %The use of timeout does not guarantee
 %\emph{opacity}~\cite{GuerraouiK2008} or 
