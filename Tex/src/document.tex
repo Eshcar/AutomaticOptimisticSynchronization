@@ -20,7 +20,7 @@
 %-----------------------------------------------------------------------------
 
 
-\documentclass[preprint,11pt]{sigplanconf}
+\documentclass[preprint,11pt]{sigplanconf} 
 
 % The following \documentclass options may be useful:
 
@@ -37,8 +37,10 @@
 \usepackage[noend]{algpseudocode}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{xcolor}
 
 \input{macros}
+\newcommand{\eshcar}[1]{{\textcolor{violet}{\{{\bf eshcar:} \em #1\}}}}
 
 
 \begin{document}
@@ -111,7 +113,7 @@ keyword1, keyword2
 \input{introduction}
 \input{preliminaries}
 \input{algorithm}
-\input{proof}
+\input{proof2}
 \input{evaluation}
 \input{related}
 

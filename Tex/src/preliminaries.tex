@@ -1,80 +1,78 @@
-\section{Preliminaries}
-%A \emph{concurrent system} (module) consists of a set of threads, 
-\subsection{Shared Memory Model}
-A \emph{module} defines a set of \emph{abstract data types} and a 
-set of \emph{operations} that may be invoked by
-clients of the module.
-Each operation is invoked with possible parameters
-and returns with a response. 
-The invocation is a local step of a thread, 
-followed by a execution of a sequence of atomic steps. 
-Atomic step is either a computation on local 
-variables or a primitive operation on shared variable.
-Read and write to shared memory are 
-denoted load and store.  
-%a load (``\code{x=y.f}'') or 
-%a store (``\code{x.f=y}'') operation on shared variables.
-The parameters and local variables 
-of an operation are private to the
-invocation of the operation (thread local). 
-There are no static or global variables shared by  
-different invocations of the operations. 
 
-A \emph{configuration} is an instantaneous representation 
-of the system, including the state of the shared memory
-and the local variables. In the \emph{initial configuration} 
-all variables hold an initial value. 
-An \emph{execution} is an alternating sequence of 
-configurations and steps,
+
+\section{Model and  Definitions}
+
+
+\subsection{Shared Memory Data Structures}
+
+We consider an asynchronous shared memory model, where independent threads interact via shared memory objects.
+For the sake of our discussion, we do not distinguish among different types of shared memory (e.g., global or heap-allocated). 
+In addition, each thread has access to \emph{local} (thread-local) memory.
+
+A \emph{data structure} is an abstract data type exporting a set of \emph{operations}.
+A data structure is implemented from a collection of primitive shared \emph{objects} supporting atomic load (read) and store (write) operations.
+In Section~\ref{ssec:locking}, we extend the allowed primitive variables to also include locks.  
+
+Each thread executes a sequence of operations, each of which is invoked with certain parameters and returns a response.
+An operation's execution consists of a sequence of primitive \emph{steps}, beginning with an \emph{invoke} step, followed by 
+atomic accesses to shared objects, and ending with a \emph{return} step. Steps also modify the executing thread's local variables.
+A \emph{configuration} is an assignment of values to all shared and local variables. Thus, each step takes the system from one 
+configuration to another. Steps are deterministically defined by the data structure's protocol and the current configuration. 
+In the \emph{initial configuration}, each variable holds an initial value. 
+
+An \emph{execution} is an alternating sequence of configurations and steps,
 $C_0,s_1,\ldots,s_i,C_i,\ldots,$ 
-where $C_0$ is the initial configuration,
+where $C_0$ is an initial configuration,
 and each configuration $C_i$ is the result of
 executing step $s_i$ on configuration $C_{i-1}$.
- 
-An execution is \emph{non-interleaved} 
-(abbreviated NI-execution) if primitive operation of 
-different operations are not interleaved, i.e., 
-for every pair of operations invocations $p_i \neq p_j$ 
-either all primitive operations of $p_i$ come before any 
-primitive operation of $p_j$, or vice versa.
+An execution is \emph{sequential} if steps of different operations are not interleaved. 
+In other words, a sequential execution is a sequence of operation executions.
 
 \subsection{Locking Protocols}
-Get some text-book definitions of locking protocols. 
+\label{ssec:locking}
 
-In order for our algorithm to work, the initial locking
-protocol must have one of the following properties: 
+A \emph{lock} is a primitive type that supports atomic \emph{lock}, \emph{try\_lock}, and \emph{unlock} operations, 
+where try\_lock is a non-blocking attempt to acquire a lock that may fail. 
+
+We assume in this paper a \emph{locking protocol}, which transforms a sequential data-structure to a correct concurrent one by adding locks;
+correctness is defined in Section~\ref{sec:linearizable} below.
+Examples of such protocols are Tree Locking~\cite{tree-locking}, and Domination Locking~\cite{domination-locking}. 
+The locking protocol associates a lock with every primitive shared object used by the data structure, and instruments the sequential code 
+by adding lock and unlock operations. Intuitively, such protocols automatically perform some sort of ``hand-over-hand'' locking, acquiring locks as
+they traverse a linked-list or tree, and releasing locks on previously traversed nodes. They are typically restricted to tree-like data structures.
+
+
+We assume that the resulting code (obtained by adding the locks) satisfies the following properties:
 
 \begin{itemize}
-\item The protocols allows early lock release. 
-\item The protocols requires that all locks are acquired 
-before the first store step.    
-\end{itemize}
+\item Every (load or store) access by an operation to a shared object is performed when the executing thread holds the lock on that object.
+\item The protocol is deadlock-free, i.e., locking  does not introduce deadlocks.
+\item The protocol allows early lock release in the sense that  it never needs to hold a lock on an object that it no longer has a pointer to.
+ \end{itemize}
+
+The last condition means that even if the protocol holds a lock on an object it no longer holds a pointer to, it is safe to unlock it at this point (and re-acquire the lock later if it is accessed again ), in the sense that correctness, as defined below, is not breached.  
 
 
-\subsection{Correctness Conditions}
-Given an execution, we say that two primitive operations 
-\emph{conflict} if (i) they are executed by two different threads, 
-(ii) they access some common global variable or a heap allocated object 
-(iii) at least one of the conflicting instruction is a write.
+\subsection{Correctness}
+\label{ssec:linearizable} 
+
+The correctness of a data structure is defined in terms of its external behavior, as reflected in values returned by invoked operations. 
+This is captured by the notion of a \emph{history} -- the history of an execution $\sigma$ is the subsequence  of $\sigma$ consisting 
+of invoke and return steps. The widely-used correctness criteria of linearizability and serializability link the data structure's behavior under concurrency to its allowed behavior in sequential executions. The latter is defined by a \emph{sequential specification}, which is a set of its allowed sequential histories. 
+
+A history $H$ is \emph{linearizable}
+\cite{Herlihy:1990:LCC:78969.78972} if there exists $H'$ that can be created by adding zero or more 
+return steps to $H$, and there is a sequential permutation $\pi$ of complete($H'$), 
+such that: (1) $\pi$ belongs to the sequential specification; and 
+(2) every pair of operations that are not interleaved in $\sigma$, appear in the same order in $\sigma$ and in $\pi$. 
+A data structure  is \emph{linearizable}, also called \emph{atomic}, if the histories of all of its executions are linearizable.
+
+A history is \emph{serializable} if it satisifes property (1) above. That is, the real-time order of operations is not required.
+A data structure  is \emph{serializable} the histories of all of its executions are serializable.
+
+In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{opacity} or the validity notion of~\cite{Kfir}), which 
+restricts the configurations an operation might see during its execution. 
+This is because our code transformation deals with inconsistencies that may arise when a thread sees an inconsistent view of global variables using 
+timouts and exception handlers.   
 
 
-%Let $\pi$ be an execution and $op_i,op_j$ are primitive operations in $\pi$ the
-% conflict relation of $\pi$ is: \\ $conf(\pi)=\{(op_i,op_j)\mid op_i$ and $op_j$ are in conflict and $op_i<_{\pi}op_j\}$\\
-
-%Let $\pi$ be an execution the conflict graph $G(\pi)=(V,E)$ is defined by:\\ $V
-% = \{$ all operations (threads) of $\pi\}$\\
-%$E = \{ (t_i,t_j) \mid t_i\neq t_j$ and $\exists op_i\in t_i, \exists op_j\in
-% t_j$ such that $(op_i,op_j)\in conf(\pi) \}$\\
-
-Executions $\pi_1$ and $\pi_2$ are \emph{conflict-equivalent} 
-if they include the same primitive operations and they 
-agree on the order between conflicting operations. 
-An execution is \emph{conflict-serializable} if it is 
-conflict-equivalent with a non-interleaved execution.
-
-%DOMINATION LOCKING
-%\emph{Domination Locking Protocol} is a conflict serializable
-%locking protocol presented in \cite{Gueta2011}. 
-%It requires a fixed total order $\leq$ on all heap objects. 
-%An execution satisfies the the Domination Locking protocol,
-%with respect to $\leq$ if it satisfies the following conditions:
