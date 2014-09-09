@@ -63,16 +63,20 @@ The read set is used to track all objects accessed by the
 operation in order to later validate that this read set
 belongs to a consistent view of shared memory.  
 It contains a mapping between references to objects loaded 
-to the local version at the time it was read. Object are 
-added to the read set immediately after they are added to 
-the locked set.  
+to the local version at the time it was read. After 
+objects are added to te read set they are checked to be 
+unlocked, if the object is locked the operation restarts
+from the beginning. 
 
-Incrementing the local version of an object is not 
-done atomically with the lock acquisition, thus, 
-the object is also checked to be unlocked, if it is locked
-the operation restarts from the beginning. 
-This also ensures that the operation never reads old values 
-with a new version. 
+%Object are added to the read set immediately 
+%after they are added to the locked set.  
+
+%Incrementing the local version of an object is not 
+%done atomically with the lock acquisition, thus, 
+%the object is also checked to be unlocked, if it is locked
+%the operation restarts from the beginning. 
+%This also ensures that the operation never reads old values 
+%with a new version. 
  
 The read phase does not validate reads during its traversal, 
 in order to avoid infinite loops, a timeout is set. 
@@ -105,12 +109,18 @@ The read set validation is performed as follows,
 each object saved in the read set is checked to be unlocked 
 and that the current version matches the version saved in the 
 read set. If this check fails, the operation releases all its
-locks and restarts from the beginning. The order between
-checking the version and checking that the object is unlocked
-is important, as locking and incrementing versions is not atomic. 
+locks and restarts from the beginning. This guarantees that
+the object was not locked from the time it was read until
+the time it was validated, since all operations write only to
+locked nodes it follows that the object was not changed.  
+The read set validation can be viewed as a double collect 
+to all objects accessed by the read-only phase. 
 
-  %A pseudo code of the \readSet validation can be found in
-  %Figure \ref{figure:readSetValidation}.
+%The order between checking the version and checking that the object is unlocked
+%is important, as locking and incrementing versions is not atomic. 
+
+%A pseudo code of the \readSet validation can be found in
+%Figure \ref{figure:readSetValidation}.
   
 \paragraph{Update Phase} 
 This phase enforces the locking protocol
@@ -156,7 +166,110 @@ protocol.
 %current version is equal to the version saved in the \readSet. 
  
 %ALGORITHM CODE
+\renewcommand{\ttdefault}{pcr}
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State \emph{Node prev = head} 
+			\State prve.lock()
+			\State
+			\State
+			\State
+			\State 
+			\State \emph{Node succ = prev.next}
+			\State succ.lock()
+			\State
+			\State
+			\State
+			\State
+			\State prev.unlock()
+			\State \emph{prev = succ}
+			\State \emph{succ = succ.next}
+			\State succ.lock()
+			\State
+			\State
+			\State
+			\State
+			\Statex ----------------------------
+			\State
+			\State
+			\State
+			\State
+			\State
+			\State
+			\Statex ----------------------------
+			\State \emph{prev.next = new}
+			\State \emph{new.next = succ}
+			\State prev.unlock()
+			\State succ.unlock()
+			\EndFunction
+			}
+		\end{algorithmic}
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State \emph{Node prev = head}
+			\State lockedSet.add(prev)
+			\State long version = prev.getVersion()
+			\State readSet.add(prev,version) 
+			\If{prev.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf
+			\State \emph{Node succ = prev.next}
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
+			\State readSet.add(succ,version)
+			\If{succ.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf		
+			\State lockedSet.remove(prev) 
+			\State \emph{prev = succ}
+			\State \emph{succ = succ.next}
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
+			\State readSet.add(succ,version) 
+			\If{succ.isLocked()}
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf
+			\Statex ----------------------------
+			\If{!lockedSet.tryLockAll()} 		
+				\State release all locks
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf	
+			\If{!readSet.validate()} 		
+				\State release all locks
+				\State \textbf{goto} \ref{code:begin} 
+				%\Comment Restart Operation
+			\EndIf	
+			\Statex ----------------------------
+			\State \emph{prev.next = new}
+			\State \emph{new.next = succ}			
+			\State prev.unlock()
+			\State succ.unlock()
 
+			\EndFunction
+			}
+		\end{algorithmic}
+	\end{subfigure}
+	%\bigskip
+	%\hline
+	\end{center}
+	\caption{ Code option 1 
+			\label{figure:transformation}}
+\end{figure*}
+
+
+\Xomit{
+old figure: 
 \begin{figure*}
 	\begin{center}
 	\begin{subfigure}{.49\textwidth}
@@ -201,6 +314,7 @@ protocol.
 		{\ttfamily
 			\Function{foo}{Node new} \label{code:begin}
 			\State Node prev = head
+			\State lockedSet.add(prev)
 			\State long version = prev.getVersion()
 			\If{prev.isLocked()}
 				\State \textbf{goto} \ref{code:begin} 
@@ -208,31 +322,32 @@ protocol.
 			\EndIf
 			\State readSet.add(prev,version) 
 			\State Node succ = prev.next
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
 			\If{succ.isLocked()}
 				\State {\textbf goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf
-			\State readSet.add(succ,version) 
+			\State readSet.add(succ,version)
+			\State lockedSet.remove(prev) 
 			\State prev = succ
 			\State succ = succ.next
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
 			\If{succ.isLocked()}
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf
 			\State readSet.add(succ,version) 
-			%\Statex
-			\If{!prev.tryLock()} 		
+			\ForAll{node in lockedSet}
+				\If{!node.tryLock()} 		
+				\State release all locks
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf	
-			\If{!succ.tryLock()} 		
-				\State prev.unlock()
-				\State \textbf{goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf	
+			\EndFor
 			\If{!readSet.validate()} 		
-				\State prev.unlock()
-				\State succ.unlock()
+				\State release all locks
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf	
@@ -252,5 +367,5 @@ protocol.
 	\caption{
 			\label{figure:transformation}}
 \end{figure*}
-
+}
 %END CODE 
