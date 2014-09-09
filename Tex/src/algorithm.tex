@@ -25,11 +25,11 @@ minimal sufficient information to later ensure the
 correctness of the traversal.
 The update phase maintains the original locking protocol. 
 In order to bridge between the optimistic read phase and the  
-pessimistic read-write phase we use the validation phase. 
+pessimistic update phase we use the validation phase. 
 The validation phase first locks the objects required by
 the locking protocol and then validates the correctness
 of the of the read-only phase, allowing the 
-update phase to run as if the a full execution of the locking
+update phase to run as if the an execution of the locking
 protocol took place.  
 
   
@@ -43,14 +43,14 @@ algorithm that ensures the locking protocol. Second, we add
 version numbers to shared memory objects, incremented every 
 time the object is locked. These version numbers are used 
 to validate the correctness of the read-only phase during 
-the validation phase as well as timeouts and exceptions.
+the validation phase as well as at timeouts and exceptions.
 Lastly, we identify the read only prefix of each operation. 
 
 Next we explain what the transformation does in each phase. 
 
 \paragraph{Read-only Phase} 
-  During this phase the operation maintains a read set 
-  and a locked set. 
+  During this phase the operation maintains a \emph{locked set}
+  and a \mph{read set}. 
   The locked set is used to track the lock and unlock steps
   of the locking protocol, thus, we replace each lock step 
   with a a step adding the object to the locked set and each
