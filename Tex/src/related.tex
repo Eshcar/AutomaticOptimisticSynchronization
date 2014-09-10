@@ -1,1 +1,44 @@
 \section{Related Work}\label{sec:related}
+\paragraph{Concurrent Data Structures}
+Many sophisticated concurrent data structures (e.g., \cite{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
+AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,Michael:1996}) 
+were developed and used in concurrent software systems~\cite{Ohad:OOPSLA11}.
+Implementing efficient synchronization for such data structures is considered a challenging and error-prone task~\cite{Ohad:OOPSLA11,Doh:SPAA04,Jin:2012}.
+As a result, concurrent data structures are manually implemented by concurrency experts.
+This paper shows that (in some cases) an automatic algorithm can produce synchronization which is comparable to synchronization implemented by experts.
+
+\paragraph{Locking Protocols}
+Locking protocols are used in databases and shared memory systems to guarantee correctness
+of concurrently executing transactions~\cite{Weikum:2001,BHG:Book87}. 
+Our approach can be seen as a way to extend many of the existing locking protocols by combining them with an optimistic concurrency control. 
+In particular, our approach trivially extends the following locking protocols:  
+two-phase~\cite{Eswaran:1976}, tree locking~\cite{SilberschatzK1980}, DAG locking~\cite{CH:PODS95} and domination locking~\cite{Gueta2011}.
+We demonstrate this by showing that extending the  domination locking protocol enables producing efficient concurrency control for
+dynamic data structures.
+
+
+\paragraph{Lock Inference Algorithms}
+There has been a lot of work on automatically inferring locks for transactions.
+Most of the algorithms in the literature infer locks for following the two-phase
+locking protocol~\cite{MZGB:POPL06,Emmi06POPL,gudka2012lock,CCG:PLDI08,HFP:TRANSACT06,CGE:CC08}.
+Our approach can potentially be used to optimized the synchronization produced by these algorithms.
+For example, for the algorithms that employ a two-phase variant in which all locks are acquired at the beginning of transactions (e.g.,~\cite{gudka2012lock,CCG:PLDI08}),
+our approach can trivially be used to eliminate some of the locking operations.
+
+
+\paragraph{Transactional Memory}
+Transactional memory approaches (TMs) dynamically resolve inconsistencies
+and deadlocks by rolling back partially completed transactions.
+%
+Unfortunately, in spite of a lot of effort and many TM implementations~see \cite{HLR:SLCA2010}, existing TMs
+have not been widely adopted due to various concerns~\cite{DuffyTM2010,Cascaval:2008,mckenneyParallel}, including high runtime overhead,
+poor performance and limited ability to handle irreversible operations.
+In particular, modern concurrent programs (and concurrent data structures) are typically based on hand-crafted synchronization, rather than  on a TM approach~\cite{Ohad:OOPSLA11}.
+ 
+In fact, our approach can be seen as a specialized TM approach that can be practically used to handle concurrent data structure.
+
+
+\paragraph{Lock Elision for Read-Only Transactions}
+Our approach is inspired by the idea of \emph{sequential locks}~\cite{mckenneyParallel} and the approach presented in~\cite{Nakaike:2010}.
+But  in contrast to the approaches in \cite{mckenneyParallel,Nakaike:2010} which are designed to handle read-only transactions,
+our approach handles read-only prefixes of transactions that update the shared memory.
