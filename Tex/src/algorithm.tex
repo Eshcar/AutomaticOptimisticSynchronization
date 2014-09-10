@@ -1,36 +1,154 @@
 \section{Automatic Transformation}\label{sec:algorithm}
 %The main idea: 
 We address the problem of introducing 
-optimism to a pessimistic locking protocol. 
-Given a sequential algorithm and a ``black box'' transformation
-that ensures pessimistic locking, performing load and store steps on
-locked objects only, we add optimistic synchronization.
-The idea of optimistic synchronization is to load 
+optimism to a pessimistic locking protocol, 
+performing load and store steps on locked objects only, 
+given a sequential algorithm and a ``black box'' 
+transformation that ensures this protocol.
+The idea of optimistic synchronization is to read 
 shared variables without locks and start using the 
-locking protocol only when the operation reaches a store step.
+locking protocol when the operation reaches a store step.
 This scheme is applicable to many data structure implementations
 since the common behaviour of data structure operations 
-is to first traverse the data structure and only eventually 
-perform mostly local modifications.
+is to first traverse the data structure and 
+perform mostly local modifications at the end of the operation.
 Our algorithm shows that it is redundant to 
 acquire locks if they are freed before any change is made.    
 
 Conceptually, the optimistic scheme separates the operation to three
-\emph{phases}, an optimistic \emph{read phase},
-a pessimistic \emph{read-write phase} and a 
-\emph{validation phase} that connects them. 
-The optimistic read phase traverse the data structure without
-taking any locks while maintaining minimal sufficient 
-information to later ensure the correctness of the traversal.
-The read-write phase maintains the original locking protocol. 
+\emph{phases}, an optimistic \emph{read-only phase},
+a pessimistic \emph{update phase} and a 
+\emph{validation phase} that conjoins them. 
+The optimistic read-only phase traverses the data 
+structure without taking any locks while maintaining 
+minimal sufficient information to later ensure the 
+correctness of the traversal.
+The update phase maintains the original locking protocol. 
 In order to bridge between the optimistic read phase and the  
-pessimistic read-write phase we use the validation phase. 
-The validation phase has two requirements: 
-(i) lock local variables of the operation required for the 
-pessimistic read-write phase and 
-(ii) ensure that the values read during the read 
-phase are consistent.  
+pessimistic update phase we use the validation phase. 
+The validation phase first locks the objects required by
+the locking protocol and then validates the correctness
+of the of the read-only phase, allowing the 
+update phase to run as if the an execution of the locking
+protocol took place.  
+
   
+
+
+\subsection{Transformation Details}
+To illustrate our transformation a simple code example is 
+provided in Figure \ref{figure:transformation}.
+
+We start our transformation by applying three preparation steps
+to the given sequential algorithm.
+First, we use the ``black box'' transformation to produce an
+algorithm that ensures the locking protocol 
+(Figure \ref{figure:transformation:before}). 
+Second, we add version numbers to shared memory objects, 
+incremented every time the object is locked. 
+These version numbers are used 
+to validate the correctness of the read-only phase during 
+the validation phase as well as at timeouts and exceptions.
+Lastly, we identify the read only prefix of each operation. 
+
+Next we explain what the transformation does in each phase (Figure
+\ref{figure:transformation:after}). 
+
+\paragraph{Read-only Phase} 
+  During this phase the operation maintains a \emph{locked set}
+  and a \emph{read set}. 
+  The locked set is used to track the lock and unlock steps
+  of the locking protocol, thus, we replace each lock step 
+  with a step adding the object to the locked set 
+  (lines
+  \ref{code:lockedSet:add1},
+  \ref{code:lockedSet:add2},
+  \ref{code:lockedSet:add3})
+  and each unlock step with a step removing the object 
+  from the locked set (line \ref{code:lockedSet:remove}). 
+  (Since the locking protocol might allow re-entrant locks, 
+  our locked set allows duplications and the remove 
+  operation removes one of the duplications of the object).
+  
+The read set is used to track all objects accessed by the 
+operation in order to later validate that this read set
+belongs to a consistent view of shared memory.  
+It contains a mapping between references to objects loaded 
+to the local version at the time it was read. After 
+objects are added to the read set they are checked to be 
+unlocked, if the object is locked the operation restarts
+from the beginning (lines 
+\ref{code:getVersion1}-\ref{code:readGhaseGoto1},
+\ref{code:getVersion2}-\ref{code:readGhaseGoto2},
+\ref{code:getVersion3}-\ref{code:readGhaseGoto3}). 
+
+%Object are added to the read set immediately 
+%after they are added to the locked set.  
+
+%Incrementing the local version of an object is not 
+%done atomically with the lock acquisition, thus, 
+%the object is also checked to be unlocked, if it is locked
+%the operation restarts from the beginning. 
+%This also ensures that the operation never reads old values 
+%with a new version. 
+ 
+The read phase does not validate reads during its traversal, 
+in order to avoid infinite loops, a timeout is set. 
+If the operation reaches the timeout, a read set 
+validation takes place (described in the validation phase), 
+if it fails the operation restarts from the beginning.
+  
+  %The use of timeout does not guarantee that the 
+  %operation reads a consistent snapshot of the memory, 
+  %thus, \ldots 
+  %A pseudo code of the transformation can be found in 
+  %Figure \ref{figure:readPhaseTransformation}. 
+
+\paragraph{Validation Phase} 
+The validation phase is inserted to the code after
+the read-only phase (lines
+\ref{code:validateLockedSet}-\ref{code:validateGoto2}). 
+It locks the objects in the locked set and validates the read set. 
+
+To avoid deadlocks, the locks are acquired using a try\_lock
+operation, if the try\_lock fails, the operation unlocks 
+previously acquired locks and restarts from the beginning 
+(lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}). 
+The calls to try\_lock also increment the versions 
+of the object,  these objects are also part of the 
+operations read set. 
+To avoid the operation invalidating itself, 
+a successful try\_lock operation is followed by incrementing
+the version saved in the read set.  
+
+The read set validation is performed as follows, 
+each object saved in the read set is checked to be unlocked 
+and that the current version matches the version saved in the 
+read set. If this check fails, the operation releases all its
+locks and restarts from the beginning
+(lines \ref{code:validateReadSet}-\ref{code:validateGoto2}). 
+This guarantees
+that the object was not locked from the time it was read until
+the time it was validated, since all operations write only to
+locked nodes it follows that the object was not changed.  
+The read set validation can be viewed as a double collect 
+to all objects accessed by the read-only phase. 
+
+%The order between checking the version and checking that the object is unlocked
+%is important, as locking and incrementing versions is not atomic. 
+
+%A pseudo code of the \readSet validation can be found in
+%Figure \ref{figure:readSetValidation}.
+  
+\paragraph{Update Phase} 
+This phase enforces the locking protocol
+  while maintaining the local versions, i.e., the local version of 
+  an object is incremented every time it is locked.  
+  Once the update phase begins, the operation is guaranteed to to 
+  finish without restarts.  
+
+
+\Xomit{  
 \subsection{Transformation Details}
 We invoke the following steps to a code that implements 
 fine grained locking and follows a correct locking
@@ -56,56 +174,7 @@ protocol.
    the object is also checked to be unlocked. 
 
 \end{enumerate}
-
-\Xomit{
-\subsection{Detailed Algorithm}
-Each object maintains a version number, incremented every time the 
-object is locked. The version number is used to validate the correctness
-of the optimistic read phase. 
-
-\begin{description}
-  \item[Read Phase] Stats at the beginning of the operation and
-  ends at any point before the first store operation. 
-  During this phase the operation maintains a \readSet, 
-  containing references to objects loaded and the local 
-  version when it was read. The local versions are incremented 
-  during the read-write phase, when the object is locked. 
-  Incrementing the version is not atomic with the lock, thus, 
-  the object is also checked to be unlocked. 
-  The read phase does not validate reads, 
-  in order to avoid infinite loops, a timeout is set. 
-  If the operation reaches the timeout, 
-  a \readSet validation takes place, if it fails 
-  the operation restarts from the beginning.
-  The use of timeout does not guarantee that the 
-  operation reads a consistent snapshot of the memory, 
-  thus, \ldots 
-  %A pseudo code of the transformation can be found in 
-  %Figure \ref{figure:readPhaseTransformation}. 
-  
-  \item[Validation Phase] This phase connects the read phase
-  with the read-write phase. It has two requirements: (i) lock 
-  local variables of the operation and (ii) ensure that the 
-  values read during the read phase are consistent, i.e.
-  as if the values were read while executing the locking 
-  protocol. To avoid deadlocks, the locks are acquired using 
-  a \code{try\_lock} operation, if the \code{try\_lock} fails, 
-  the operation restarts from the beginning. Next, the \readSet 
-  is validated, if the validation fails the operation restarts from the
-  beginning. During the \readSet validation, each reference saved 
-  in the \readSet is checked to be unlocked and that the current 
-  version matches the version saved in the \readSet. 
-  %A pseudo code of the \readSet validation can be found in
-  %Figure \ref{figure:readSetValidation}.
-  
-  \item[Read-Write Phase] This phase enforces the locking protocol
-  while maintaining the local versions, i.e., the local version of 
-  an object is incremented every time it is locked.  
-  Once the read-write phase begins, the operation is guaranteed to to 
-  finish without restarts.  
-\end{description}
 }
-
 %The use of timeout does not guarantee
 %\emph{opacity}~\cite{GuerraouiK2008} or 
 %\emph{validity}\cite{LevAriCK2014}. 
@@ -115,7 +184,116 @@ of the optimistic read phase.
 %current version is equal to the version saved in the \readSet. 
  
 %ALGORITHM CODE
+\renewcommand{\ttdefault}{pcr}
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State \emph{Node prev = head} 
+			\State prve.lock()
+			\State
+			\State
+			\State
+			\State 
+			\State \emph{Node succ = prev.next}
+			\State succ.lock()
+			\State
+			\State
+			\State
+			\State
+			\State prev.unlock()
+			\State \emph{prev = succ}
+			\State \emph{succ = succ.next}
+			\State succ.lock()
+			\State
+			\State
+			\State
+			\State
+			\Statex ----------------------------
+			\State
+			\State
+			\State
+			\State
+			\State
+			\State
+			\Statex ----------------------------
+			\State \emph{prev.next = new}
+			\State \emph{new.next = succ}
+			\State prev.unlock()
+			\State succ.unlock()
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{} \label{figure:transformation:before} 
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{foo}{Node new} \label{code:begin}
+			\State \emph{Node prev = head}
+			\State lockedSet.add(prev) \label{code:lockedSet:add1}
+			\State long version = prev.getVersion() \label{code:getVersion1}
+			\State readSet.add(prev,version)  
+			\If{prev.isLocked()}
+				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto1}
+				%\Comment Restart Operation
+			\EndIf
+			\State \emph{Node succ = prev.next}
+			\State lockedSet.add(succ) \label{code:lockedSet:add2}
+			\State version = succ.getVersion() \label{code:getVersion2}
+			\State readSet.add(succ,version)
+			\If{succ.isLocked()}
+				\State \textbf{goto} \ref{code:begin}  \label{code:readGhaseGoto2}
+				%\Comment Restart Operation
+			\EndIf		
+			\State lockedSet.remove(prev) \label{code:lockedSet:remove}
+			\State \emph{prev = succ}
+			\State \emph{succ = succ.next}
+			\State lockedSet.add(succ) \label{code:lockedSet:add3}
+			\State version = succ.getVersion() \label{code:getVersion3}
+			\State readSet.add(succ,version) 
+			\If{succ.isLocked()}
+				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto3}
+				%\Comment Restart Operation
+			\EndIf
+			\Statex ----------------------------
+			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
+				\State release all locks
+				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto1}
+				%\Comment Restart Operation
+			\EndIf	
+			\If{!readSet.validate()} 		\label{code:validateReadSet}
+				\State release all locks
+				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto2}
+				%\Comment Restart Operation
+			\EndIf	
+			\Statex ----------------------------
+			\State \emph{prev.next = new}
+			\State \emph{new.next = succ}			
+			\State prev.unlock()
+			\State succ.unlock()
 
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{}\label{figure:transformation:after}
+	\end{subfigure}
+	%\bigskip
+	%\hline
+	\end{center}
+	\caption{ Automatic transformation code example. 
+	The original sequential code
+	is slanted. Part (a) is the code following hand over hand locking 
+	protocol and part (b) is the code after the automatic
+	transformation.
+			\label{figure:transformation}}
+\end{figure*}
+
+
+\Xomit{
+old figure: 
 \begin{figure*}
 	\begin{center}
 	\begin{subfigure}{.49\textwidth}
@@ -160,6 +338,7 @@ of the optimistic read phase.
 		{\ttfamily
 			\Function{foo}{Node new} \label{code:begin}
 			\State Node prev = head
+			\State lockedSet.add(prev)
 			\State long version = prev.getVersion()
 			\If{prev.isLocked()}
 				\State \textbf{goto} \ref{code:begin} 
@@ -167,31 +346,32 @@ of the optimistic read phase.
 			\EndIf
 			\State readSet.add(prev,version) 
 			\State Node succ = prev.next
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
 			\If{succ.isLocked()}
 				\State {\textbf goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf
-			\State readSet.add(succ,version) 
+			\State readSet.add(succ,version)
+			\State lockedSet.remove(prev) 
 			\State prev = succ
 			\State succ = succ.next
+			\State lockedSet.add(succ)
+			\State version = succ.getVersion()
 			\If{succ.isLocked()}
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf
 			\State readSet.add(succ,version) 
-			%\Statex
-			\If{!prev.tryLock()} 		
+			\ForAll{node in lockedSet}
+				\If{!node.tryLock()} 		
+				\State release all locks
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf	
-			\If{!succ.tryLock()} 		
-				\State prev.unlock()
-				\State \textbf{goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf	
+			\EndFor
 			\If{!readSet.validate()} 		
-				\State prev.unlock()
-				\State succ.unlock()
+				\State release all locks
 				\State \textbf{goto} \ref{code:begin} 
 				%\Comment Restart Operation
 			\EndIf	
@@ -211,5 +391,5 @@ of the optimistic read phase.
 	\caption{
 			\label{figure:transformation}}
 \end{figure*}
-
+}
 %END CODE 

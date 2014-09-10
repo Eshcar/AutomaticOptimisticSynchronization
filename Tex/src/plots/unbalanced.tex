@@ -6,7 +6,7 @@
 {results/100C20K.txt}; 
 \addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
 {results/100C20K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/100C20K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/100C20K.txt};
@@ -16,9 +16,9 @@
 \begin{axis}[mystyle,unbalanced, title=50\% read-only operations]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/50C20K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
 {results/50C20K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/50C20K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/50C20K.txt};
@@ -28,9 +28,9 @@
 \begin{axis}[mystyle,unbalanced, title=0\% read-only operations]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/0C20K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
 {results/0C20K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/0C20K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/0C20K.txt};
@@ -41,9 +41,9 @@
 \begin{axis}[mystyle,unbalanced,ylabel = {Key range [$0,2\cdot10^6$]},]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/100C2000K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
 {results/100C2000K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/100C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/100C2000K.txt};
@@ -53,9 +53,9 @@
 \begin{axis}[mystyle,unbalanced]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/50C2000K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
 {results/50C2000K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/50C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/50C2000K.txt};
@@ -65,9 +65,9 @@
 \begin{axis}[mystyle,unbalanced]
 \addplot [blues3,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/0C2000K.txt}; 
-\addplot [orange,mark=diamond*] table [x={threads}, y={Danaunbalanced}]
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
 {results/0C2000K.txt}; 
-\addplot [gray,mark=asterisk] table [x={threads}, y={GlobalLockBinaryTree}]
+\addplot [gray,mark=o] table [x={threads}, y={GlobalLockBinaryTree}]
 {results/0C2000K.txt};
 \addplot [black,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
 {results/0C2000K.txt};
