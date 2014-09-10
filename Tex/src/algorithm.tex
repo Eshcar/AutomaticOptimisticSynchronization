@@ -30,7 +30,10 @@ The validation phase first locks the objects required by
 the locking protocol and then validates the correctness
 of the of the read-only phase, allowing the 
 update phase to run as if the an execution of the locking
-protocol took place.  
+protocol took place. \maya{If the validation fails the operation 
+restarts, to avoid live-locks if an operation restarts 
+count pass some set threshold it falls back to pessimistic 
+execution.} 
 
   
 
@@ -147,6 +150,28 @@ This phase enforces the locking protocol
   Once the update phase begins, the operation is guaranteed to to 
   finish without restarts.  
 
+
+\subsection{Implementation Details}
+\maya{new subsection}
+We implemented our automatic transformation in Java$^{TM}$, 
+the following section highlight some technical details of 
+the implementation.
+Version numbers are easily added either at the shared object level
+or at the lock level. Similarly, the locked set and the read set 
+can be implemented using several Java provided data structures. 
+Timeouts were implemented using a counter, incremented and checked
+inside loops (backwards branches) and calls to functions.
+
+Retries can be implemented using the exception mechanism,
+that is already required to due to loss of internal consistency. 
+Operations are delimited with catch blocks, if the exception caught
+is of type defined by the automatic transformation then a retry is required. 
+If the exception if of another type, a read set validation takes place, 
+if the read set validation passes it means that the exception  is inherent
+to the original program and is thrown to higher levels, otherwise, the
+exception might occurred due to unvalidated reads and the operation is
+restarted. 
+ 
 
 \Xomit{  
 \subsection{Transformation Details}
