@@ -80,7 +80,20 @@ data structure.
 %(never adds a node to detached part of the tree).
 %The results of the new optimized code can be found in \ldots 
  
-As the update workload increases \ldots 
+As the update workload increases our automatic implementation 
+closes this gap, and for some operation distributions and 
+key ranges even outperforms some of the hand crafted algorithms.
+These results show that our automatic transformation is highly optimized for
+high update contention. This is probably due to the fact that once
+an update phase is started the operation is not delayed due to concurrent 
+read operations. 
+
+Additionally, the results show that our automatic transformation 
+works better on larger data structures. In large data structures 
+update operations are more likely to operate on disjoint parts of 
+the data, allowing high concurrency. This is especially important 
+for the automatic transformation as updates  with overlapping 
+locked sets might invalidate each other.  
  
 
 
@@ -89,7 +102,10 @@ As the update workload increases \ldots
 \input{plots/unbalanced}
 \end{center}
 \caption{Throughput of unbalanced data
-structures.\label{evaluation:results:unbalanced}}
+structures.
+y-axis show the throughput (operations/sec), 
+and x-axis show the number of threads.
+\label{evaluation:results:unbalanced}}
 \end{figure*}
 
 
@@ -99,5 +115,8 @@ structures.\label{evaluation:results:unbalanced}}
 
 \end{center}
 \caption{Throughput of balanced data
-structures.\label{evaluation:results:balanced}}
+structures.
+y-axis show the throughput (operations/sec), 
+and x-axis show the number of threads.
+\label{evaluation:results:balanced}}
 \end{figure*}
