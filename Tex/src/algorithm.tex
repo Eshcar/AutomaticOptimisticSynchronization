@@ -36,28 +36,39 @@ protocol took place.
 
 
 \subsection{Transformation Details}
+To illustrate our transformation a simple code example is 
+provided in Figure \ref{figure:transformation}.
+
 We start our transformation by applying three preparation steps
-to the given sequential algorithm. 
+to the given sequential algorithm.
 First, we use the ``black box'' transformation to produce an
-algorithm that ensures the locking protocol. Second, we add 
-version numbers to shared memory objects, incremented every 
-time the object is locked. These version numbers are used 
+algorithm that ensures the locking protocol 
+(Figure \ref{figure:transformation:before}). 
+Second, we add version numbers to shared memory objects, 
+incremented every time the object is locked. 
+These version numbers are used 
 to validate the correctness of the read-only phase during 
 the validation phase as well as at timeouts and exceptions.
 Lastly, we identify the read only prefix of each operation. 
 
-Next we explain what the transformation does in each phase. 
+Next we explain what the transformation does in each phase (Figure
+\ref{figure:transformation:after}). 
 
 \paragraph{Read-only Phase} 
   During this phase the operation maintains a \emph{locked set}
   and a \emph{read set}. 
   The locked set is used to track the lock and unlock steps
   of the locking protocol, thus, we replace each lock step 
-  with a step adding the object to the locked set and each
-  unlock step with a step removing the object from the locked
-  set. (Since the locking protocol might allow re-entrant locks, 
-  our locked set allows duplications and the remove operation
-  removes one of the duplications of the object).  
+  with a step adding the object to the locked set 
+  (lines
+  \ref{code:lockedSet:add1},
+  \ref{code:lockedSet:add2},
+  \ref{code:lockedSet:add3})
+  and each unlock step with a step removing the object 
+  from the locked set (line \ref{code:lockedSet:remove}). 
+  (Since the locking protocol might allow re-entrant locks, 
+  our locked set allows duplications and the remove 
+  operation removes one of the duplications of the object).
   
 The read set is used to track all objects accessed by the 
 operation in order to later validate that this read set
@@ -66,7 +77,10 @@ It contains a mapping between references to objects loaded
 to the local version at the time it was read. After 
 objects are added to the read set they are checked to be 
 unlocked, if the object is locked the operation restarts
-from the beginning. 
+from the beginning (lines 
+\ref{code:getVersion1}-\ref{code:readGhaseGoto1},
+\ref{code:getVersion2}-\ref{code:readGhaseGoto2},
+\ref{code:getVersion3}-\ref{code:readGhaseGoto3}). 
 
 %Object are added to the read set immediately 
 %after they are added to the locked set.  
@@ -92,12 +106,14 @@ if it fails the operation restarts from the beginning.
 
 \paragraph{Validation Phase} 
 The validation phase is inserted to the code after
-the read-only phase. It locks the objects in the locked set
-and validates the read set. 
+the read-only phase (lines
+\ref{code:validateLockedSet}-\ref{code:validateGoto2}). 
+It locks the objects in the locked set and validates the read set. 
 
 To avoid deadlocks, the locks are acquired using a try\_lock
 operation, if the try\_lock fails, the operation unlocks 
-previously acquired locks and restarts from the beginning. 
+previously acquired locks and restarts from the beginning 
+(lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}). 
 The calls to try\_lock also increment the versions 
 of the object,  these objects are also part of the 
 operations read set. 
@@ -109,8 +125,10 @@ The read set validation is performed as follows,
 each object saved in the read set is checked to be unlocked 
 and that the current version matches the version saved in the 
 read set. If this check fails, the operation releases all its
-locks and restarts from the beginning. This guarantees that
-the object was not locked from the time it was read until
+locks and restarts from the beginning
+(lines \ref{code:validateReadSet}-\ref{code:validateGoto2}). 
+This guarantees
+that the object was not locked from the time it was read until
 the time it was validated, since all operations write only to
 locked nodes it follows that the object was not changed.  
 The read set validation can be viewed as a double collect 
@@ -208,46 +226,47 @@ protocol.
 			\EndFunction
 			}
 		\end{algorithmic}
+		\caption{} \label{figure:transformation:before} 
 	\end{subfigure}
 	\begin{subfigure}{.49\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{foo}{Node new} \label{code:begin}
 			\State \emph{Node prev = head}
-			\State lockedSet.add(prev)
-			\State long version = prev.getVersion()
-			\State readSet.add(prev,version) 
+			\State lockedSet.add(prev) \label{code:lockedSet:add1}
+			\State long version = prev.getVersion() \label{code:getVersion1}
+			\State readSet.add(prev,version)  
 			\If{prev.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
+				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto1}
 				%\Comment Restart Operation
 			\EndIf
 			\State \emph{Node succ = prev.next}
-			\State lockedSet.add(succ)
-			\State version = succ.getVersion()
+			\State lockedSet.add(succ) \label{code:lockedSet:add2}
+			\State version = succ.getVersion() \label{code:getVersion2}
 			\State readSet.add(succ,version)
 			\If{succ.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
+				\State \textbf{goto} \ref{code:begin}  \label{code:readGhaseGoto2}
 				%\Comment Restart Operation
 			\EndIf		
-			\State lockedSet.remove(prev) 
+			\State lockedSet.remove(prev) \label{code:lockedSet:remove}
 			\State \emph{prev = succ}
 			\State \emph{succ = succ.next}
-			\State lockedSet.add(succ)
-			\State version = succ.getVersion()
+			\State lockedSet.add(succ) \label{code:lockedSet:add3}
+			\State version = succ.getVersion() \label{code:getVersion3}
 			\State readSet.add(succ,version) 
 			\If{succ.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
+				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto3}
 				%\Comment Restart Operation
 			\EndIf
 			\Statex ----------------------------
-			\If{!lockedSet.tryLockAll()} 		
+			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
 				\State release all locks
-				\State \textbf{goto} \ref{code:begin} 
+				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto1}
 				%\Comment Restart Operation
 			\EndIf	
-			\If{!readSet.validate()} 		
+			\If{!readSet.validate()} 		\label{code:validateReadSet}
 				\State release all locks
-				\State \textbf{goto} \ref{code:begin} 
+				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto2}
 				%\Comment Restart Operation
 			\EndIf	
 			\Statex ----------------------------
@@ -259,11 +278,16 @@ protocol.
 			\EndFunction
 			}
 		\end{algorithmic}
+		\caption{}\label{figure:transformation:after}
 	\end{subfigure}
 	%\bigskip
 	%\hline
 	\end{center}
-	\caption{ Code option 1 
+	\caption{ Automatic transformation code example. 
+	The original sequential code
+	is slanted. Part (a) is the code following hand over hand locking 
+	protocol and part (b) is the code after the automatic
+	transformation.
 			\label{figure:transformation}}
 \end{figure*}
 
