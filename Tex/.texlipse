@@ -1,14 +1,14 @@
 #TeXlipse project settings
-#Mon Aug 18 12:01:45 IDT 2014
+#Sun Sep 07 09:57:21 IDT 2014
 markTmpDer=true
-builderNum=2
+builderNum=6
 outputDir=
 makeIndSty=
 bibrefDir=
 outputFormat=pdf
 tempDir=tmp
 mainTexFile=document.tex
-outputFile=document.pdf
+outputFile=AutoOptSync.pdf
 langSpell=en
 markDer=true
 srcDir=src/

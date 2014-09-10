@@ -1,6 +1,4 @@
-
-
-\section{Model and  Definitions}
+\section{Model and  Definitions}\label{sec:model}
 
 
 \subsection{Shared Memory Data Structures}
@@ -35,8 +33,8 @@ A \emph{lock} is a primitive type that supports atomic \emph{lock}, \emph{try\_l
 where try\_lock is a non-blocking attempt to acquire a lock that may fail. 
 
 We assume in this paper a \emph{locking protocol}, which transforms a sequential data-structure to a correct concurrent one by adding locks;
-correctness is defined in Section~\ref{sec:linearizable} below.
-Examples of such protocols are Tree Locking~\cite{tree-locking}, and Domination Locking~\cite{domination-locking}. 
+correctness is defined in Section~\ref{ssec:linearizable} below.
+Examples of such protocols are Tree Locking~\cite{SilberschatzK1980}, and Domination Locking~\cite{Gueta2011}. 
 The locking protocol associates a lock with every primitive shared object used by the data structure, and instruments the sequential code 
 by adding lock and unlock operations. Intuitively, such protocols automatically perform some sort of ``hand-over-hand'' locking, acquiring locks as
 they traverse a linked-list or tree, and releasing locks on previously traversed nodes. They are typically restricted to tree-like data structures.
@@ -61,7 +59,7 @@ This is captured by the notion of a \emph{history} -- the history of an executio
 of invoke and return steps. The widely-used correctness criteria of linearizability and serializability link the data structure's behavior under concurrency to its allowed behavior in sequential executions. The latter is defined by a \emph{sequential specification}, which is a set of its allowed sequential histories. 
 
 A history $H$ is \emph{linearizable}
-\cite{Herlihy:1990:LCC:78969.78972} if there exists $H'$ that can be created by adding zero or more 
+\cite{HerlihyW1990} if there exists $H'$ that can be created by adding zero or more 
 return steps to $H$, and there is a sequential permutation $\pi$ of complete($H'$), 
 such that: (1) $\pi$ belongs to the sequential specification; and 
 (2) every pair of operations that are not interleaved in $\sigma$, appear in the same order in $\sigma$ and in $\pi$. 
@@ -70,9 +68,7 @@ A data structure  is \emph{linearizable}, also called \emph{atomic}, if the hist
 A history is \emph{serializable} if it satisifes property (1) above. That is, the real-time order of operations is not required.
 A data structure  is \emph{serializable} the histories of all of its executions are serializable.
 
-In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{opacity} or the validity notion of~\cite{Kfir}), which 
+In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{GuerraouiK2008} or the validity notion of~\cite{LevAriCK2014}), which 
 restricts the configurations an operation might see during its execution. 
 This is because our code transformation deals with inconsistencies that may arise when a thread sees an inconsistent view of global variables using 
 timouts and exception handlers.   
-
-
