@@ -37,7 +37,7 @@ In order to apply our approach to a data structure, a
 ''black-box'' pessimistic locking is required. One such 
 approach was presented in \cite{Gueta2011}, automatically 
 applying domination locking protocol to forest based data structures.  
-We applied domination locking followed by our optimistic 
+We applied domination locking followed by our 
 transformation to two tree based data structures, 
 a simple unbalanced binary search tree 
 and a treap (randomized binary search tree) \cite{AragonS1989}.
@@ -75,15 +75,15 @@ We used Ubuntu 12.04.4 LTS and Java$^{TM}$ Runtime Environment (build
 
 We evaluated the performance on a variety of workloads, 
 each workload is defined by the percentage of read-only
-operations (\getOP queries) and the remaining operations 
+operations (contains queries) and the remaining operations 
 are divided equally between insert and delete operations.
 Our workloads include heavy read-only workloads
-(100\% \getOP operations), medium read-only workload 
-(50\% \getOP operations) and update only workload
-(0\% \getOP operations). 
+(100\% contains operations), medium read-only workload 
+(50\% contains operations) and update only workload
+(0\% contains operations). 
 
-We used two key ranges $[0,2\cdot10^4]$ and $[0,2\cdot10^6]$,
-for each range, the tree was pre-filled until the tree size was 
+We also consider two sizes of data structures, by using two key ranges
+$[0,2\cdot10^4]$ and $[0,2\cdot10^6]$, for each range, the tree was pre-filled until the tree size was 
 within 5\% of half the key range.   
 
 We ran five seconds trials measuring the total throughput
@@ -102,9 +102,8 @@ The results for the read-only workload show the main overhead
 of our automatic approach. Unlike the hand crafted implementations
 that have no overhead on reads in this scenario, either by wait free reads in
 \danaTree and \danaAVL or the optimistic validation of \bronson, 
-our implementation requires full \readSet validation.
-This overhead cannot be avoided without prior knowledge on the
-data structure.
+our implementation requires tracking reads. This overhead is 
+inherent to our automatic transformation.
 %, however, given knowledge on the semantics of
 %the data structure a small modification to the automatic code 
 %can be applied. 
@@ -120,7 +119,7 @@ data structure.
  
 As the update workload increases our automatic implementation 
 closes this gap, and for some operation distributions and 
-key ranges even outperforms some of the hand crafted algorithms.
+tree sizes even outperforms some of the hand crafted algorithms.
 These results show that our automatic transformation is highly optimized for
 high update contention. This is probably due to the fact that once
 an update phase is started the operation is not delayed due to concurrent 
