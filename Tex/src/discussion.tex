@@ -1,1 +1,14 @@
 \section{Discussion}\label{sec:discussion}
+
+We have made the case that automatic synchronization can be a viable approach for producing scalable concurrent algorithms from legacy sequential code.
+Today, development of such code heavily relies on custom-tailored implementations, which require painstaking correctness proofs. 
+ In this paper, we have shown simple automatic transformations that eliminate principal concurrency bottlenecks  to yield code that scales comparably  to hand-optimized solutions.
+While we have illustrated our method only for tree-like data structures, we hope that future work will prove that the approach is more broadly applicable, and can be used to 
+synthesize efficient concurrent implementations of additional data structures, for which no such implementations exist yet. 
+
+Our methods make use of a common pattern in data structures, where an operation typically begins with a long read-only traversal, followed by a handful of (usually local) modifications. 
+It might be possible to exploit similar patterns in order to parallelize or remove locks in other types of code (not data structures).
+Furthermore, for programs that follow different patterns, other combinations of optimism and pessimism may prove effective.
+
+Finally, it might be possible to enhance such automatic transformations with computer-assisted optimizations. For example, a programmer may provide hints regarding certain 
+Invariants that are always preserved in the code, in order to reduce the overhead of validation. 
