@@ -39,53 +39,47 @@ restarts. In order to avoid livelock, we set a threshold on the number of restar
 If the threshold is exceeded, the code falls back on pessimistic execution. 
 
 \subsection{Transformation Details}\label{ssec:transformation}
-To illustrate our transformation a simple code example is 
-provided in Figure \ref{figure:transformation} 
-with auxiliary functions in Figures \ref{figure::track} and 
-\ref{figure::validate}.
+We illustrate our transformation for a simple code snippet that adds a new element as the third node in a linked list.
+The transformed code is provided in Figure \ref{figure:transformation}, with the original code snippet in bold. It uses
+the tracking and validation functions in Figures \ref{figure::track} and 
+\ref{figure::validate}, resp.
 
 We start our transformation by applying three preparation steps
 to the given sequential algorithm.
-First, we use the ``black box'' transformation to produce an
-algorithm that ensures the locking protocol 
-(Figure \ref{figure:transformation:before}). 
-Second, we add version numbers to shared memory objects, 
+First, we use the black-box locking scheme to produce an
+algorithm that ensures the locking protocol. The outcome of this step is illustrated in Figure \ref{figure:transformation:before}. 
+Second, we add version numbers to shared memory objects, which are 
 incremented every time the object is locked. 
-These version numbers are used 
-to validate the correctness of the read-only phase during 
-the validation phase as well as at timeouts and exceptions.
-Lastly, we identify the read only prefix of each operation. 
+These version numbers are later used to validate the correctness of the optimistic traversal.
+Note that version numbers are \emph{local}, i.e., version numbers of different objects are independent of each other. 
+Lastly, we identify the read only prefix of each operation.
 
-Next we explain what the transformation does in each phase (Figure
-\ref{figure:transformation:after}). 
+Next we generate the transformed code, (as illustrated in Figure \ref{figure:transformation:after}), 
+for each of the phases:
 
 \paragraph{Read-only Phase} 
-  During this phase the operation maintains a \emph{locked set}
-  and a \emph{read set}. 
-  The locked set is used to track the lock and unlock steps
-  of the locking protocol, thus, we replace each lock step 
-  with a step adding the object to the locked set 
-  (line \ref{code:lockedSet:add} of auxiliary function 
-  track, Figure \ref{figure::track}). 
-  and each unlock step with a step removing the object 
+
+In this phase, we replace all the lock and unlock operations added by the locking protocol.
+The track function in Figure \ref{figure::track} is called instead of taking a lock, and unlocking 
+is replaced by removing the lock from the locked set.
+
+During this phase, the operation maintains a \emph{lock set} and a \emph{read set}. 
+The lock set is used to track the lock and unlock steps of the locking protocol. To this end, we replace each lock step 
+  with a step adding the object to the lock set 
+  (line \ref{code:lockedSet:add} of function track, Figure \ref{figure::track}), 
+  and each unlock step with a removal of the object 
   from the locked set (line \ref{code:lockedSet:remove}). 
   (Since the locking protocol might allow re-entrant locks, 
-  our locked set allows duplications and the remove 
-  operation removes one of the duplications of the object).
+  our lock set allows duplication and the remove 
+  operation removes one of the duplicates of the object).
   
-The read set is used to track all objects accessed by the 
-operation in order to later validate that this read set
-belongs to a consistent view of shared memory.  
-It contains a mapping between references to objects loaded 
-to the local version at the time it was read. After 
-objects are added to the read set they are checked to be 
-unlocked, if the object is locked the operation restarts
-from the beginning (lines
-\ref{code:track:getVersion}-\ref{code:track:returnFalse} of auxiliary function
-track, Figure \ref{figure::track}).
+The read set  tracks all objects loaded by the 
+operation, in order to allow us to later validate that the collection of loaded values
+reflects a consistent view of shared memory.  It maps each object (reference)  
+to the object's local version at the time of the load. After an object is added to the read set, it is checked to be 
+unlocked; if the object is locked, the operation restarts from the beginning.
+% (lines \ref{code:track:getVersion}-\ref{code:track:returnFalse} of track function, Figure \ref{figure::track}).
 
-%Object are added to the read set immediately 
-%after they are added to the locked set.  
 
 %Incrementing the local version of an object is not 
 %done atomically with the lock acquisition, thus, 
@@ -94,11 +88,12 @@ track, Figure \ref{figure::track}).
 %This also ensures that the operation never reads old values 
 %with a new version. 
  
-The read phase does not validate reads during its traversal, 
-in order to avoid infinite loops, a timeout is set. 
-If the operation reaches the timeout, a read set 
-validation takes place (described in the validation phase), 
-if it fails the operation restarts from the beginning.
+The read phase does not validate reads during its traversal.  
+In order to avoid infinite loops that might occur due to inconsistent loads, a timeout is set. 
+If the timeout expires before the operation returns, read set 
+validation takes place (as described in the validation phase below).
+Similarly, all exceptions are caught and trigger read set validation. 
+Any validation failure causes the operation to restart.
   
   %The use of timeout does not guarantee that the 
   %operation reads a consistent snapshot of the memory, 
@@ -110,31 +105,28 @@ if it fails the operation restarts from the beginning.
 The validation phase is inserted to the code after
 the read-only phase (lines
 \ref{code:validateLockedSet}-\ref{code:validateGoto2}). 
-It locks the objects in the locked set and validates the read set. 
+It locks the objects in the lock set and validates the read set. 
 
 To avoid deadlocks, the locks are acquired using a tryLock
-operation, if the tryLock fails, the operation unlocks 
+operation. If tryLock fails, the operation unlocks  all
 previously acquired locks and restarts from the beginning 
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}). 
 The calls to tryLock also increment the versions 
-of the object,  these objects are also part of the 
-operations read set. 
-To avoid the operation invalidating itself, 
+of the objects. Note that these objects are also part of the 
+operation's read set. Therefore, to prevent the operation from invalidating itself, 
 a successful tryLock operation is followed by incrementing
 the version saved in the read set.  
 
-The read set validation is performed as follows, 
-each object saved in the read set is checked to be unlocked 
-and that the current version matches the version saved in the 
-read set (Figure \ref{figure::validate}). If this check fails, the operation releases all its
-locks and restarts from the beginning
-(lines \ref{code:validateReadSet}-\ref{code:validateGoto2}). 
-This guarantees
+The read set validation code appears in Figure \ref{figure::validate}. 
+It checks that each object saved in the read set is unlocked, 
+and that the object's current version matches the version saved in the 
+read set. If this check fails, the operation releases all its
+locks and restarts. This check guarantees
 that the object was not locked from the time it was read until
-the time it was validated, since all operations write only to
-locked nodes it follows that the object was not changed.  
+the time it was validated. Since operations write only to
+locked nodes, it follows that the object was not changed.  
 The read set validation can be viewed as a double collect 
-to all objects accessed by the read-only phase. 
+of all objects accessed by the read-only phase. 
 
 %The order between checking the version and checking that the object is unlocked
 %is important, as locking and incrementing versions is not atomic. 
@@ -249,7 +241,7 @@ protocol.
 				\State {goto} \ref{code:begin}  \label{code:readGhaseGoto2}
 				%\Comment Restart Operation
 			\EndIf		
-			\State lockedSet.remove(prev) \label{code:lockedSet:remove}
+			\State lockSet.remove(prev) \label{code:lockedSet:remove}
 			\State \textbf{prev = succ}
 			\State \textbf{succ = succ.next}
 			\If{!track(succ)}
@@ -294,7 +286,7 @@ protocol.
 \begin{algorithmic}[1]{}
 		{\ttfamily
 		\Function{track}{Node node}
-		\State lockedSet.add(node) \label{code:lockedSet:add}
+		\State lockSet.add(node) \label{code:lockedSet:add}
 			\State long version = node.getVersion() \label{code:track:getVersion}
 			\State readSet.add(node,version)  
 			\If{node.isLocked()}
