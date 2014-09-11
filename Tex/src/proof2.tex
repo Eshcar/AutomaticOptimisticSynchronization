@@ -1,43 +1,76 @@
 \newcommand{\op}{\emph{\textsc{op}}}
 \newcommand{\opt}{\textsc{opt}}
 
-\section{Correctness Proof}
+\section{Analysis}
 \label{sec:proof}
 
-We prove that every execution of the optimistic algorithm is equivalent to a
-concurrent execution of the sequential code instrumented with the locking
-protocol. 
-This proves that the optimistic algorithm provides serializability or strict
-serializability with respect to the safety guarantees of the locking protocol.
+We show  three properties of our automatic transformation. First, we prove that the  transformation is correct, i.e., 
+every execution of the  synthesized code is equivalent to some execution of the \emph{locking algorithm}, that is, the
+sequential code instrumented with the locking protocol.
+This implies that if the locking protocol ensures serializability, then so does our protocol.
+Second, we show that the equivalent execution preserves the real-time order of the original one, 
+which implies that linearizability is also invariant under the transformation.
+Finally, we argue that our transformation preserves deadlock-freedom.
+%%%In this section, we provide informal correctness arguments. A formal proof is deferred to Appendix~\ref{sec:formal-proof}.
 
-Let $\pi$ be a finite execution of the optimistic algorithm. All
-operations \op\ in $\pi$ execute at most a single successful read-only
-phase, namely a complete read-only phase followed by a successful validation
-phase.
-First we remove
-from the execution all steps that access (read or write to) versions. 
-We note that accesses to versions are not included in the locking protocol 
-nor in the sequential code, they are added only as part of the
-optimistic instrumentation, therefore removing them does not affect the return
-value of the operations in this execution \eshcar{need to make this argument
-stronger?}. In addition, for every operation we remove the steps in the prefix
-of the operation that precede the successful read-only phase. 
-This includes completely removing operations having no successful read-only
-phase. 
-We then perturb the
-resulting execution, $\pi'$, in iterations to construct an execution, $\pi''$, of the locking protocol.
+\paragraph{Transformation Correctness}
 
+Let $\pi$ be a finite execution of the transformed algorithm. We will show an equivalent execution of the locking aglorithm.
+Let \op\ be the set of operations in $\pi$.
+First, we project object versions out of $\pi$'s configurations, and remove all accesses (reads and writes) to object versions.
+That is, we replace steps that access versions with local steps that modify the operation's local memory only.
+(Note that we get an execution with exactly the same invocations, responses, local states, and shared object states, but without 
+versions). 
+Second, note that each operation $op \in$ \op\ executes at most one successful read-only
+phase, namely a complete read-only phase followed by a successful validation phase.
+For each such $op$, we remove the prefix of $op$ that precedes the successful read-only phase.
+This includes completely removing operations that have no successful read-only phase.
+We call the resulting execution $\pi'$.
+
+We next iteratively perturb $\pi'$ to construct an equivalent execution of the locking protocol.
+We order the operations in \op\ according to the order in which the first steps of their respective (successful) read set validation phases occur in $\pi'$,
+and label them $op_1, op_2, \ldots, op_k$ in this order. Let $\pi_0 = \pi'$. In each iteration $i \geq 1$, we construct $\pi_i$ by replacing the execution of $op_i$
+in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. For objects that are in the read set but not in the lock set during the validation phase, this means adding lock and unlock operations exactly where the locking protocol has them. For objects in the lock set, this means removing the tryLock and adding a lock where the locking protocol would lock it; the release of this lock remains unchanged. 
+Our ability to lock each object in $op_i$'s read set at 
+point where the object was first read follows from the following observation:
+\begin{observation}
+Between the first time in which $op_i$ first reads an object $o$ in its read-only phase, and until the first step of $op_i$'s validation phase, no
+ thread locks $o$. 
+\end{observation}
+The observation follows immediately from the fact that $op_i$'s read validation is successful and that every lock step increases the
+respective object's version number. 
+
+It is easy to see that $\pi_{i-1}$ and $\pi_i$ are equivalent. By repeating this for all operations in \op, we get an execution $\pi_k$ of the locking 
+protocol.
+
+\paragraph{Real-Time Order}
+It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it does not change the order of invoke or return steps. 
+
+\paragraph{Progress}
+The read and validation phases of our instrumented code do not use blocking locks -- the read-phase does not use locks at all, whereas the 
+validation phase uses tryLocks. Therefore, both phases are non-blocking. In priniciple, the optimistic approach may lead to livelocks, but 
+our algorithm fall-back on the pessimistic approach following a bounded number of restarts, and hence cannot livelock. We get that any lack
+of progresss must be due to blocking in the locking algorithm. Since the section of the code executing the locking protocol is unchanged, and
+since we ensure that it begins when holding the same locks as in the original protocol, we get that our transformation does not introduce any
+source of spurious blocking that is not present in the original locking protocol. 
+
+
+\Xomit{
+
+\subsection{Everything below should move to the appendix}
+
+%
 Denote by $e_1, e_2, \ldots, e_i, \ldots$ the sequence of the first steps of the
 read set validation in the execution of successful validation phases, by their
 order in $\pi$, where $e_i$ is a step of the operation $op_{e_i}$ executed by process $p_{e_i}$.
-
 %Two executions are \emph{equivalent} if every process in their associated
 %histories invokes the same operations in the same order and gets the
 %same results for each operation. \eshcar{can move this def to the model section}
+%
 
 Two executions are \emph{indistinguishable} to a set of operations if each
 operation in the set executes the same steps on primitive shared objects, and
-receives the same value from those primitives in both executions.
+receives the same value from those primitives, in both executions.
 
 \eshcar{define invisible step?} 
 
@@ -185,5 +218,5 @@ Any execution of the optimistic instrumentation is equivalent to an
 execution of the locking protocol.
 \end{theorem}
 
-
+}
 
