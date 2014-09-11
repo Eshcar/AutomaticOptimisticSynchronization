@@ -11,7 +11,7 @@ This implies that if the locking protocol ensures serializability, then so does 
 Second, we show that the equivalent execution preserves the real-time order of the original one, 
 which implies that linearizability is also invariant under the transformation.
 Finally, we argue that our transformation preserves deadlock-freedom.
-%%%In this section, we provide informal correctness arguments. A formal proof is deferred to Appendix~\ref{sec:formal-proof}.
+In this section, we provide informal correctness arguments. A formal proof is deferred to Appendix~\ref{sec:formal-proof}.
 
 \paragraph{Transformation Correctness}
 
@@ -28,11 +28,16 @@ This includes completely removing operations that have no successful read-only p
 We call the resulting execution $\pi'$.
 
 We next iteratively perturb $\pi'$ to construct an equivalent execution of the locking protocol.
-We order the operations in \op\ according to the order in which the first steps of their respective (successful) read set validation phases occur in $\pi'$,
-and label them $op_1, op_2, \ldots, op_k$ in this order. Let $\pi_0 = \pi'$. In each iteration $i \geq 1$, we construct $\pi_i$ by replacing the execution of $op_i$
-in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. For objects that are in the read set but not in the lock set during the validation phase, this means adding lock and unlock operations exactly where the locking protocol has them. For objects in the lock set, this means removing the tryLock and adding a lock where the locking protocol would lock it; the release of this lock remains unchanged. 
-Our ability to lock each object in $op_i$'s read set at 
-point where the object was first read follows from the following observation:
+We order the operations in \op\ according to the order in which the first steps of their respective (successful) read set validation phases occur in $\pi'$.
+Denote the sequence of these first validations steps $e_1, e_2, \ldots, e_k$, and the respective operations
+$op_1, op_2, \ldots, op_k$ in this order. Let $\pi_0 = \pi'$. 
+In each iteration $i \geq 1$, we construct $\pi_i$ by replacing the execution of $op_i$
+in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. To do this, we first move all steps of $op_i$ that precede 
+its first validation step, $e_i$, to occur immediately before $e_i$ (we know that the read steps return the same values, since validation 
+succeeds). We then add steps that lock all of them immediately before these moved read steps. Finally, we add unlock steps immediately
+before $e_i$ for objects that are in the read set but not in the lock set during $e_i$, and remove the tryLock steps for remaining objects. 
+
+Our ability to lock each object in $op_i$'s read set follows from the following observation:
 \begin{observation}
 Between the first time in which $op_i$ first reads an object $o$ in its read-only phase, and until the first step of $op_i$'s validation phase, no
  thread locks $o$. 
@@ -55,7 +60,6 @@ since we ensure that it begins when holding the same locks as in the original pr
 source of spurious blocking that is not present in the original locking protocol. 
 
 
-\Xomit{
 
 \subsection{Everything below should move to the appendix}
 
@@ -217,6 +221,3 @@ By Lemma~\ref{lemma:pitagtag} and Claim~\ref{claim:pipitag} we conclude that
 Any execution of the optimistic instrumentation is equivalent to an
 execution of the locking protocol.
 \end{theorem}
-
-}
-
