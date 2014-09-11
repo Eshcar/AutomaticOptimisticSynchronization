@@ -7,14 +7,15 @@ structures~\cite{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR20
 AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,Michael:1996}.
 Such efforts are often very successful, achieving performance that scales well
 with the number of threads.
-Nevertheless, each of these project generally focuses on a single data structure
-(for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation.
+Nevertheless, each of these projects generally focuses on a single data
+structure (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation.
 Proving the correctness of such custom-tailored data structures is painstaking
 (for example, the proofs of \cite{BraginskyP2012,EllenFRB2010} are $31$ and $20$ pages long
 % \Idit{add info},
 respectively). We propose an approach to replace this labor-intensive process by automatic means.
 
-One way to automatically convert a sequential data structure into a correct (thread-safe) concurrent one using locks.
+One way to automatically convert a sequential data structure into a correct
+(thread-safe) concurrent one is using locks.
 The trivial way to do so is to add a single global lock protecting the entire data structure
 (as in \emph{synchronized methods} in Java$^{TM}$, for example), but this allows no parallelism whatsoever.
 A more sophisticated approach can instrument the code (at compile time) and add
@@ -34,7 +35,9 @@ Specifically, we replace many (but not all) locks with speculative execution and
 If re-validation fails, the speculative phase is restarted.
 In striking the balance between optimism and pessimism, we exploit the common nature of data structure operations,
 which typically begin by traversing the data structure to a designated location, and then perform (mostly local) updates at that location.
-Our optimistic execution is limited to the initial read-only part of the code (the data structure traversal)\footnote{Our solution may be seen as a form of software lock elision for read-only operation prefixes.}.
+Our optimistic execution is limited to the initial read-only part of the code
+(the data structure traversal). 
+Our solution may be seen as a form of software lock elision for read-only operation prefixes.
 Unlike most software transactional memory approaches~\cite{HLR:SLCA2010},
 our synthesized code neither speculatively modifies shared memory contents, nor does it defer writes.
 Hence it never needs to rollback, and saves the overhead for tracking writes in dedicated data structures.
