@@ -8,18 +8,19 @@ For the sake of our discussion, we do not distinguish among different types of s
 In addition, each thread has access to \emph{local} (thread-local) memory.
 
 A \emph{data structure} is an abstract data type exporting a set of \emph{operations}.
-A data structure is implemented from a collection of primitive shared \emph{objects} supporting atomic load (read) and store (write) operations.
-Below, we extend the allowed primitive variables to also include locks. 
+A data structure is implemented from a collection of primitive shared \emph{objects} (variables) supporting atomic load (read) and store (write) operations.
+Below, we extend the allowed primitive objects to also include locks. 
 
 Every thread executes a sequence of operations, each of which is invoked with certain parameters and returns a response.
 An operation's execution consists of a sequence of primitive \emph{steps}, beginning with an \emph{invoke} step, followed by 
 atomic accesses to shared objects, and ending with a \emph{return} step. Steps also modify the executing thread's local variables.
+
 A \emph{configuration} is an assignment of values to all shared and local variables. Thus, each step takes the system from one 
 configuration to another. Steps are deterministically defined by the data structure's protocol and the current configuration. 
-In the \emph{initial configuration}, each variable holds an initial value. 
+In the \emph{initial configuration}, each variable holds its initial value. 
 
 An \emph{execution} is an alternating sequence of configurations and steps,
-$C_0,s_1,\ldots,s_i,C_i,\ldots,$ 
+$C_0,s_1,C_1, \ldots,s_i,C_i,\ldots,$ 
 where $C_0$ is an initial configuration,
 and each configuration $C_i$ is the result of
 executing step $s_i$ on configuration $C_{i-1}$.
@@ -29,19 +30,22 @@ In other words, a sequential execution is a sequence of operation executions.
 \paragraph{Locking Protocols}
 %\label{ssec:locking}
 
-A \emph{lock} is a primitive type that supports atomic \emph{lock}, \emph{try\_lock}, and \emph{unlock} operations, 
-where try\_lock is a non-blocking attempt to acquire a lock that may fail. 
+A \emph{lock} is a primitive type that supports atomic \emph{lock},
+\emph{tryLock}, \emph{unlock} and \emph{isLocked} operations, where tryLock is a
+non-blocking attempt to acquire a lock that may fail.
 
-We assume in this paper an existing (black box) locking mechanism, which transforms a sequential data-structure to a concurrent one by adding locks:
+We assume in this paper an existing (black box) locking mechanism, which transforms a sequential data-structure to a concurrent (thread-safe)
+one by adding locks:
 it associates a lock with every primitive shared object used by the data structure, and instruments the sequential code 
 by adding lock and unlock operations. 
 The locks are added so as to abide to some set of rules, called a \emph{locking protocol}. 
-Examples of such protocols are Two-Phase Locking~\cite{2pl}, Tree Locking~\cite{SilberschatzK1980}, and Domination Locking~\cite{Gueta2011}. 
-We note that there are known code transformations that satisfy certain locking protocols (e.g., Domination Locking~\cite{Gueta2011}), but no known
+Examples of such protocols are two-phase locking~\cite{2pl}, tree locking~\cite{SilberschatzK1980}, and domination locking~\cite{Gueta2011}. 
+
+We note that there are known code transformations that satisfy certain locking protocols (e.g., domination locking~\cite{Gueta2011}), but no known
 transformation for others; the question of developing such transformations is orthogonal to our contribution in this paper. 
-Intuitively, the Domination Locking protocol, which is restricted to tree-like data structures,
-automatically performs some sort of ``hand-over-hand'' locking, acquiring locks as
-it traverses a linked-list or tree, and releasing locks on previously traversed nodes. 
+In our implementation, we use domination locking, which is restricted to tree-like data structures.
+Intuitively, the domination locking protocol automatically performs some sort of ``hand-over-hand'' locking, acquiring locks as
+it traverses a linked-list or tree, and releasing locks held on previously traversed nodes. 
 
 We assume that the resulting code (obtained by adding the locks) satisfies the following properties:
 \begin{itemize}
@@ -49,23 +53,21 @@ We assume that the resulting code (obtained by adding the locks) satisfies the f
 \item The protocol is deadlock-free, i.e., locking does not introduce deadlocks.
 \end{itemize}
 
-
 \paragraph{Correctness}
 
 The correctness of a data structure is defined in terms of its external behavior, as reflected in values returned by invoked operations. 
-This is captured by the notion of a \emph{history} -- the history of an execution $\sigma$ is the subsequence of $\sigma$ consisting 
-of invoke and return steps (including the invocation parameters and return values). Correctness of a code transformation is proven 
-by showing that the synthesized code's histories are \emph{equivalent} to ones of the original code, in the sense that one is a permutation 
-of the other (i.e., includes the same invoke and return steps). 
+Correctness of a code transformation is proven by showing that the synthesized code's executions are equivalent to ones of the original code, 
+where two executions are  \emph{equivalent} if every process invokes the same operations in the same order  in both executions, and gets the
+same result for each operation. More formally, we say in this paper that a code transformation is \emph{correct} if every execution of the transformed code
+is equivalent to some execution of the original code.
 
-The widely-used correctness criterion of serializability relies on equivalence to sequential histories in order to
-link a data structure's behavior under concurrency to its allowed behavior in sequential executions. Since equivalence is transitive, 
+The widely-used correctness criterion of serializability relies on equivalence to sequential executions in order to
+link a data structure's behavior under concurrency to its sequentially specified behavior. Since equivalence is transitive, 
 we get that any code transformation satisfying our correctness notion, when applied to serializable code, yields code that is also serializable.
-If the transformation also satisfies the real-time order of operations (that is, operations that do not overlap appear in the same order in the
-histories of the transformed and original code), then it further preserves linearizability (or atomicity) of code it transforms.
+If the code transformation further ensures the real-time order of operations (that is, operations that do not overlap appear in the same order in the
+histories of the transformed and original code), then linearizability (atomicity) is also invariant under the transformation.
 
 In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{GuerraouiK2008} or the validity notion of~\cite{LevAriCK2014}), 
 which restricts the configurations an operation might see during its execution. 
-This is because our code transformation deals with inconsistencies that may arise when a thread sees an inconsistent view of global variables using 
-timeouts and exception handlers. 
+This is because our code transformation uses timeouts and exception handlers to overcome unexpected behavior that may arise when a thread sees an inconsistent view of global variables. 
 
