@@ -1,5 +1,6 @@
 \section{Evaluation}\label{sec:eval}
 
+\Xomit{
 \paragraph{Implementation Details}
 We implemented our automatic transformation in Java$^{TM}$, 
 the following section highlight some technical details of 
@@ -29,6 +30,7 @@ if the read set validation passes it means that the exception  is inherent
 to the original program and is thrown to higher levels, otherwise, the
 exception might occurred due to unvalidated reads and the operation is
 restarted. 
+}
 
 \paragraph{Setup}
 In order to apply our approach to a data structure, a
@@ -148,6 +150,7 @@ and x-axis show the number of threads.
 \begin{figure*}
 \begin{center}
 \input{plots/balanced}
+
 
 \end{center}
 \caption{Throughput of balanced data
