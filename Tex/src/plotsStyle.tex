@@ -21,7 +21,11 @@
         grid=major,
         grid style={dashed, gray!30},
         %symbolic x coords={1,2,4,8,16,32},
+        ylabel style={align=center},
         xtick={1,4,8,16,32}, 
+        scaled y ticks=base 10:-6,
+        ytick scale label code/.code={},
+    	yticklabel={\pgfmathprintnumber{\tick}}
         %tick align=outside,
 }}
 
