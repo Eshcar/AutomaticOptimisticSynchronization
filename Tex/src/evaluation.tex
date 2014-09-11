@@ -1,4 +1,36 @@
 \section{Evaluation}\label{sec:eval}
+
+\paragraph{Implementation Details}
+We implemented our automatic transformation in Java$^{TM}$, 
+the following section highlight some technical details of 
+the implementation.
+
+Version numbers were added as a field in each object, 
+incremented inside an acquire function. The
+locked set and the read set can be implemented using several Java 
+provided data structures. We chose to use arrays as they provide low 
+overheads. Timeouts were implemented using a counter, incremented and checked
+inside loops (backwards branches) and calls to functions.
+
+Retries can be implemented using the exception mechanism,
+that is already required to due to loss of internal consistency. 
+However, this mechanism can hinder performance since retries occur 
+more often than program exception. Instead we implemented an error mechanism
+(inspired by C errno.h), an error object is sent to the operation from 
+a wrapper function. If the operation needs to restart it sets the error and
+returns. The wrapper checks the error object, if it is set the operation
+is called again with a clean error object, otherwise the wrapper returns 
+the operation return value. This wrapper is also used to count the retries
+and fall back to the full locking protocol.
+
+Operations were delimited with catch blocks, if an exception
+is caught a read set validation takes place, 
+if the read set validation passes it means that the exception  is inherent
+to the original program and is thrown to higher levels, otherwise, the
+exception might occurred due to unvalidated reads and the operation is
+restarted. 
+
+\paragraph{Setup}
 In order to apply our approach to a data structure, a
 ''black-box'' pessimistic locking is required. One such 
 approach was presented in \cite{Gueta2011}, automatically 
@@ -8,40 +40,21 @@ transformation to two tree based data structures,
 a simple unbalanced binary search tree 
 and a treap (randomized binary search tree) \cite{AragonS1989}.
 
-
-\subsection{Implementation Details}
-\maya{new subsection}
-We implemented our automatic transformation in Java$^{TM}$, 
-the following section highlight some technical details of 
-the implementation.
-Version numbers are easily added either at the shared object level
-or at the lock level. Similarly, the locked set and the read set 
-can be implemented using several Java provided data structures. 
-Timeouts were implemented using a counter, incremented and checked
-inside loops (backwards branches) and calls to functions.
-
-Retries can be implemented using the exception mechanism,
-that is already required to due to loss of internal consistency. 
-Operations are delimited with catch blocks, if the exception caught
-is of type defined by the automatic transformation then a retry is required. 
-If the exception if of another type, a read set validation takes place, 
-if the read set validation passes it means that the exception  is inherent
-to the original program and is thrown to higher levels, otherwise, the
-exception might occurred due to unvalidated reads and the operation is
-restarted. 
-
-
-\paragraph{Setup}
 We compared the performance of our automatic implementations, 
 the automatic binary search tree (\autoTree) and the automatic
 treap (\autoTreap), to the following custom tailored approaches: 
 \begin{itemize}
 \item \danaTree - The locked-based 
-				unbalanced tree of Drachsler at al.\cite{DrachslerVY2014}. 
+				unbalanced tree of Drachsler at al.\cite{DrachslerVY2014}
+				\footnote{Implementation provided by the authors}. 
 \item \danaAVL - The locked-based relaxed balanced AVL tree of 
-				Drachsler et al.\cite{DrachslerVY2014}.
+				Drachsler et al.\cite{DrachslerVY2014}
+				\footnote{Implementation available at \\
+				\texttt{https://github.com/logicalordering/trees}} .
 \item \bronson - The locked based relaxed balanced AVL tree
-				of Bronson et al.\cite{BronsonCCO2010}.
+				of Bronson et al.\cite{BronsonCCO2010}
+				\footnote{Implementation available at \\
+				\texttt{https://github.com/nbronson/snaptree}}.
 \item \skiplist - The non-blocking skip-list by Doug 
 				Lea included in the 
 				the Java standard library.
