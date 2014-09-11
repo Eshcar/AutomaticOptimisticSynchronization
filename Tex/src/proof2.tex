@@ -15,7 +15,7 @@ Finally, we argue that our transformation preserves deadlock-freedom.
 
 \paragraph{Transformation Correctness}
 
-Let $\pi$ be a finite execution of the transformed algorithm. We will show an equivalent execution of the locking aglorithm.
+Let $\pi$ be a finite execution of the transformed algorithm. We will show an equivalent execution of the locking algorithm.
 Let \op\ be the set of operations in $\pi$.
 First, we project object versions out of $\pi$'s configurations, and remove all accesses (reads and writes) to object versions.
 That is, we replace steps that access versions with local steps that modify the operation's local memory only.
@@ -48,9 +48,9 @@ It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it 
 
 \paragraph{Progress}
 The read and validation phases of our instrumented code do not use blocking locks -- the read-phase does not use locks at all, whereas the 
-validation phase uses tryLocks. Therefore, both phases are non-blocking. In priniciple, the optimistic approach may lead to livelocks, but 
+validation phase uses tryLocks. Therefore, both phases are non-blocking. In principle, the optimistic approach may lead to livelocks, but 
 our algorithm fall-back on the pessimistic approach following a bounded number of restarts, and hence cannot livelock. We get that any lack
-of progresss must be due to blocking in the locking algorithm. Since the section of the code executing the locking protocol is unchanged, and
+of progress must be due to blocking in the locking algorithm. Since the section of the code executing the locking protocol is unchanged, and
 since we ensure that it begins when holding the same locks as in the original protocol, we get that our transformation does not introduce any
 source of spurious blocking that is not present in the original locking protocol. 
 
