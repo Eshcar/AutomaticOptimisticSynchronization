@@ -3,7 +3,7 @@
 % What we do
 Our goal is to automatically transform a given (lock-free) implementation of a sequential data structure to a correct and efficient concurrent one.
 We achieve efficiency by carefully introducing a combination of pessimistic and optimistic concurrency control mechanisms into the code. The former are 
-added by a given black-box code transformation that ensures some locking protocol. Our algorithm then replaces a subset of the pessimistic
+added by a given black-box code transformation that follows some locking protocol. Our algorithm then replaces a subset of the pessimistic
 steps with optimistic ones. This section first overviews our general approach to combining optimism and pessimism (Section~\ref{ssec:overview}), and
 then delves into the details of our code transformation, illustrated by an example (Section~\ref{ssec:transformation}).
 
@@ -126,7 +126,7 @@ a successful tryLock operation is followed by incrementing
 the version saved in the read set.  
 
 The read set validation code appears in Figure \ref{figure::validate}. 
-It checks that each object saved in the read set is unlocked, 
+It checks that each object in the read set is unlocked, 
 and that the object's current version matches the version saved in the 
 read set. If this check fails, the operation releases all its
 locks and restarts. This check guarantees
@@ -150,7 +150,7 @@ with the original locking scheme after a pre-defined number of restarts.
 This phase enforces the locking protocol
   while maintaining the local versions, i.e., the local version of 
   an object is incremented every time it is locked.  
-  Once the update phase begins, the operation is guaranteed to to 
+  Once the update phase begins, the operation is guaranteed to 
   finish without restarts.  
 
 
