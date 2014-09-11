@@ -15,9 +15,9 @@ Generally speaking, optimistic concurrency control is a form of lock-free synchr
 
 %The main idea: 
 The main idea behind our protocol is judicious use of optimistic synchronization to read 
-shared variables without locks as long as no updates occur. Once an operation performs a store step, 
-we start using the pessimistic (lock-based) protocol. In other words, we rely on validation at the end of the 
-read-only prefix of an operation in order to render redundant all locks that would have been freed
+shared variables without locks as long as no updates occur. Once an operation
+performs a write step, we start using the pessimistic (lock-based) protocol. In
+other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant all locks that would have been freed
 before any change is made.
 This scheme is particularly suitable for data structure implementations,
 since the common behavior of their operations 
@@ -32,8 +32,8 @@ The update phase executes the original locking protocol.
 The validation phase bridges between the optimistic and pessimistic ones.
 It first locks the objects required by
 the locking protocol and then validates the correctness
-of the of the read-only phase, allowing the 
-update phase to run as if the an execution of the locking
+of the read-only phase, allowing the 
+update phase to run as if an execution of the locking
 protocol took place. If the validation fails, the operation 
 restarts. In order to avoid livelock, we set a threshold on the number of restarts.
 If the threshold is exceeded, the code falls back on pessimistic execution. 
@@ -61,23 +61,24 @@ for each of the phases:
 
 In this phase, we replace all the lock and unlock operations added by the locking protocol.
 The track function in Figure \ref{figure::track} is called instead of taking a lock, and unlocking 
-is replaced by removing the lock from the locked set.
+is replaced by removing the lock from the lock set.
 
 During this phase, the operation maintains a \emph{lock set} and a \emph{read set}. 
 The lock set is used to track the lock and unlock steps of the locking protocol. To this end, we replace each lock step 
   with a step adding the object to the lock set 
   (line \ref{code:lockedSet:add} of function track, Figure \ref{figure::track}), 
   and each unlock step with a removal of the object 
-  from the locked set (line \ref{code:lockedSet:remove}). 
+  from the lock set (line \ref{code:lockedSet:remove}). 
   (Since the locking protocol might allow re-entrant locks, 
   our lock set allows duplication and the remove 
   operation removes one of the duplicates of the object).
   
-The read set  tracks all objects loaded by the 
-operation, in order to allow us to later validate that the collection of loaded values
-reflects a consistent view of shared memory.  It maps each object (reference)  
-to the object's local version at the time of the load. After an object is added to the read set, it is checked to be 
-unlocked; if the object is locked, the operation restarts from the beginning.
+The read set  tracks all objects read by the 
+operation, in order to allow us to later validate that the collection of read
+values reflects a consistent view of shared memory.  It maps each object (reference)  
+to the object's local version at the time of the read step. After an object is
+added to the read set, it is checked to be unlocked; if the object is locked, the operation restarts from the beginning.
+
 % (lines \ref{code:track:getVersion}-\ref{code:track:returnFalse} of track function, Figure \ref{figure::track}).
 
 
@@ -93,7 +94,14 @@ In order to avoid infinite loops that might occur due to inconsistent loads, a t
 If the timeout expires before the operation returns, read set 
 validation takes place (as described in the validation phase below).
 Similarly, all exceptions are caught and trigger read set validation. 
-Any validation failure causes the operation to restart.
+If the read set validation passes it means that the exception is inherent
+to the original program and is thrown to higher levels, otherwise, the
+exception might occurred due to unvalidated reads and the operation is
+restarted (this is similar to~\cite{Nakaike:2010}). 
+
+Note that, if an object already exists in the read set we can use an eager
+validation scheme that verifies that its current version is equal to the
+version in the read set. 
   
   %The use of timeout does not guarantee that the 
   %operation reads a consistent snapshot of the memory, 
@@ -127,6 +135,10 @@ the time it was validated. Since operations write only to
 locked nodes, it follows that the object was not changed.  
 The read set validation can be viewed as a double collect 
 of all objects accessed by the read-only phase. 
+
+For each operation, we avoid an infinite number of restarts by invoking the code
+with the original locking scheme after a pre-defined number of restarts.  
+
 
 %The order between checking the version and checking that the object is unlocked
 %is important, as locking and incrementing versions is not atomic. 
