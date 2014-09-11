@@ -1,46 +1,48 @@
 \section{Automatic Transformation}\label{sec:algorithm}
-%The main idea: 
-We address the problem of introducing 
-optimism to a pessimistic locking protocol, 
-performing load and store steps on locked objects only, 
-given a sequential algorithm and a ``black box'' 
-transformation that ensures this protocol.
-The idea of optimistic synchronization is to read 
-shared variables without locks and start using the 
-locking protocol when the operation reaches a store step.
-This scheme is applicable to many data structure implementations
-since the common behaviour of data structure operations 
-is to first traverse the data structure and 
-perform mostly local modifications at the end of the operation.
-Our algorithm shows that it is redundant to 
-acquire locks if they are freed before any change is made.    
 
-Conceptually, the optimistic scheme separates the operation to three
-\emph{phases}, an optimistic \emph{read-only phase},
-a pessimistic \emph{update phase} and a 
-\emph{validation phase} that conjoins them. 
-The optimistic read-only phase traverses the data 
-structure without taking any locks while maintaining 
-minimal sufficient information to later ensure the 
-correctness of the traversal.
-The update phase maintains the original locking protocol. 
-In order to bridge between the optimistic read phase and the  
-pessimistic update phase we use the validation phase. 
-The validation phase first locks the objects required by
+% What we do
+Our goal is to automatically transform a given (lock-free) implementation of a sequential data structure to a correct and efficient concurrent one.
+We achieve efficiency by carefully introducing a combination of pessimistic and optimistic concurrency control mechanisms into the code. The former are 
+added by a given black-box code transformation that ensures some locking protocol. Our algorithm then replaces a subset of the pessimistic
+steps with optimistic ones. This section first overviews our general approach to combining optimism and pessimism (Section~\ref{ssec:overview}), and
+then delves into the details of our code transformation, illustrated by an example (Section~\ref{ssec:transformation}).
+
+\subsection{Combining Optimism and Pessimism}\label{ssec:overview}
+
+% Optimism
+Generally speaking, optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using version numbers. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approach induce significant overhead \Idit{citation supporting this?}. 
+
+
+%The main idea: 
+The main idea behind our protocol is judicious use of optimistic synchronization to read 
+shared variables without locks as long as no updates occur. Once an operation performs a store step, 
+we start using the pessimistic (lock-based) protocol. In other words, we rely on validation at the end of the 
+read-only prefix of an operation in order to render redundant all locks that would have been freed
+before any change is made.
+This scheme is particularly suitable for data structure implementations,
+since the common behavior of their operations 
+is to first traverse the data structure, and then 
+perform (mostly local) modifications at the end of the operation.
+
+
+Conceptually, our approach divides an operation into three phases: an optimistic \emph{read-only phase},
+a pessimistic \emph{update phase} and a \emph{validation phase} that conjoins them. 
+The read-only phase traverses the data structure without taking any locks, while maintaining sufficient information to later ensure the correctness of the traversal.
+The update phase executes the original locking protocol. 
+The validation phase bridges between the optimistic and pessimistic ones.
+It first locks the objects required by
 the locking protocol and then validates the correctness
 of the of the read-only phase, allowing the 
 update phase to run as if the an execution of the locking
-protocol took place. \maya{If the validation fails the operation 
-restarts, to avoid live-locks if an operation restarts 
-count pass some set threshold it falls back to pessimistic 
-execution.} 
+protocol took place. If the validation fails, the operation 
+restarts. In order to avoid livelock, we set a threshold on the number of restarts.
+If the threshold is exceeded, the code falls back on pessimistic execution. 
 
-  
-
-
-\subsection{Transformation Details}
+\subsection{Transformation Details}\label{ssec:transformation}
 To illustrate our transformation a simple code example is 
-provided in Figure \ref{figure:transformation}.
+provided in Figure \ref{figure:transformation} 
+with auxiliary functions in Figures \ref{figure::track} and 
+\ref{figure::validate}.
 
 We start our transformation by applying three preparation steps
 to the given sequential algorithm.
@@ -63,10 +65,8 @@ Next we explain what the transformation does in each phase (Figure
   The locked set is used to track the lock and unlock steps
   of the locking protocol, thus, we replace each lock step 
   with a step adding the object to the locked set 
-  (lines
-  \ref{code:lockedSet:add1},
-  \ref{code:lockedSet:add2},
-  \ref{code:lockedSet:add3})
+  (line \ref{code:lockedSet:add} of auxiliary function 
+  track, Figure \ref{figure::track}). 
   and each unlock step with a step removing the object 
   from the locked set (line \ref{code:lockedSet:remove}). 
   (Since the locking protocol might allow re-entrant locks, 
@@ -80,10 +80,9 @@ It contains a mapping between references to objects loaded
 to the local version at the time it was read. After 
 objects are added to the read set they are checked to be 
 unlocked, if the object is locked the operation restarts
-from the beginning (lines 
-\ref{code:getVersion1}-\ref{code:readGhaseGoto1},
-\ref{code:getVersion2}-\ref{code:readGhaseGoto2},
-\ref{code:getVersion3}-\ref{code:readGhaseGoto3}). 
+from the beginning (lines
+\ref{code:track:getVersion}-\ref{code:track:returnFalse} of auxiliary function
+track, Figure \ref{figure::track}).
 
 %Object are added to the read set immediately 
 %after they are added to the locked set.  
@@ -113,21 +112,21 @@ the read-only phase (lines
 \ref{code:validateLockedSet}-\ref{code:validateGoto2}). 
 It locks the objects in the locked set and validates the read set. 
 
-To avoid deadlocks, the locks are acquired using a try\_lock
-operation, if the try\_lock fails, the operation unlocks 
+To avoid deadlocks, the locks are acquired using a tryLock
+operation, if the tryLock fails, the operation unlocks 
 previously acquired locks and restarts from the beginning 
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}). 
-The calls to try\_lock also increment the versions 
+The calls to tryLock also increment the versions 
 of the object,  these objects are also part of the 
 operations read set. 
 To avoid the operation invalidating itself, 
-a successful try\_lock operation is followed by incrementing
+a successful tryLock operation is followed by incrementing
 the version saved in the read set.  
 
 The read set validation is performed as follows, 
 each object saved in the read set is checked to be unlocked 
 and that the current version matches the version saved in the 
-read set. If this check fails, the operation releases all its
+read set (Figure \ref{figure::validate}). If this check fails, the operation releases all its
 locks and restarts from the beginning
 (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}). 
 This guarantees
@@ -190,32 +189,32 @@ protocol.
  
 %ALGORITHM CODE
 \renewcommand{\ttdefault}{pcr}
+%\algrenewcommand\textkeyword{\texttt}
+\algrenewcommand\algorithmicif{\texttt{if}}
+\algrenewcommand\algorithmicthen{\texttt{then}}
+\algrenewcommand\algorithmicfunction{\textsc{Function}}
+\algrenewcommand\algorithmicforall{\texttt{for all}}
+\algrenewcommand\algorithmicdo{\texttt{do}}
+\algrenewcommand\textproc{\textit}
+
 \begin{figure*}
 	\begin{center}
 	\begin{subfigure}{.49\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
-			\Function{foo}{Node new} \label{code:begin}
-			\State \emph{Node prev = head} 
-			\State prve.lock()
-			\State
-			\State
-			\State
+			\Function{addThird}{Node new} \label{code:begin}
+			\Statex ----------------------------
+			\State \textbf{Node prev = head} 
+			\State prev.lock()
 			\State 
-			\State \emph{Node succ = prev.next}
+			\State \textbf{Node succ = prev.next}
 			\State succ.lock()
-			\State
-			\State
-			\State
 			\State
 			\State prev.unlock()
-			\State \emph{prev = succ}
-			\State \emph{succ = succ.next}
+			\State \textbf{prev = succ}
+			\State \textbf{succ = succ.next}
 			\State succ.lock()
 			\State
-			\State
-			\State
-			\State
 			\Statex ----------------------------
 			\State
 			\State
@@ -224,177 +223,113 @@ protocol.
 			\State
 			\State
 			\Statex ----------------------------
-			\State \emph{prev.next = new}
-			\State \emph{new.next = succ}
+			\State \textbf{prev.next = new}
+			\State \textbf{new.next = succ}
 			\State prev.unlock()
 			\State succ.unlock()
 			\EndFunction
 			}
 		\end{algorithmic}
-		\caption{} \label{figure:transformation:before} 
+		\caption{ Code synthesized with hand over
+		hand locking protocol} \label{figure:transformation:before} 
 	\end{subfigure}
 	\begin{subfigure}{.49\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
-			\Function{foo}{Node new} \label{code:begin}
-			\State \emph{Node prev = head}
-			\State lockedSet.add(prev) \label{code:lockedSet:add1}
-			\State long version = prev.getVersion() \label{code:getVersion1}
-			\State readSet.add(prev,version)  
-			\If{prev.isLocked()}
-				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto1}
+			\Function{addThird}{Node new} \label{code:begin}
+			\Statex ----------------------------
+			\Comment{\textrm{read-only phase}}
+			\State \textbf{Node prev = head}
+			\If{!track(prev)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto1}
 				%\Comment Restart Operation
 			\EndIf
-			\State \emph{Node succ = prev.next}
-			\State lockedSet.add(succ) \label{code:lockedSet:add2}
-			\State version = succ.getVersion() \label{code:getVersion2}
-			\State readSet.add(succ,version)
-			\If{succ.isLocked()}
-				\State \textbf{goto} \ref{code:begin}  \label{code:readGhaseGoto2}
+			\State \textbf{Node succ = prev.next}
+			\If{!track(succ)}
+				\State {goto} \ref{code:begin}  \label{code:readGhaseGoto2}
 				%\Comment Restart Operation
 			\EndIf		
 			\State lockedSet.remove(prev) \label{code:lockedSet:remove}
-			\State \emph{prev = succ}
-			\State \emph{succ = succ.next}
-			\State lockedSet.add(succ) \label{code:lockedSet:add3}
-			\State version = succ.getVersion() \label{code:getVersion3}
-			\State readSet.add(succ,version) 
-			\If{succ.isLocked()}
-				\State \textbf{goto} \ref{code:begin} \label{code:readGhaseGoto3}
+			\State \textbf{prev = succ}
+			\State \textbf{succ = succ.next}
+			\If{!track(succ)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
 				%\Comment Restart Operation
 			\EndIf
 			\Statex ----------------------------
+			\Comment{\textrm{validation phase}}
 			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
-				\State release all locks
-				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto1}
+				\State releaseAll()
+				\State {goto} \ref{code:begin} \label{code:validateGoto1}
 				%\Comment Restart Operation
 			\EndIf	
 			\If{!readSet.validate()} 		\label{code:validateReadSet}
-				\State release all locks
-				\State \textbf{goto} \ref{code:begin} \label{code:validateGoto2}
+				\State releaseAll()
+				\State {goto} \ref{code:begin} \label{code:validateGoto2}
 				%\Comment Restart Operation
 			\EndIf	
 			\Statex ----------------------------
-			\State \emph{prev.next = new}
-			\State \emph{new.next = succ}			
+			\Comment{\textrm{update phase}}
+			\State \textbf{prev.next = new}
+			\State \textbf{new.next = succ}			
 			\State prev.unlock()
 			\State succ.unlock()
 
 			\EndFunction
 			}
 		\end{algorithmic}
-		\caption{}\label{figure:transformation:after}
+		\caption{ Code synthesized with our
+		automatic transformation}\label{figure:transformation:after}
 	\end{subfigure}
 	%\bigskip
 	%\hline
 	\end{center}
-	\caption{ Automatic transformation code example. 
+	\caption{Code example. 
 	The original sequential code
-	is slanted. Part (a) is the code following hand over hand locking 
-	protocol and part (b) is the code after the automatic
-	transformation.
+	is in bold.
 			\label{figure:transformation}}
 \end{figure*}
 
-
-\Xomit{
-old figure: 
-\begin{figure*}
-	\begin{center}
-	\begin{subfigure}{.49\textwidth}
-		\begin{algorithmic}[1]{}
-			{\ttfamily
-			\Function{foo}{Node new} \label{code:begin}
-			
-			\State prev = head
-			\State succ = prev.next
-			\State prev = succ
-			\State succ = succ.next
-			\State new.next = succ
-			\State prev.next = new
-			
-			\EndFunction
-			}
-		\end{algorithmic}
-	%\end{subfigure}
-   % \begin{subfigure}{.3\textwidth}
-   	\bigskip
-		\begin{algorithmic}[1]{}
+\begin{figure}
+\begin{algorithmic}[1]{}
 		{\ttfamily
-			\Function{foo}{Node new} \label{code:begin}
-			\State Node prev = head
-			\State prve.lock()
-			\State Node succ = prev.next
-			\State succ.lock()
-			\State prev.unlock()
-			\State prev = succ
-			\State succ = succ.next
-			\State succ.lock()
-			\State new.next = succ
-			\State prev.next = new
-			\State prev.unlock()
-			\State succ.unlock()
-			\EndFunction
-			}
-		\end{algorithmic}
-	\end{subfigure}
-	\begin{subfigure}{.49\textwidth}
-		\begin{algorithmic}[1]{}
-		{\ttfamily
-			\Function{foo}{Node new} \label{code:begin}
-			\State Node prev = head
-			\State lockedSet.add(prev)
-			\State long version = prev.getVersion()
-			\If{prev.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
+		\Function{track}{Node node}
+		\State lockedSet.add(node) \label{code:lockedSet:add}
+			\State long version = node.getVersion() \label{code:track:getVersion}
+			\State readSet.add(node,version)  
+			\If{node.isLocked()}
+				\State return false \label{code:track:returnFalse}
 				%\Comment Restart Operation
 			\EndIf
-			\State readSet.add(prev,version) 
-			\State Node succ = prev.next
-			\State lockedSet.add(succ)
-			\State version = succ.getVersion()
-			\If{succ.isLocked()}
-				\State {\textbf goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf
-			\State readSet.add(succ,version)
-			\State lockedSet.remove(prev) 
-			\State prev = succ
-			\State succ = succ.next
-			\State lockedSet.add(succ)
-			\State version = succ.getVersion()
-			\If{succ.isLocked()}
-				\State \textbf{goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf
-			\State readSet.add(succ,version) 
-			\ForAll{node in lockedSet}
-				\If{!node.tryLock()} 		
-				\State release all locks
-				\State \textbf{goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf	
-			\EndFor
-			\If{!readSet.validate()} 		
-				\State release all locks
-				\State \textbf{goto} \ref{code:begin} 
-				%\Comment Restart Operation
-			\EndIf	
-			%\Statex
-			\State new.next = succ
-			\State prev.next = new
-			\State prev.unlock()
-			\State succ.unlock()
+			\State retrun true
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{ In read-only phase, locking is replaced by 
+tracking locks and read
+objects' versions.
+\label{figure::track}}
+\end{figure}
 
-			\EndFunction
-			}
-		\end{algorithmic}
-	\end{subfigure}
-	%\bigskip
-	%\hline
-	\end{center}
-	\caption{
-			\label{figure:transformation}}
-\end{figure*}
-}
+\begin{figure}
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{validate}{}()
+		\ForAll {Node node in readSet}
+			\If{node.isLocked()}
+				\State return false
+			\EndIf
+			\State long version = readSet.getVersion(node)
+			\If{node.getVersion() != version}
+				\State return false
+			\EndIf
+		\EndFor
+		\State retrun true
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{Read set validation.\label{figure::validate}}
+\end{figure}
+
+
 %END CODE 
