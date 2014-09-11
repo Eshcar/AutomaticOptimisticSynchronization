@@ -1,0 +1,172 @@
+
+\section{Formal Correctness Proof}\label{sec:formal-proof}
+
+We now formalize the correctness arguments made in Section~\ref{sec:proof}. 
+We consider a finite execution $\pi$ of the transformed algorithm,
+and find an equivalent execution of the locking protocol. 
+Let \op\ be the set of
+operations in $\pi$.
+Denote by $e_1, e_2, \ldots, e_k$ the sequence of the first steps of the
+read set validation in the execution of successful validation phases, by their
+order in $\pi$, where $e_i$ is a step of the operation $op_{i}$ executed by process $p_{i}$.
+(Possibly $p_i=p_j$ for $j \neq i$).
+
+
+For every operation $op_{i}$, consider the partition of $\pi$ to
+the following intervals $\pi=\alpha_i\beta_i\gamma_i$, such that
+$\alpha_i$ includes the execution interval of $op_{i}$'s read-only phase
+(denote $op_{i}$'s read set $rs_{i}$); $\beta_i=\beta_{i_1}\beta_{i_2}$, is the
+minimal execution interval of $op_{i}$'s successful validation phase; in
+$\beta_{i_1}$, $op_{i}$ acquires 
+locks on its lock set, denoted $ls_{i}$; 
+$e_i$ is the first step of $\beta_{i_2}$, namely the read set validation
+interval.
+
+The next claim follows from the fact that the validation phase of $op_{i}$
+in $\beta_i$ is successful, and includes locks and versions
+re-validation: 
+%\eshcar{need to prove these? or are these clear from the alg description?}
+
+\begin{claim}
+\label{claim:locks}
+No operation in $\op\setminus\{op_{i}\}$ holds or acquires a lock in
+$\alpha_i\beta_{i_1}$ on an object $obj$ in $rs_{i}$ after $op_{i}$'s last
+read of $obj$ in $\alpha_i$.
+\end{claim}
+
+Two executions are \emph{indistinguishable} to a set of operations if each
+operation in the set executes the same steps on primitive shared objects, and
+receives the same value from those primitives, in both executions. A step $\tau$
+by operation $op$ is \emph{invisible} to all other operations 
+if the executions with and without $\tau$ are indistinguishable to
+$\op\setminus \{op\}$. For example, read steps are invisible.
+
+
+As explained in Section~\ref{sec:proof}, we let $\pi'$ be a projection of $\pi$ excluding versions and
+all prefixes of the operations preceding their (single) successful read-only
+phase. These prefixes include read steps as well as tryLock and unlock
+steps. Removing read steps is invisible to other processes. Since we remove all
+tryLock steps that have failed to acquire locks, 
+all remaining tryLock are successful also in $\pi'$. 
+Therefore, in $\pi'$ 
+%% Idit: removed below, I don't know what valid is, but it's not an execution of the same protocol without versions
+%is a valid execution such that 
+all operations in \op\ return the same values as in $\pi$:
+\begin{claim}
+\label{claim:pipitag}
+$\pi$ and $\pi'$ are equivalent.
+\end{claim}
+
+Note that by construction, in $\pi'$ every step accessing a lock object, either
+for locking it or for validating it is not locked, finds the object not locked.
+
+Our main lemma constructs the execution of a code with full instrumentation of
+the locking protocol. The core idea is to replace the optimistic read-only phase
+and validation phase of each operation with a solo execution of the read phase
+instrumented with the locking protocol taking place at the point where the tryLockAll completes.
+\begin{lemma}
+\label{lemma:pitagtag}
+Given a locking protocol, there is an execution of the code
+instrumented with the locking protocol that is equivalent to $\pi'$.
+\end{lemma}
+\begin{proof}
+We start with the execution $\pi_0=\pi'$.
+For every $i \geq 0$, we show how to perturb $\pi_i$ to
+obtain an execution $\pi_{i+1}$. For each $j\geq i+1$, let
+  $\beta_{j}^{'}=\beta_{j_1}^{'}\beta_{j_2}^{'}$ be the minimal interval
+  containing $op_{j}$'s validation phase in $\pi_{i+1}$, where $\beta_{j_1}^{'}$
+  is the minimal interval containing $op_{j}$'s tryLock phase.
+  Denote the configuration between $\beta_{j_1}^{'}$ and $\beta_{j_2}^{'}$
+  $C_{j}$. In $\pi_{i+1}$ the following conditions are
+satisfied:
+\begin{enumerate}
+  \item \label{cond:lp} The operations $op_{1},\ldots,op_{i}$ follow the
+  full locking protocol, while the rest of the operations
+  $\opt_{i+1}=\op\setminus\{op_{1},\ldots,op_{i}\}$ proceed according to our protocol.
+  \item \label{cond:locks} 
+  For $j\geq i+1$, no operation in $\op\setminus\{op_{j}\}$ holds a lock in
+  $C_{j}$ on an object $obj$ in $rs_{j}$.
+  \item \label{cond:writes} 
+  For $j\geq i+1$, no operation in
+  $\op\setminus\{op_{j}\}$ writes to an object $obj$ in $rs_{j}$ after
+  $op_{j}$ last read $obj$ before $C_{j}$.
+  \item \label{cond:trylocks} 
+  For $j\geq i+1$, all try-lock steps by $op_j$ are invisible to
+  $\op\setminus\{op_{j}\}$.
+  %after $op_{j}$'s last read $obj$ before $\beta_j^{'}$
+  \item \label{cond:equiv} $\pi'$ and $\pi_{i+1}$ are equivalent.
+\end{enumerate}
+
+For $\opt_{k+1}=\emptyset$, we get an execution where all operations follow the
+locking protocol, and by Condition~\ref{cond:equiv} $\pi_{k+1}$ is
+equivalent to $\pi'$ and we are done.
+
+The proof is by induction on $i$. For the base case we consider
+the execution $\pi'=\pi_0$. Condition~\ref{cond:lp} holds since none of
+the operations in this execution follow the full locking protocol.
+Conditions~\ref{cond:locks} and~\ref{cond:writes} hold by
+Claim~\ref{claim:locks}, and since in $\pi'$ we only remove read and lock steps,
+and since accesses to objects (other than versions) are similar in $\pi$ and
+$\pi'$. Condition~\ref{cond:trylocks} holds by the observation above.
+Condition~\ref{cond:equiv} vacuously holds since $\pi'$ and $\pi_0$ are the
+same execution.
+
+For the induction step, assume $\opt_i \neq \emptyset$ and
+the execution
+$\pi_i=\alpha_i^{'}\beta_{i_1}^{'}\beta_{i_2}^{'}\gamma_i^{'}$ satisfies
+the above conditions.
+We replace $\pi_i$ with
+$\pi_{i+1}=\alpha_i^{''}\beta_{i_1}^{''}\delta_i\beta_{i_2}^{''}\gamma_i^{'}$,
+such that $\alpha_i^{''}$, $\beta_{i_1}^{''}$, and $\beta_{i_2}^{''}$ are the
+projection of $\alpha_i^{'}$, $\beta_{i_1}^{'}$ and $\beta_{i_2}^{'}$, excluding
+the steps by $op_{i}$, while $\delta_i$ is a $p_{i}$-only execution
+interval in which $p_{i}$ follows the locking protocol while
+reading $rs_{i}$; after $\delta_{i}$, $p_{i}$ holds the locks on all
+objects in $ls_{i}$, and holds no lock on other objects. 
+In other words, we replace the optimistic read-only phase and validation phase
+of $op_{i}$ with an execution of a read phase instrumented with the
+locking protocol, taking place at $C_{j}$.
+%at the point just before the read set validation starts.
+
+By Condition~\ref{cond:locks} of the induction hypothesis no operation holds 
+locks on objects in the read set of $op_{i}$ in $C_{i}$, therefore,
+$p_{i}$ can acquire the locks on these objects while executing $\delta_{i}$.
+By Condition~\ref{cond:writes} of the induction hypothesis no
+operation writes to an object $obj$ in $rs_{i}$ after
+$op_{i}$ last read $obj$ before $C_{i}$, hence $op_{i}$ reads the same
+values in its read set in $\pi_i$ and $\pi_{i+1}$. After $\delta_{i}$,
+$op_{i}$ holds the locks on all objects in $ls_i$, hence it can continue with
+the execution of the locking protocol.
+
+In $\alpha_i^{''}\beta_{i_1}^{''}$ we only removed read steps and tryLock steps
+by $op_{i}$ that are invisible to all other operations, by
+Condition~\ref{cond:trylocks}. Therefore, the executions
+$\alpha_i^{'}\beta_{i_1}^{'}$, ending with configuration $C'$, 
+and $\alpha_i^{''}\beta_{i_1}^{''}\delta_i$, ending with configuration $C''$, 
+are indistinguishable to all operations in $\op\setminus\{op_{i}\}$. 
+In addition, in $\beta_{i_2}^{''}$ we only removed invisible read steps.
+The values of all shared objects and locks are the same in $C'$ and $C''$,
+hence the executions $\alpha_i^{'}\beta_{i_1}^{'}\beta_{i_2}^{'}\gamma_i^{'}$
+and $\alpha_i^{''}\beta_{i_1}^{''}\delta_i\beta_{i_2}^{''}\gamma_i^{'}$ are
+indistinguishable to all operations in $\op\setminus\{op_{i}\}$. 
+
+This implies that (1)~the projection of the execution $\pi_{i+1}$ on $op_{i}$
+follows the full locking protocol satisfying Condition~\ref{cond:lp}, and
+(2)~all operations return the same value in $\pi_{i+1}$ as in $\pi'$, which
+means Condition~\ref{cond:equiv} holds.
+
+It is left to show that $\pi_{i+1}$ satisfies
+Conditions~\ref{cond:locks},~\ref{cond:writes},~\ref{cond:trylocks}.
+This is straightforward from the induction hypothesis and the fact that only
+$op_{i}$ changed its locking pattern in the last iteration, and specifically
+removed all its try-lock steps, and since $\delta_i$ precedes $C_{j}$ for all
+$j\geq i+1$ in $\pi_{i+1}$.
+ 
+\end{proof}
+
+By Lemma~\ref{lemma:pitagtag} and Claim~\ref{claim:pipitag} we conclude the following
+theorem:
+\begin{theorem}
+Every execution of the automatic transformation is equivalent to an
+execution of the locking protocol.
+\end{theorem}
