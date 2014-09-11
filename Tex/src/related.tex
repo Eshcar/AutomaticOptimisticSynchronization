@@ -23,7 +23,7 @@ Most of the algorithms in the literature infer locks for following the two-phase
 locking protocol~\cite{MZGB:POPL06,Emmi06POPL,gudka2012lock,CCG:PLDI08,HFP:TRANSACT06,CGE:CC08}.
 Our approach can potentially be used to optimized the synchronization produced by these algorithms.
 For example, for the algorithms that employ a two-phase variant in which all locks are acquired at the beginning of transactions (e.g.,~\cite{gudka2012lock,CCG:PLDI08}),
-our approach can be used to defer the locking (e.g., just before the first write operation) and to eliminate some of the locking operations.
+our approach can be used to defer the locking (e.g., to just before the first write operation) and to eliminate some of the locking operations.
 
 
 \paragraph{Transactional Memory}

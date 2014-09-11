@@ -11,7 +11,7 @@ Nevertheless, each of these project generally focuses on a single data structure
 (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation.
 Proving the correctness of such custom-tailored data structures is painstaking
 (for example, the proofs of \cite{BraginskyP2012,EllenFRB2010} are $31$ and $20$ pages long
-% \Idit{add info}, 
+% \Idit{add info},
 respectively). We propose an approach to replace this labor-intensive process by automatic means.
 
 One way to automatically convert a sequential data structure into a correct (thread-safe) concurrent one using locks.
@@ -20,7 +20,7 @@ The trivial way to do so is to add a single global lock protecting the entire da
 A more sophisticated approach can instrument the code (at compile time) and add
 fine-grained lock and unlock instructions (e.g.,~\cite{Gueta2011,MZGB:POPL06}). Such
 methods are applicable to certain data structure families, for example,
-Domination Locking~\cite{Gueta2011} is applicable to trees or forests
+domination locking~\cite{Gueta2011} is applicable to trees or forests
 (including binary search trees, BTrees, Treaps~\cite{AragonS1989}, and self adjusting heaps~\cite{Sleator:SAH1986:SAH}),
 and employs a variant of hand-over-hand locking~\cite{SilberschatzK1980},
 acquiring and releasing locks as it goes down the tree.
@@ -42,7 +42,7 @@ Further comparison with related work appears in Section~\ref{sec:related}.
 
 Given a sequential data structure implementation,
 our solution first applies a given (black-box) mechanism that instruments the code to add
-fine-grained locks that satisfy some \emph{locking protocol}, e.g.,~\cite{Gueta2011,MZGB:POPL06}. 
+fine-grained locks that satisfy some \emph{locking protocol}, e.g.,~\cite{Gueta2011,MZGB:POPL06}.
 Our assumptions on the data structure and locking scheme are detailed in Section~\ref{sec:model}.
 
 We then invoke our algorithm, presented in Section~\ref{sec:algorithm}, which
@@ -64,9 +64,9 @@ and compare it to fully pessimistic as well as state-of-the-art hand-crafted
 data structure implementations~\cite{DrachslerVY2014,BronsonCCO2010}.
 Our results show that the introduction of optimistic traversals successfully overcomes synchronization bottlenecks:
 the data structures we synthesize scale well with the number of threads,
-and achieve comparable performance to that of custom-tailored solutions. 
+and achieve comparable performance to that of custom-tailored solutions.
 The benefits of the synthesized code are most pronounced for write-dominated workloads and on large trees.
 
 To conclude, this paper illustrates that automatic synchronization is a promising approach for bringing legacy code to emerging computer architectures.
 While this paper illustrates the method for tree data structures, we believe that the general direction may be more broadly applicable.
-Section~\ref{sec:discussion} concludes the paper and touches on some directions for future work.
+Section~\ref{sec:discussion} concludes the paper and touches on some directions for future work. 
