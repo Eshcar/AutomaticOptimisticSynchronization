@@ -8,7 +8,9 @@ For the sake of our discussion, we do not distinguish among different types of s
 In addition, each thread has access to \emph{local} (thread-local) memory.
 
 A \emph{data structure} is an abstract data type exporting a set of \emph{operations}.
-A data structure is implemented from a collection of primitive shared \emph{objects} (variables) supporting atomic load (read) and store (write) operations.
+A data structure is implemented from a collection of primitive shared
+\emph{objects} (variables) supporting atomic read (load) and write (store)
+operations.
 Below, we extend the allowed primitive objects to also include locks.
 
 Every thread executes a sequence of operations, each of which is invoked with certain parameters and returns a response.
@@ -47,7 +49,9 @@ In our implementation, we use domination locking, which is restricted to tree-li
 Intuitively, the domination locking protocol automatically performs some sort of ``hand-over-hand'' locking, acquiring locks as
 it traverses a linked-list or tree, and releasing locks held on previously traversed nodes.
 
-We assume that in the resulting code (obtained by adding the locks) every (load or store) access by an operation to a shared object is performed when the executing thread holds the lock on that object.
+We assume that in the resulting code (obtained by adding the locks) every (read
+or write) access by an operation to a shared object is performed when the
+executing thread holds the lock on that object.
 
 %We assume that the resulting code (obtained by adding the locks) satisfies the following properties:
 %\begin{itemize}
@@ -59,8 +63,8 @@ We assume that in the resulting code (obtained by adding the locks) every (load 
 
 The correctness of a data structure is defined in terms of its external behavior, as reflected in values returned by invoked operations.
 Correctness of a code transformation is proven by showing that the synthesized code's executions are equivalent to ones of the original code,
-where two executions are  \emph{equivalent} if every process invokes the same operations in the same order  in both executions, and gets the
-same result for each operation. More formally, we say in this paper that a code transformation is \emph{correct} if every execution of the transformed code
+where two executions are  \emph{equivalent} if every thread invokes the same
+operations in the same order  in both executions, and gets the same result for each operation. More formally, we say in this paper that a code transformation is \emph{correct} if every execution of the transformed code
 is equivalent to some execution of the original code.
 
 The widely-used correctness criterion of serializability relies on equivalence to sequential executions in order to
