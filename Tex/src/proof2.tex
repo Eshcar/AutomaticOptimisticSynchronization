@@ -44,12 +44,12 @@ them) as dictated by the locking protocol.
 Finally we remove the tryLock and validation steps by $op_i$. 
 
 Our ability to lock each object in $op_i$'s read set follows from the
-observation that in $\pi$ no operation except $op_i$ locks an object in $op_i$'s
-read set between the last time $op_i$ read the object in its
-read-only phase and until the first step of $op_i$'s read set validation phase
-(see Claim~\ref{claim:locks}). During the construction of $\pi_i$ we maintain
-the invariant that all objects in the read set are not locked when $op_i$ needs to lock
-them (Condition~\ref{cond:locks} in Lemma~\ref{lemma:pitagtag}).
+observation that in $\pi$, no operation except $op_i$ locks an object in
+$op_i$'s read set between the last time $op_i$ read the object in its
+read-only phase and $op_i$'s first validation step (see Claim~\ref{claim:locks}). 
+During the construction of $\pi_i$ we maintain
+an invariant that all objects in the read set are not locked when $op_i$ needs
+to lock them (Condition~\ref{cond:locks} in Lemma~\ref{lemma:pitagtag}).
 
 % Our ability to lock each object in $op_i$'s read set follows from the following observation:
 % \begin{observation}
@@ -60,7 +60,7 @@ them (Condition~\ref{cond:locks} in Lemma~\ref{lemma:pitagtag}).
 % respective object's version number. Although in $\pi_{i-1}$ this may no longer hold, because some operation $op_j, j < i$ may 
 % have locked $obj$, our construction of $\pi_{i-1}$ releases this lock before $e_i$, and hence $obj$ is available for locking. 
 
-We formally prove in the appendix that $\pi_{i-1}$ and $\pi_i$ are equivalent. 
+We formally prove in the appendix that $\pi'$ and $\pi_i$ are equivalent. 
 By repeating this for all operations in \op, we get an execution $\pi_k$ of the locking protocol.
 
 \paragraph{Real-Time Order}
