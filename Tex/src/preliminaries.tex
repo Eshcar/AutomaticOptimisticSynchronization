@@ -26,6 +26,7 @@ $C_0,s_1,C_1, \ldots,s_i,C_i,\ldots,$
 where $C_0$ is an initial configuration,
 and each configuration $C_i$ is the result of
 executing step $s_i$ on configuration $C_{i-1}$.
+We only consider finite executions in this paper.
 An execution is \emph{sequential} if steps of different operations are not interleaved.
 In other words, a sequential execution is a sequence of operation executions.
 
@@ -70,8 +71,9 @@ is equivalent to some execution of the original code.
 The widely-used correctness criterion of serializability relies on equivalence to sequential executions in order to
 link a data structure's behavior under concurrency to its sequentially specified behavior. Since equivalence is transitive,
 we get that any code transformation satisfying our correctness notion, when applied to serializable code, yields code that is also serializable.
-If the code transformation further ensures the real-time order of operations (that is, operations that do not overlap appear in the same order in the
-histories of the transformed and original code), then linearizability (atomicity) is also invariant under the transformation.
+If the code transformation further ensures the real-time order of operations (i.e., operations that do not overlap appear in the same order in 
+executions of the transformed and original code), then linearizability (atomicity) is also invariant under the transformation.
+Another important aspect of correctness is preserving the progress conditions of the original code, for example, deadlock-freedom.
 
 In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{GuerraouiK2008} or the validity notion of~\cite{LevAriCK2014}),
 which restricts the configurations an operation might see during its execution.

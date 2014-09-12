@@ -11,7 +11,6 @@ Nevertheless, each of these projects generally focuses on a single data
 structure (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation.
 Proving the correctness of such custom-tailored data structures is painstaking
 (for example, the proofs of \cite{BraginskyP2012,EllenFRB2010} are $31$ and $20$ pages long
-% \Idit{add info},
 respectively). We propose an approach to replace this labor-intensive process by automatic means.
 
 One way to automatically convert a sequential data structure into a correct
@@ -22,7 +21,7 @@ A more sophisticated approach can instrument the code (at compile time) and add
 fine-grained lock and unlock instructions (e.g.,~\cite{Gueta2011,MZGB:POPL06}). Such
 methods are applicable to certain data structure families, for example,
 domination locking~\cite{Gueta2011} is applicable to trees or forests
-(including binary search trees, BTrees, Treaps~\cite{AragonS1989}, and self adjusting heaps~\cite{Sleator:SAH1986:SAH}),
+(including binary search trees, b-trees, treaps~\cite{AragonS1989}, and self adjusting heaps~\cite{Sleator:SAH1986:SAH}),
 and employs a variant of hand-over-hand locking~\cite{SilberschatzK1980},
 acquiring and releasing locks as it goes down the tree.
 %%Other approaches are applicable to DAGS~\cite{dag-locking}.

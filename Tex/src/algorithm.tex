@@ -10,7 +10,8 @@ then delves into the details of our code transformation, illustrated by an examp
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
 
 % Optimism
-Generally speaking, optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using version numbers. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approach induce significant overhead \Idit{citation supporting this?}. 
+Generally speaking, optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using version numbers. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approach induce significant overhead~\cite{Cascaval:2008}. 
+%\Idit{citation supporting this?}. 
 
 
 %The main idea: 
@@ -89,19 +90,23 @@ added to the read set, it is checked to be unlocked; if the object is locked, th
 %This also ensures that the operation never reads old values 
 %with a new version. 
  
-The read phase does not validate reads during its traversal.  
-In order to avoid infinite loops that might occur due to inconsistent loads, a timeout is set. 
-If the timeout expires before the operation returns, read set 
-validation takes place (as described in the validation phase below).
-Similarly, all exceptions are caught and trigger read set validation. 
-If the read set validation passes it means that the exception is inherent
-to the original program and is thrown to higher levels, otherwise, the
-exception might occurred due to unvalidated reads and the operation is
-restarted (this is similar to~\cite{Nakaike:2010}). 
-
-Note that, if an object already exists in the read set we can use an eager
+If the read object already exists in the read set, we can use an eager
 validation scheme that verifies that its current version is equal to the
 version in the read set. 
+For simplicity, this check is omitted from the code in Figure \ref{figure::track}.
+ 
+Beyond reading objects already in the read set,
+the read phase does not validate past reads during its traversal.  
+In order to avoid infinite loops that might occur due to inconsistent reads, a timeout is set. 
+If the timeout expires before the operation returns, read set 
+validation takes place (as described in the validation phase below).
+
+Similarly, all exceptions are caught and trigger read set validation. 
+If the read set validation passes, it means that the exception is inherent
+to the original program and is thrown to higher levels. Otherwise, the
+exception might have occurred due to unvalidated reads and the operation is
+restarted (this is similar to~\cite{Nakaike:2010}). 
+
   
   %The use of timeout does not guarantee that the 
   %operation reads a consistent snapshot of the memory, 
@@ -116,11 +121,11 @@ the read-only phase (lines
 It locks the objects in the lock set and validates the read set. 
 
 To avoid deadlocks, the locks are acquired using a tryLock
-operation. If tryLock fails, the operation unlocks  all
+step. If tryLock fails, the operation unlocks  all
 previously acquired locks and restarts from the beginning 
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}). 
-The calls to tryLock also increment the versions 
-of the objects. Note that these objects are also part of the 
+Successful calls to tryLock increment object versions as lock operations do.
+Note that these objects are also part of the 
 operation's read set. Therefore, to prevent the operation from invalidating itself, 
 a successful tryLock operation is followed by incrementing
 the version saved in the read set.  
@@ -136,9 +141,11 @@ locked nodes, it follows that the object was not changed.
 The read set validation can be viewed as a double collect 
 of all objects accessed by the read-only phase. 
 
+
 For each operation, we avoid an infinite number of restarts by invoking the code
 with the original locking scheme after a pre-defined number of restarts.  
-
+It is easy to see that our semi-optimistic scheme is compatible with the
+locking scheme, so it is safe to perform such operations pessimistically.
 
 %The order between checking the version and checking that the object is unlocked
 %is important, as locking and incrementing versions is not atomic. 
