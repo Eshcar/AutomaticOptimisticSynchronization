@@ -338,6 +338,8 @@ objects' versions.
 		\Function{validate}{}()
 		\ForAll {Node node in readSet}
 			\If{node.isLocked()}
+				\State lockSet.clear()
+				\State readSet.clear()
 				\State return false
 			\EndIf
 			\State long version = readSet.getVersion(node)
