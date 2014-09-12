@@ -18,12 +18,124 @@ Generally speaking, optimistic concurrency control is a form of lock-free synchr
 The main idea behind our protocol is judicious use of optimistic synchronization to read 
 shared variables without locks as long as no updates occur. Once an operation
 performs a write step, we start using the pessimistic (lock-based) protocol. In
-other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant all locks that would have been freed
+other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant 
+locks that would have been freed
 before any change is made.
 This scheme is particularly suitable for data structure implementations,
 since the common behavior of their operations 
 is to first traverse the data structure, and then 
 perform (mostly local) modifications at the end of the operation.
+
+
+\renewcommand{\ttdefault}{pcr}
+%\algrenewcommand\textkeyword{\texttt}
+\algrenewcommand\algorithmicif{\texttt{if}}
+\algrenewcommand\algorithmicthen{\texttt{then}}
+\algrenewcommand\algorithmicfunction{\textsc{Function}}
+\algrenewcommand\algorithmicforall{\texttt{for all}}
+\algrenewcommand\algorithmicdo{\texttt{do}}
+\algrenewcommand\textproc{\textit}
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[b]{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{addThird}{Node new} \label{code:begin}
+			\Statex ----------------------------
+			\State \textbf{Node prev = head} 
+			\State prev.lock()
+			\State 
+			\State \textbf{Node succ = prev.next}
+			\State succ.lock()
+			\State
+			\State prev.unlock()
+			\State \textbf{prev = succ}
+			\State \textbf{succ = succ.next}
+			\State succ.lock()
+			\State
+			\State new.lock()
+			\State
+			\Statex ----------------------------
+			\State
+			\State
+			\State
+			\State
+			\State
+			\State
+			\Statex ----------------------------
+			\State \textbf{prev.next = new}
+			\State \textbf{new.next = succ}
+			\State prev.unlock()
+			\State new.unlock()
+			\State succ.unlock()
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{ Code synthesized with hand over
+		hand locking protocol} \label{figure:transformation:before} 
+	\end{subfigure}
+	\begin{subfigure}[b]{.49\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{addThird}{Node new} \label{code:begin}
+			\Statex ----------------------------
+			\Comment{\textrm{read-only phase}}
+			\State \textbf{Node prev = head}
+			\If{!track(prev)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto1}
+				%\Comment Restart Operation
+			\EndIf
+			\State \textbf{Node succ = prev.next}
+			\If{!track(succ)}
+				\State {goto} \ref{code:begin}  \label{code:readGhaseGoto2}
+				%\Comment Restart Operation
+			\EndIf		
+			\State lockSet.remove(prev) \label{code:lockedSet:remove}
+			\State \textbf{prev = succ}
+			\State \textbf{succ = succ.next}
+			\If{!track(succ)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
+				%\Comment Restart Operation
+			\EndIf
+			\If{!track(new)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
+				%\Comment Restart Operation
+			\EndIf
+			\Statex ----------------------------
+			\Comment{\textrm{validation phase}}
+			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
+				\State releaseAll()
+				\State {goto} \ref{code:begin} \label{code:validateGoto1}
+				%\Comment Restart Operation
+			\EndIf	
+			\If{!readSet.validate()} 		\label{code:validateReadSet}
+				\State releaseAll()
+				\State {goto} \ref{code:begin} \label{code:validateGoto2}
+				%\Comment Restart Operation
+			\EndIf	
+			\Statex ----------------------------
+			\Comment{\textrm{update phase}}
+			\State \textbf{prev.next = new}
+			\State \textbf{new.next = succ}			
+			\State prev.unlock()
+			\State new.unlock()
+			\State succ.unlock()
+
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{ Code synthesized with our
+		automatic transformation}\label{figure:transformation:after}
+	\end{subfigure}
+	%\bigskip
+	%\hline
+	\end{center}
+	\caption{Code example. 
+	The original sequential code
+	is in bold.
+			\label{figure:transformation}}
+\end{figure*}
 
 
 Conceptually, our approach divides an operation into three phases: an optimistic \emph{read-only phase},
@@ -39,6 +151,7 @@ protocol took place. If the validation fails, the operation
 restarts. In order to avoid livelock, we set a threshold on the number of restarts.
 If the threshold is exceeded, the code falls back on pessimistic execution. 
 
+
 \subsection{Transformation Details}\label{ssec:transformation}
 We illustrate our transformation for a simple code snippet that adds a new element as the third node in a linked list.
 The transformed code is provided in Figure \ref{figure:transformation}, with the original code snippet in bold. It uses
@@ -53,7 +166,7 @@ Second, we add version numbers to shared memory objects, which are
 incremented every time the object is locked. 
 These version numbers are later used to validate the correctness of the optimistic traversal.
 Note that version numbers are \emph{local}, i.e., version numbers of different objects are independent of each other. 
-Lastly, we identify the read only prefix of each operation.
+Lastly, we identify the read-only prefix of each operation.
 
 Next we generate the transformed code, (as illustrated in Figure \ref{figure:transformation:after}), 
 for each of the phases:
@@ -69,7 +182,8 @@ The lock set is used to track the lock and unlock steps of the locking protocol.
   with a step adding the object to the lock set 
   (line \ref{code:lockedSet:add} of function track, Figure \ref{figure::track}), 
   and each unlock step with a removal of the object 
-  from the lock set (line \ref{code:lockedSet:remove}). 
+  from the lock set (line \ref{code:lockedSet:remove}, Figure
+  \ref{figure:transformation:after}).
   (Since the locking protocol might allow re-entrant locks, 
   our lock set allows duplication and the remove 
   operation removes one of the duplicates of the object).
@@ -199,115 +313,6 @@ protocol.
 %current version is equal to the version saved in the \readSet. 
  
 %ALGORITHM CODE
-\renewcommand{\ttdefault}{pcr}
-%\algrenewcommand\textkeyword{\texttt}
-\algrenewcommand\algorithmicif{\texttt{if}}
-\algrenewcommand\algorithmicthen{\texttt{then}}
-\algrenewcommand\algorithmicfunction{\textsc{Function}}
-\algrenewcommand\algorithmicforall{\texttt{for all}}
-\algrenewcommand\algorithmicdo{\texttt{do}}
-\algrenewcommand\textproc{\textit}
-
-\begin{figure*}
-	\begin{center}
-	\begin{subfigure}{.49\textwidth}
-		\begin{algorithmic}[1]{}
-		{\ttfamily
-			\Function{addThird}{Node new} \label{code:begin}
-			\Statex ----------------------------
-			\State \textbf{Node prev = head} 
-			\State prev.lock()
-			\State 
-			\State \textbf{Node succ = prev.next}
-			\State succ.lock()
-			\State
-			\State prev.unlock()
-			\State \textbf{prev = succ}
-			\State \textbf{succ = succ.next}
-			\State succ.lock()
-			\State
-			\State new.lock()
-			\State
-			\Statex ----------------------------
-			\State
-			\State
-			\State
-			\State
-			\State
-			\State
-			\Statex ----------------------------
-			\State \textbf{prev.next = new}
-			\State \textbf{new.next = succ}
-			\State prev.unlock()
-			\State new.unlock()
-			\State succ.unlock()
-			\EndFunction
-			}
-		\end{algorithmic}
-		\caption{ Code synthesized with hand over
-		hand locking protocol} \label{figure:transformation:before} 
-	\end{subfigure}
-	\begin{subfigure}{.49\textwidth}
-		\begin{algorithmic}[1]{}
-		{\ttfamily
-			\Function{addThird}{Node new} \label{code:begin}
-			\Statex ----------------------------
-			\Comment{\textrm{read-only phase}}
-			\State \textbf{Node prev = head}
-			\If{!track(prev)}
-				\State {goto} \ref{code:begin} \label{code:readGhaseGoto1}
-				%\Comment Restart Operation
-			\EndIf
-			\State \textbf{Node succ = prev.next}
-			\If{!track(succ)}
-				\State {goto} \ref{code:begin}  \label{code:readGhaseGoto2}
-				%\Comment Restart Operation
-			\EndIf		
-			\State lockSet.remove(prev) \label{code:lockedSet:remove}
-			\State \textbf{prev = succ}
-			\State \textbf{succ = succ.next}
-			\If{!track(succ)}
-				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
-				%\Comment Restart Operation
-			\EndIf
-			\If{!track(new)}
-				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
-				%\Comment Restart Operation
-			\EndIf
-			\Statex ----------------------------
-			\Comment{\textrm{validation phase}}
-			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
-				\State releaseAll()
-				\State {goto} \ref{code:begin} \label{code:validateGoto1}
-				%\Comment Restart Operation
-			\EndIf	
-			\If{!readSet.validate()} 		\label{code:validateReadSet}
-				\State releaseAll()
-				\State {goto} \ref{code:begin} \label{code:validateGoto2}
-				%\Comment Restart Operation
-			\EndIf	
-			\Statex ----------------------------
-			\Comment{\textrm{update phase}}
-			\State \textbf{prev.next = new}
-			\State \textbf{new.next = succ}			
-			\State prev.unlock()
-			\State new.unlock()
-			\State succ.unlock()
-
-			\EndFunction
-			}
-		\end{algorithmic}
-		\caption{ Code synthesized with our
-		automatic transformation}\label{figure:transformation:after}
-	\end{subfigure}
-	%\bigskip
-	%\hline
-	\end{center}
-	\caption{Code example. 
-	The original sequential code
-	is in bold.
-			\label{figure:transformation}}
-\end{figure*}
 
 \begin{figure}
 \begin{algorithmic}[1]{}
