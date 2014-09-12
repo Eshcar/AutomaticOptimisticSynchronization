@@ -131,7 +131,7 @@ a successful tryLock operation is followed by incrementing
 the version saved in the read set.  
 
 The read set validation code appears in Figure \ref{figure::validate}. 
-It checks that each object in the read set is unlocked, 
+It checks that each object in the read set is unlocked (skipping objects in the lock set), 
 and that the object's current version matches the version saved in the 
 read set. If this check fails, the operation releases all its
 locks and restarts. This check guarantees
@@ -337,10 +337,12 @@ objects' versions.
 		{\ttfamily
 		\Function{validate}{}()
 		\ForAll {Node node in readSet}
-			\If{node.isLocked()}
+			\If{!lockSet.contains(node)}
+				\If{node.isLocked()}
 				\State lockSet.clear()
 				\State readSet.clear()
 				\State return false
+				\EndIf
 			\EndIf
 			\State long version = readSet.getVersion(node)
 			\If{node.getVersion() != version}
