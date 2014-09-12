@@ -34,76 +34,83 @@ restarted.
 
 \paragraph{Setup}
 In order to apply our approach to a data structure, a
-''black-box'' pessimistic locking is required. One such 
-approach was presented in \cite{Gueta2011}, automatically 
-applying domination locking protocol to forest based data structures.  
-We applied domination locking followed by our 
-transformation to two tree based data structures, 
-a simple unbalanced binary search tree 
+black-box pessimistic locking scheme is required. One such 
+approach, presented in \cite{Gueta2011}, automatically 
+applies domination locking  to forest-based data structures.  
+We follow this approach, and apply a domination locking protocol
+followed by our transformation presented in Section~\ref{sec:algorithm}. 
+We synthesized concurrent code from two example tree-based 
+sequential data structures implemented in Java$^{TM}$: 
+a simple unbalanced binary search tree, 
 and a treap (randomized binary search tree) \cite{AragonS1989}.
+We call the resulting data structures 
+automatic binary search tree (\autoTree) and  automatic
+treap (\autoTreap), respectively.
 
-We compared the performance of our automatic implementations, 
-the automatic binary search tree (\autoTree) and the automatic
-treap (\autoTreap), to the following custom tailored approaches: 
+We compare the performance of these  automatic implementations
+to the following custom tailored approaches: 
 \begin{itemize}
 \item \danaTree - The locked-based 
-				unbalanced tree of Drachsler at al.\cite{DrachslerVY2014}
-				\footnote{Implementation provided by the authors.}. 
+				unbalanced tree of Drachsler at al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}. 
 \item \danaAVL - The locked-based relaxed balanced AVL tree of 
-				Drachsler et al.\cite{DrachslerVY2014}
-				\footnote{Implementation available at \\
-				\texttt{https://github.com/logicalordering/trees}} .
+				Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation available at \\
+				\texttt{https://github.com/logicalordering/trees}}.
 \item \bronson - The locked based relaxed balanced AVL tree
-				of Bronson et al.\cite{BronsonCCO2010}
-				\footnote{Implementation available at \\
+				of Bronson et al.~\cite{BronsonCCO2010}\footnote{Implementation available at \\
 				\texttt{https://github.com/nbronson/snaptree}}.
 \item \skiplist - The non-blocking skip-list by Doug 
 				Lea included in the 
-				the Java standard library.
+				the Java$^{TM}$ standard library.
 \end{itemize}
 
-We also compared our algorithms to previous automatic approaches, 
-mainly global locking (\globalTree, \globalTreap) 
+We further compare our algorithms to previous automatic approaches, 
+namely global locking (\globalTree, \globalTreap) 
 and domination locking (\domTree, \domTreap). 
 
-We ran our experiments on four Intel Xeon E5-4650 processors, 
+We run our experiments on four Intel Xeon E5-4650 processors, 
 each with 8 cores for a total of 32 threads 
 (with hyper-threading disabled). 
 We used Ubuntu 12.04.4 LTS and Java$^{TM}$ Runtime Environment (build
 1.7.0\_51-b13) using the 64-Bit Server VM (build 24.51-b03, mixed mode).
 
 
-We evaluated the performance on a variety of workloads, 
+We evaluate performance on a variety of workloads;
 each workload is defined by the percentage of read-only
-operations (contains queries) and the remaining operations 
-are divided equally between insert and delete operations.
+operations (\emph{contains} queries), whereas the remaining operations 
+are divided equally between insert and delete.
 Our workloads include heavy read-only workloads
-(100\% contains operations), medium read-only workload 
-(50\% contains operations) and update only workload
+(100\% contains operations), medium read-only workloads 
+(50\% contains operations) and update only workloads
 (0\% contains operations). 
 
 We also consider two sizes of data structures, by using two key ranges
-$[0,2\cdot10^4]$ and $[0,2\cdot10^6]$, for each range, the tree was pre-filled until the tree size was 
+$[0,2\cdot10^4]$ and $[0,2\cdot10^6]$, for each range, the tree is pre-filled until the tree size is 
 within 5\% of half the key range.   
 
-We ran five seconds trials measuring the total throughput
+We run five seconds trials measuring the total throughput
 (number of operations per second) of all threads.
-During the trial, each thread continuously executed randomly
-chosen operations according to the workload distribution 
+During the trial, each thread continuously executes randomly
+chosen operations according to the workload distribution, 
 using uniformly random keys from the key range.  
-We ran every trial 7 times, we report the average throughput
-while eliminating outliers.
+We ran every trial 7 times, and report the average throughput
+after eliminating outliers.
 
 \paragraph{Results} Figure \ref{evaluation:results:unbalanced} 
 reports the throughput of unbalanced data structures and Figure 
-\ref{evaluation:results:balanced} reports
-the throughput of the balanced data structures. 
+\ref{evaluation:results:balanced} presents
+the throughput of the balanced ones. We see that our semi-optimistic
+solution is far superior to previous, fully-pessimistic, 
+automated approaches. It successfully overcomes the bottlenecks
+associated with lock contention, and in many scenarios comes close
+to custom-tailored implementations.
+
 The results for the read-only workload show the main overhead
-of our automatic approach. Unlike the hand crafted implementations
-that have no overhead on reads in this scenario, either by wait free reads in
-\danaTree and \danaAVL or the optimistic validation of \bronson, 
-our implementation requires tracking reads. This overhead is 
-inherent to our automatic transformation.
+of our automatic approach. By profiling the code, we learned 
+that the bulk of this overhead stems from the need to track all read objects,
+which is inherent to our automatic transformation. 
+This is in contrast with the hand-crafted implementations,
+which have no overhead on reads in this scenario, thanks to either 
+wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \bronson). 
 %, however, given knowledge on the semantics of
 %the data structure a small modification to the automatic code 
 %can be applied. 
@@ -117,16 +124,16 @@ inherent to our automatic transformation.
 %(never adds a node to detached part of the tree).
 %The results of the new optimized code can be found in \ldots 
  
-As the update workload increases our automatic implementation 
+As the ration of updates in the workload increases, our automatic implementation 
 closes this gap, and for some operation distributions and 
-tree sizes even outperforms some of the hand crafted algorithms.
-These results show that our automatic transformation is highly optimized for
-high update contention. This is probably due to the fact that once
-an update phase is started the operation is not delayed due to concurrent 
-read operations. 
+tree sizes even outperforms some of the hand-crafted algorithms.
+These results show that our automatic transformation deals well with update contention. 
+This is probably due to the fact that once
+an update phase begins, the operation is not delayed due to concurrent 
+read-only operations. 
 
 Additionally, the results show that our automatic transformation 
-works better on larger data structures. In large data structures 
+works better on larger data structures. Indeed, in large data structures, 
 update operations are more likely to operate on disjoint parts of 
 the data, allowing high concurrency. This is especially important 
 for the automatic transformation as updates  with overlapping 
