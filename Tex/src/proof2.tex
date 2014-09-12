@@ -25,16 +25,19 @@ Second, note that each operation $op \in$ \op\ executes at most one successful r
 phase, namely a complete read-only phase followed by a successful validation phase.
 For each such $op$, we remove the prefix of $op$ that precedes the successful read-only phase.
 This includes completely removing operations that have no successful read-only phase.
-We call the resulting execution $\pi'$.
+We call the resulting execution $\pi'$. It is easy to see that $\pi$ and $\pi'$ are equivalent,
+since the removed failed read-only phases have no effect.
 
-We next iteratively perturb $\pi'$ to construct an equivalent execution of the locking protocol.
-We order the operations in \op\ according to the order in which the first steps of their respective (successful) read set validation phases occur in $\pi'$.
+We next iteratively perturb $\pi'$ to construct an equivalent execution that satisfies the locking protocol.
+We order the operations in \op\ according to the order in which the first steps of their 
+respective (successful) read set validation phases occur in $\pi'$.
 Denote the sequence of these first validations steps $e_1, e_2, \ldots, e_k$, and the respective operations
-$op_1, op_2, \ldots, op_k$ in this order. Let $\pi_0 = \pi'$.
+$op_1, op_2, \ldots, op_k$. Let $\pi_0 = \pi'$. 
 In each iteration $i \geq 1$, we construct $\pi_i$ by replacing the execution of $op_i$
 in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. To do this, we first move all steps of $op_i$ that precede 
-its first validation step, $e_i$, to occur immediately before $e_i$ (we know that the read steps return the same values, since validation 
-succeeds). We then add steps that lock these objects before their read steps (and unlock
+its first validation step, $e_i$, to occur immediately before $e_i$. We can move the reads to this point without affecting the read
+values because the validation phase of $op_i$ succeeds, implying that these objects' values remain the same. 
+ We then add steps that lock these objects before their read steps (and unlock
 them) as dictated by the locking protocol.
 %We then add steps that lock all of them immediately before these moved read
 % steps. Finally, we add unlock steps immediately before $e_i$ for objects that are in the read set but not in the lock set during $e_i$, 
@@ -42,14 +45,15 @@ Finally we remove the tryLock and validation steps by $op_i$.
 
 Our ability to lock each object in $op_i$'s read set follows from the following observation:
 \begin{observation}
-Between the first time in which $op_i$ first reads an object $o$ in its read-only phase, and until the first step of $op_i$'s validation phase, no
- thread locks $o$. 
+Between the first time in which $op_i$ first reads an object $obj$ in its read-only phase in $\pi'$, 
+and until the first step of $op_i$'s validation phase in $\pi'$, no thread locks $obj$. 
 \end{observation}
 The observation follows immediately from the fact that $op_i$'s read validation is successful and that every lock step increases the
-respective object's version number. 
+respective object's version number. Although in $\pi_{i-1}$ this may no longer hold, because some operation $op_j, j < i$ may 
+have locked $obj$, our construction of $\pi_{i-1}$ releases this lock before $e_i$, and hence $obj$ is available for locking. 
 
-It is easy to see that $\pi_{i-1}$ and $\pi_i$ are equivalent. By repeating this for all operations in \op, we get an execution $\pi_k$ of the locking 
-protocol.
+We formally prove in the appendix that $\pi_{i-1}$ and $\pi_i$ are equivalent. 
+By repeating this for all operations in \op, we get an execution $\pi_k$ of the locking protocol.
 
 \paragraph{Real-Time Order}
 It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it does not change the order of invoke or return steps. 
@@ -61,6 +65,5 @@ our algorithm fall-back on the pessimistic approach following a bounded number o
 of progress must be due to blocking in the locking algorithm. Since the section of the code executing the locking protocol is unchanged, and
 since we ensure that it begins when holding the same locks as in the original protocol, we get that our transformation does not introduce any
 source of spurious blocking that is not present in the original locking protocol. 
-
 
 
