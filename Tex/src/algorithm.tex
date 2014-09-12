@@ -317,6 +317,8 @@ protocol.
 			\State long version = node.getVersion() \label{code:track:getVersion}
 			\State readSet.add(node,version)  
 			\If{node.isLocked()}
+				\State lockSet.clear()
+				\State readSet.clear()
 				\State return false \label{code:track:returnFalse}
 				%\Comment Restart Operation
 			\EndIf
@@ -340,6 +342,8 @@ objects' versions.
 			\EndIf
 			\State long version = readSet.getVersion(node)
 			\If{node.getVersion() != version}
+				\State lockSet.clear()
+				\State readSet.clear()
 				\State return false
 			\EndIf
 		\EndFor
