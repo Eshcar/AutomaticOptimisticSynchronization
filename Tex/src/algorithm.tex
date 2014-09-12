@@ -219,6 +219,8 @@ protocol.
 			\State \textbf{succ = succ.next}
 			\State succ.lock()
 			\State
+			\State new.lock()
+			\State
 			\Statex ----------------------------
 			\State
 			\State
@@ -230,6 +232,7 @@ protocol.
 			\State \textbf{prev.next = new}
 			\State \textbf{new.next = succ}
 			\State prev.unlock()
+			\State new.unlock()
 			\State succ.unlock()
 			\EndFunction
 			}
@@ -260,6 +263,10 @@ protocol.
 				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
 				%\Comment Restart Operation
 			\EndIf
+			\If{!track(new)}
+				\State {goto} \ref{code:begin} \label{code:readGhaseGoto3}
+				%\Comment Restart Operation
+			\EndIf
 			\Statex ----------------------------
 			\Comment{\textrm{validation phase}}
 			\If{!lockedSet.tryLockAll()} 	\label{code:validateLockedSet}	
@@ -277,6 +284,7 @@ protocol.
 			\State \textbf{prev.next = new}
 			\State \textbf{new.next = succ}			
 			\State prev.unlock()
+			\State new.unlock()
 			\State succ.unlock()
 
 			\EndFunction
