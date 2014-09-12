@@ -124,7 +124,7 @@ wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \brons
 %(never adds a node to detached part of the tree).
 %The results of the new optimized code can be found in \ldots 
  
-As the ration of updates in the workload increases, our automatic implementation 
+As the ratio of updates in the workload increases, our automatic implementation 
 closes this gap, and for some operation distributions and 
 tree sizes even outperforms some of the hand-crafted algorithms.
 These results show that our automatic transformation deals well with update contention. 
@@ -137,7 +137,7 @@ works better on larger data structures. Indeed, in large data structures,
 update operations are more likely to operate on disjoint parts of 
 the data, allowing high concurrency. This is especially important 
 for the automatic transformation as updates  with overlapping 
-locked sets might invalidate each other.  
+lock sets might invalidate each other.  
  
 
 
