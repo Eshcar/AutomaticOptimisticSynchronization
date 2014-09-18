@@ -59,7 +59,20 @@ public class MapTest {
 		
 		System.out.println("Starting TestMulti with:" + numThreads + " threads");
 		ReadWriteKeySum[] threads = new ReadWriteKeySum[numThreads]; 
-		int sumOperations = 0; 
+		Random rand = new Random();
+		int k;
+		int count = 0;
+		int num_elements = maxKey/2;
+		long beforeSum = 0; 
+		while(count < num_elements){		
+			k = rand.nextInt(maxKey);
+			if(tree.put(k, k)==null){
+				beforeSum+=k;
+				count++; 
+			}	
+		}
+		
+		long sumOperations = 0;
 		for(int i=0; i<numThreads; i++){
 			threads[i] = new ReadWriteKeySum(tree,numOps,insertProbability,removeProbability,maxKey);
 			threads[i].start();
@@ -73,12 +86,12 @@ public class MapTest {
 			}
 		}
 		assertTrue("Validation failed",tree.validate());
-		int afterOperationsSum = 0;
+		long afterOperationsSum = 0;
 		HashSet<Integer> allkeys = tree.getAllKeys();
 		for(Integer key: allkeys){
 			afterOperationsSum+=key; 
 		}
-		assertEquals(afterOperationsSum,sumOperations);
+		assertEquals(afterOperationsSum,sumOperations+beforeSum);
 	}
 	
 	private class ReadWriteKeySum extends Thread{
