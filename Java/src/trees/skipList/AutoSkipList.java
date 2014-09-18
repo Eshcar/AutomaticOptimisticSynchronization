@@ -454,6 +454,16 @@ public class AutoSkipList<K,V> implements Map<K,V>{
 			};
 			prev= prev.down;
 		}
+		for(int i=0; i<maxLevel; i++ ){
+			HashSet<K> lowerHash = getItemsInLevel(i);
+			HashSet<K> hash = getItemsInLevel(i+1);
+			for(K k: hash){
+				if(!lowerHash.contains(k)){
+					System.out.println("key "+k+" in level"+(i+1)+" but not in level" +i);
+					return false; 
+				}
+			}
+		}
 		return true;
 	}
 	
@@ -492,6 +502,24 @@ public class AutoSkipList<K,V> implements Map<K,V>{
 		HashSet<K> hash = new HashSet<K>(); 
 		Node<K,V> prev = root; 
 		while(prev.down != null){
+			prev = prev.down;
+		}
+		prev= prev.next;
+		while(prev.key!=max){
+			hash.add(prev.key); 
+			prev = prev.next;
+		}
+		return hash;
+	}
+	
+	
+	
+	public HashSet<K> getItemsInLevel(int level){
+		HashSet<K> hash = new HashSet<K>();
+		Node<K,V> prev = root; 
+		int i = maxLevel; 
+		while(i!=level){
+			i--;
 			prev = prev.down;
 		}
 		prev= prev.next;
