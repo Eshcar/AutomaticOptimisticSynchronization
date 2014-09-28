@@ -8,7 +8,6 @@ import util.Error;
 import util.localVersion.ReadSet;
 import util.localVersion.SpinHeapReentrant;
 
-
 public class AutoSkipList<K,V> implements Map<K,V>{
 	
 	private final Comparator<? super K> comparator;

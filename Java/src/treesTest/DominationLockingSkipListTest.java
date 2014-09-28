@@ -49,7 +49,7 @@ public class DominationLockingSkipListTest {
 	@Test
 	public void multiTest3() {
 		int numThreads = 8;
-		int maxKey = 5000; 
+		int maxKey = 50000; 
 		int insertProbability = 50; 
 		int removeProbability = 50; 
 		int numOps = 2000000; 

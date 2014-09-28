@@ -49,10 +49,10 @@ public class AutoSkipListTest {
 	@Test
 	public void multiTest3() {
 		int numThreads = 8;
-		int maxKey = 500000; 
+		int maxKey = 50000; 
 		int insertProbability = 50; 
 		int removeProbability = 50; 
-		int numOps = 20000000; 
+		int numOps = 2000000; 
 		Map<Integer,Integer> tree = new AutoSkipList<Integer,Integer>(maxKey,-1,maxKey);
 		
 		MapTest test = new MapTest(); 
