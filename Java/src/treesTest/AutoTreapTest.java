@@ -1,11 +1,7 @@
 package treesTest;
 
-import java.util.Random;
-
 import org.junit.Test;
-
 import trees.Map;
-import trees.localVersion.AutoBinaryTree;
 import trees.localVersion.AutoTreap;
 
 public class AutoTreapTest {

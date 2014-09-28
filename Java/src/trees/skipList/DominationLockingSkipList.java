@@ -326,6 +326,7 @@ public class DominationLockingSkipList<K,V> implements Map<K,V>{
 	}
 
 	private static class Node<K, V>  extends SpinHeapReentrant{		
+		private static final long serialVersionUID = 1L;
 		public Node(K key, V value) {
 			this.key = key;
 			this.value = value;

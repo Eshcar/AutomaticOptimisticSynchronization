@@ -103,13 +103,6 @@ public class AutoSkipList<K,V> implements Map<K,V>{
 		};
 	}
 	
-	private Node<K,V> acquire(Node<K,V> node, Thread self) {
-		if (node != null) {
-            node.acquire(self);
-        }
-        return node;
-	}
-	
 	private void release(Node<K,V> node) {
 		if (node != null){
 	           node.release();
@@ -197,7 +190,7 @@ public class AutoSkipList<K,V> implements Map<K,V>{
 	}
 
 	
-	@SuppressWarnings("unchecked")
+
 	private V getImp(Comparable<? super K> cmp, K key, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
@@ -482,6 +475,7 @@ public class AutoSkipList<K,V> implements Map<K,V>{
 	}
 
 	private static class Node<K, V>  extends SpinHeapReentrant{		
+		private static final long serialVersionUID = 1L;
 		public Node(K key, V value) {
 			this.key = key;
 			this.value = value;

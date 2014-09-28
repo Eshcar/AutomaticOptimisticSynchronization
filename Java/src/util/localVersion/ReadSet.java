@@ -27,7 +27,7 @@ public class ReadSet<K,V>{
 		count++;
 	}
 	
-	@SuppressWarnings("unchecked")
+
 	public boolean validate(final Thread self){
 		SpinHeapReentrant node; 
 		for (int i=0; i<count; i++){

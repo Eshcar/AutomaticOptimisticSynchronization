@@ -293,6 +293,7 @@ public class SingleNodeDominationLockingSL <K,V> implements Map<K,V>{
 		return true;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private boolean validateList(Node<K, V> prev,int i){
 		Node<K,V> curr = (Node<K, V>) prev.next[i]; 
 		if(curr == null) return true; //empty list 
@@ -309,6 +310,7 @@ public class SingleNodeDominationLockingSL <K,V> implements Map<K,V>{
 	}
 
 	private static class Node<K, V>  extends SpinHeapReentrant{		
+		private static final long serialVersionUID = 1L;
 		public Node(K key, V value, int height) {
 			this.key = key;
 			this.value = value;
@@ -333,6 +335,7 @@ public class SingleNodeDominationLockingSL <K,V> implements Map<K,V>{
 	}
 
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public HashSet<K> getAllKeys() {
 		HashSet<K> hash = new HashSet<K>(); 

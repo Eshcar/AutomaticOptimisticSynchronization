@@ -96,13 +96,6 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		};
 	}
 	
-	private Node<K,V> acquire(Node<K,V> node, Thread self) {
-		if (node != null) {
-            node.acquire(self);
-        }
-        return node;
-	}
-	
 	private void release(Node<K,V> node) {
 		if (node != null){
 	           node.release();
@@ -452,6 +445,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		return true;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private boolean validateList(Node<K, V> prev, int i){
 		Node<K,V> curr = (Node<K, V>) prev.next[i]; 
 		if(curr == null) return true; //empty list 
@@ -468,6 +462,8 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 	}
 
 	private static class Node<K, V>  extends SpinHeapReentrant{		
+		private static final long serialVersionUID = 1L;
+		
 		public Node(K key, V value, int height) {
 			this.key = key;
 			this.value = value;
@@ -492,6 +488,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 	}
 
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public HashSet<K> getAllKeys() {
 		HashSet<K> hash = new HashSet<K>(); 
@@ -506,11 +503,10 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 	}
 	
 	
+	@SuppressWarnings("unchecked")
 	public HashSet<K> getItemsInLevel(int level){
 		HashSet<K> hash = new HashSet<K>();
 		Node<K,V> prev = root; 
-		int i = maxLevel; 
-	
 		prev= (Node<K, V>) prev.next[level];
 		while(prev.key!=max){
 			hash.add(prev.key); 

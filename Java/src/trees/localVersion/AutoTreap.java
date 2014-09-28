@@ -9,7 +9,6 @@ import java.util.List;
 import trees.Map;
 import trees.localVersion.Node.Direction;
 import util.Error;
-import util.FastSimpleRandom;
 import util.NonSharedFastSimpleRandom;
 import util.ReadWritePhaseStrategy;
 import util.localVersion.LocalVersionReadWritePhase;
@@ -20,7 +19,7 @@ import util.localVersion.TimeoutValidationPhase;
 public class AutoTreap<K,V> implements Map<K,V>{
 	private final long LIMIT = 2000;
 	
-	@SuppressWarnings("hiding")
+
 	static private class TreapNode<K,V> extends Node<K,V>{
 
 		/**

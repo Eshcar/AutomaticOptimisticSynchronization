@@ -3,11 +3,8 @@ package treesTest;
 import java.util.Random;
 
 import org.junit.Test;
-
 import trees.Map;
 import trees.RedBlackTree;
-import trees.Treap;
-
 public class RedBlackTreeTest {
 	
 	

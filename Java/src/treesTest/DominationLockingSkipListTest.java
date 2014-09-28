@@ -1,9 +1,7 @@
 package treesTest;
 
 import org.junit.Test;
-
 import trees.Map;
-import trees.localVersion.DominationLockingBinaryTree;
 import trees.skipList.DominationLockingSkipList;
 
 
