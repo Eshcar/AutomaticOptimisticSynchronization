@@ -4,9 +4,10 @@ import java.util.Comparator;
 import java.util.HashSet;
 
 import trees.Map;
+import trees.RangeMap;
 import util.localVersion.SpinHeapReentrant;
 
-public class DominationLockingSkipList<K,V> implements Map<K,V>{
+public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 	
 	private final Comparator<? super K> comparator;
 	private final int maxLevel;
@@ -148,7 +149,7 @@ public class DominationLockingSkipList<K,V> implements Map<K,V>{
 	@SuppressWarnings("unchecked")
 	private V putImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self) {
 		V oldValue = null;
-		int height = skipListRandom.get().randomHeight(maxHeight);
+		int height = skipListRandom.get().randomHeight(maxHeight-1);
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
@@ -297,6 +298,154 @@ public class DominationLockingSkipList<K,V> implements Map<K,V>{
 		
 		return oldValue;
 	}
+	
+	@Override
+	public HashSet<K> getRange(K min, K max) {
+		if(threadPreds.get() == null){
+			threadPreds.set(new Object[maxHeight]);
+			threadSuccs.set(new Object[maxHeight]);
+		}
+		return getRangeImplement(comparable(min), comparable(max), self.get());
+	}
+	
+	@SuppressWarnings("unchecked")
+	private HashSet<K> getRangeImplement(Comparable<? super K> cmpMin,
+			Comparable<? super K> cmpMax, Thread self) {
+		
+		HashSet<K> result = new HashSet<K>();
+		int layerFound = -1; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){
+			Node<K,V> curr = pred.next;
+			curr.acquire(self);
+			while (true) {
+				int res = cmpMin.compareTo(curr.key);
+				if(res == 0) {
+					if(layerFound==-1){
+						layerFound = layer; 				
+					}				
+					break; 
+				}
+				if(res < 0){ 
+					break;
+				}			
+				pred.release();
+				pred = curr;
+				curr = pred.next;
+				curr.acquire(self);
+	
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			if(layer != 0){
+				pred = pred.down;
+				pred.acquire(self);
+			}
+		}
+		
+		if( layerFound!= -1 ){ 	//key was found change value only... 
+			int lockLayer = layerFound; 
+			pred = (Node<K, V>) succs[lockLayer]; 
+			Node<K,V> next = pred.next;
+			while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+				lockLayer++;
+				pred = (Node<K, V>) preds[lockLayer]; 
+				next = pred.next;
+			}
+			
+			//unlock uneeded locks in preds and succs... 
+			for(int i = maxLevel ; i > lockLayer ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			for(int i = lockLayer ; i > layerFound ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				curr.release();
+			}
+			
+			//travel the linked list 
+			pred = (Node<K, V>) preds[0];
+			Node<K, V> curr = (Node<K, V>) succs[0]; 
+			result.add(curr.key);
+			pred = curr;
+			curr = (Node<K, V>) curr.next; 
+			curr.acquire(self);
+			while(cmpMax.compareTo(curr.key) >= 0){		
+				result.add(curr.key);
+				if ( !pred.equals(succs[0])){ 
+					pred.release();
+				}
+				pred = curr; 
+				curr = (Node<K, V>) curr.next; 
+				curr.acquire(self);	
+			}
+			curr.release();
+			if ( !pred.equals(succs[0])){ //succs[layer] equals what should be succs[0]
+				pred.release();
+			}
+			for(int i = lockLayer ; i > layerFound ; i--){
+				pred = (Node<K,V>)preds[i];
+				pred.release();
+			}
+			
+			for(int i = layerFound ; i > -1 ; i--){
+				curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			return result; 
+			
+		}
+		
+		//key was not found
+		int lockLayer = 0; 
+		Node<K,V> next = (Node<K, V>) succs[lockLayer];
+		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+			lockLayer++;
+			next = (Node<K, V>) succs[lockLayer];
+		}
+		
+		for(int i = maxLevel ; i > lockLayer ; i--){
+			Node<K,V> curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		
+		pred = (Node<K, V>) preds[0];
+		Node<K, V> curr = (Node<K, V>) succs[0]; 
+		curr.acquire(self);
+		while(cmpMax.compareTo(curr.key) >= 0){		
+			result.add(curr.key);
+			if ( !pred.equals(preds[0])){ 
+				pred.release();
+			}
+			pred = curr; 
+			curr = (Node<K, V>) curr.next; 
+			curr.acquire(self);	
+		}
+		curr.release();
+		if ( !pred.equals(preds[0])){ //succs[layer] equals what should be succs[0]
+			pred.release();
+		}
+		
+		for(int i = lockLayer ; i > -1 ; i--){
+			curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		return result;
+	}
+
+
 
 	@Override
 	public boolean validate() {
@@ -355,4 +504,6 @@ public class DominationLockingSkipList<K,V> implements Map<K,V>{
 		}
 		return hash;
 	}
+
+	
 }

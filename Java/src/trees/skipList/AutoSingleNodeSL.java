@@ -4,12 +4,13 @@ import java.util.Comparator;
 import java.util.HashSet;
 
 import trees.Map;
+import trees.RangeMap;
 import util.Error;
 import util.localVersion.ReadSet;
 import util.localVersion.SpinHeapReentrant;
 
 
-public class AutoSingleNodeSL<K,V> implements Map<K,V>{
+public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 	
 	private final Comparator<? super K> comparator;
 	private final int maxLevel;
@@ -58,6 +59,14 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
             return new ReadSet<K,V>(); 
         }
     };
+    
+    private final ThreadLocal<ReadSet<K,V>> threadLargeReadSet = new ThreadLocal<ReadSet<K,V>>(){
+        @Override
+        protected ReadSet<K,V> initialValue()
+        {
+            return new ReadSet<K,V>(1024); 
+        }
+    };
 
 
 	private final ThreadLocal<Object[]> threadPreds = new ThreadLocal<Object[]>();
@@ -96,6 +105,13 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		};
 	}
 	
+	public Node<K,V> acquire(Node<K,V> node, Thread self) {
+		if (node != null) {
+            node.acquire(self);
+        }
+        return node;
+	}
+	
 	private void release(Node<K,V> node) {
 		if (node != null){
 	           node.release();
@@ -130,7 +146,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 	}
 	
 	@SuppressWarnings("unchecked")
-	private boolean validatePhase(Object[] preds, Object[] succs,
+	private boolean fullValidatePhase(Object[] preds, Object[] succs,
 			int layer, ReadSet<K, V> readSet, Thread self) {
 		for(int i=layer; i>-1 ; i--){
 			Node<K,V> pred = (Node<K, V>) preds[i];
@@ -151,12 +167,64 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		}
 		return true;
 	}
+	
+	@SuppressWarnings("unchecked")
+	private boolean smallValidatePhase(Object[] preds, 
+			int layer, ReadSet<K, V> readSet, Thread self) {
+		for(int i=layer; i>-1 ; i--){
+			Node<K,V> pred = (Node<K, V>) preds[i];
+			if(!tryAcquire(pred, readSet, self)){
+				releaseLevel(preds,layer,i);
+				return false;
+			}
+		}
+		if(!readSet.validate(self)){
+			releaseLevel(preds,layer,-1);
+			return false;
+		}
+		return true;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private boolean mixedValidatePhase(Object[] preds, Object[] succs,
+			int firstLayer, int secondLayer, ReadSet<K, V> readSet, Thread self){
+		for(int i=firstLayer; i>secondLayer ; i--){
+			Node<K,V> pred = (Node<K, V>) preds[i];
+			if(!tryAcquire(pred, readSet, self)){
+				releaseLevel(preds,firstLayer,i);
+				return false;
+			}
+		}
+		for(int i=secondLayer; i>-1 ; i--){
+			Node<K,V> succ = (Node<K, V>) succs[i];
+			if(!tryAcquire(succ, readSet, self)){
+				releaseLevel(preds,firstLayer,secondLayer);
+				releaseLevel(succs,secondLayer,i);
+				return false;
+			}
+		}
+		if(!readSet.validate(self)){
+			releaseLevel(preds,firstLayer,secondLayer);
+			releaseLevel(succs,secondLayer,-1);
+			return false;
+		}
+		return true;
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	private void releaseLevels(Object[] preds, Object[] succs, int top, int bottom) {
 			for(int i=top; i>bottom;i--){
 				release((Node<K, V>) preds[i]);
 				release((Node<K, V>) succs[i]);
+			}
+		
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void releaseLevel(Object[] preds, int top, int bottom) {
+			for(int i=top; i>bottom;i--){
+				release((Node<K, V>) preds[i]);
 			}
 		
 	}
@@ -254,7 +322,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		readSet.clear(); 
 		long count = 0; 
 		V oldValue = null;
-		int height = skipListRandom.get().randomHeight(maxHeight);
+		int height = skipListRandom.get().randomHeight(maxHeight-1);
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
@@ -301,19 +369,19 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 			
 			//No early unlocking... 
 			//VALIDATE!!! 
-			if(!validatePhase(preds,succs,layerFound,readSet,self)){
+			if(!smallValidatePhase(succs,layerFound,readSet,self)){
 				err.set();
 				return null; 
 			}
 			
 			for(int i = layerFound ; i > -1 ; i--){
 				Node<K,V> curr = (Node<K,V>)succs[i];
-				pred = ((Node<K,V>) preds[i]);
+				//pred = ((Node<K,V>) preds[i]);
 				if( cmp.compareTo(curr.key )!= 0 ){
 					assert(false);
 				};
 				curr.value = value;
-				pred.release();
+				//pred.release();
 				curr.release();
 			}
 			return oldValue;
@@ -321,7 +389,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		
 		
 		//no early unlocking 
-		if(!validatePhase(preds,succs,height-1,readSet,self)){
+		if(!smallValidatePhase(preds,height-1,readSet,self)){
 			err.set();
 			return null; 
 		}
@@ -330,11 +398,11 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		node.acquire(self);
 		for(int i = height-1 ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
-			Node<K,V> succ = ((Node<K,V>) succs[i]);	
-			node.next[i] = succ;
+			//Node<K,V> succ = ((Node<K,V>) succs[i]);	
+			node.next[i] = pred.next[i];
 			pred.next[i] = node;
 			pred.release();
-			succ.release();
+			//succ.release();
 		}
 		node.release();
 		return oldValue;	
@@ -408,7 +476,7 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 			return null;
 		}
 		
-		if(!validatePhase(preds,succs,layerFound,readSet,self)){
+		if(!fullValidatePhase(preds,succs,layerFound,readSet,self)){
 			err.set();
 			return null; 
 		}
@@ -423,7 +491,204 @@ public class AutoSingleNodeSL<K,V> implements Map<K,V>{
 		
 		return oldValue;
 	}
+	
+	public HashSet<K> getRange(K min, K max){
+		HashSet<K> value; 
+		Error err = threadError.get();
+		if(threadPreds.get() == null){
+			threadPreds.set(new Object[maxHeight]);
+			threadSuccs.set(new Object[maxHeight]);
+		}
+		while(true){
+			err.clean();
+			//value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
+			value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
+			if(!err.isSet()) break; 
+		}
+		return value;  
+	}
+	
 
+
+	@SuppressWarnings("unchecked")
+	private HashSet<K> optRangeImpl(Comparable<? super K> cmpMin,
+			Comparable<? super K> cmpMax, Thread self, Error err) {
+		ReadSet<K,V> readSet = threadLargeReadSet.get();
+		readSet.clear(); 
+		long count = 0; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = readRef(root,readSet,err); 
+		if(err.isSet()) return null;
+		
+		for(int layer = maxLevel ; layer > -1 ; layer-- ){
+			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
+			if(err.isSet()) return null;			
+			while (true) {
+				int res = cmpMin.compareTo(curr.key);
+				if(res == 0) {
+					HashSet<K> result = new HashSet<K>();
+					while(cmpMax.compareTo(curr.key) >= 0){
+						result.add(curr.key);
+						curr = readRef((Node<K, V>)curr.next[0],readSet,err);
+						if(err.isSet()) return null;			
+					}
+					if (!validateReadOnly(readSet, self)) err.set();
+					return result;
+				}
+				if(res < 0){ //key < x.key
+					break;
+				}							
+				pred = curr;
+				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
+				if(err.isSet()) return null;
+				
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
+				}
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			
+		}
+		//key not found, start from predecessor 
+		HashSet<K> result = new HashSet<K>();
+		Node<K,V> curr = (Node<K, V>) preds[0]; 
+		while(cmpMax.compareTo(curr.key) >= 0){
+			result.add(curr.key);
+			curr = readRef((Node<K, V>)curr.next[0],readSet,err);
+			if(err.isSet()) return null;			
+		}
+		if (!validateReadOnly(readSet, self)) err.set();
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	private HashSet<K> lockedRangeImpl(Comparable<? super K> cmpMin,
+			Comparable<? super K> cmpMax, Thread self, Error err) {
+		ReadSet<K,V> readSet = threadReadSet.get();
+		readSet.clear(); 
+		long count = 0; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = readRef(root,readSet,err); 
+		if(err.isSet()) return null;
+		
+		for(int layer = maxLevel ; layer > -1 ; layer-- ){
+			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
+			if(err.isSet()) return null;			
+			while (true) {
+				int res = cmpMin.compareTo(curr.key);
+				if(res == 0) {
+					//key found...
+					//Layer is the first level such that curr.key = min
+					//if this layer does not cover the range, lockLayer is used
+					//In lockLayer preds needs to be used 
+					for(int j =layer; j>-1; j--){
+						succs[j] = curr;			
+					}
+					int lockLayer = layer; 
+					Node<K,V> next = readRef( (Node<K, V>) curr.next[lockLayer],readSet,err);
+					if(err.isSet()) return null;
+					while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+						lockLayer++;
+						pred = (Node<K, V>) preds[lockLayer]; 
+						next = readRef( (Node<K, V>) pred.next[lockLayer],readSet,err);
+						if(err.isSet()) return null;
+
+					}
+					
+					//VALIDATION lock only succs from lockedLayer
+					if(!mixedValidatePhase(preds,succs,lockLayer,layer,readSet,self)){
+						err.set();
+						return null; 
+					}
+					
+					HashSet<K> result = new HashSet<K>();
+					pred = curr;
+					result.add(curr.key);
+					
+					curr = (Node<K, V>) curr.next[0]; 
+					acquire(curr,self);
+					while(cmpMax.compareTo(curr.key) >= 0){		
+						result.add(curr.key);
+						if ( !pred.equals(succs[layer])){ //succs[layer] equals what should be succs[0]
+							release(pred);
+						}
+						pred = curr; 
+						curr = (Node<K, V>) curr.next[0]; 
+						acquire(curr,self);	
+					}
+					release(curr);
+					if ( !pred.equals(succs[layer])){ //succs[layer] equals what should be succs[0]
+						release(pred);
+					}
+					releaseLevel(preds,lockLayer,layer);
+					releaseLevel(succs,layer,-1);
+					return result;
+					
+				}
+				if(res < 0){ 
+					break;
+				}							
+				pred = curr;
+				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
+				if(err.isSet()) return null;
+				
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
+				}
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			
+		}
+		
+		int lockLayer = 0; 
+		Node<K,V> next = (Node<K, V>) succs[lockLayer];
+		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+			lockLayer++;
+			next = (Node<K, V>) succs[lockLayer];
+		}
+
+		//VALIDATION lock preds from lockLayer
+		if(!smallValidatePhase(preds,lockLayer,readSet,self)){
+			err.set();
+			return null; 
+		}
+		
+		HashSet<K> result = new HashSet<K>();
+		pred = (Node<K, V>) preds[0];
+		Node<K,V> curr = (Node<K, V>) pred.next[0]; 
+		acquire(curr,self);
+		while(cmpMax.compareTo(curr.key) >= 0){		
+			if(cmpMin.compareTo(curr.key) < 0){
+				result.add(curr.key);
+			}
+			if ( !pred.equals(preds[0])){
+				release(pred);
+			}
+			pred = curr; 
+			curr = (Node<K, V>) curr.next[0]; 
+			acquire(curr,self);	
+		}
+		release(curr);
+		if ( !pred.equals(preds[0])){
+			release(pred);
+		}
+		releaseLevel(preds,lockLayer,-1);
+		return result;
+	}
+
+	
 	@Override
 	public boolean validate() {
 		Node<K,V> prev = root;

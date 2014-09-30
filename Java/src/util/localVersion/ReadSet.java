@@ -17,6 +17,12 @@ public class ReadSet<K,V>{
 		count = 0; 
 	}
 	
+	public ReadSet(int additionalSize){
+		readSetObjects = new SpinHeapReentrant[READ_SET_SIZE+additionalSize];
+		readSetVersions = new int[READ_SET_SIZE+additionalSize];
+		count = 0; 
+	}
+	
 	public void clear(){
 		count = 0;
 	}
