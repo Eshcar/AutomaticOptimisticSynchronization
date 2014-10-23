@@ -19,7 +19,7 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 	private final K min;
 	private final K max;
 	
-	private final long LIMIT = 2000; 
+	private final int LIMIT = 1700; 
 	
 	private Node<K,V> initRoot(){
 		
@@ -50,6 +50,14 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
         protected Error initialValue(){
     		return new Error();
     	}
+    };
+    
+    private final ThreadLocal<Object[]> rangeSet = new ThreadLocal<Object[]>(){
+        @Override
+        protected Object[] initialValue()
+        {
+            return new Object[LIMIT]; 
+        }
     };
     
     private final ThreadLocal<ReadSet<K,V>> threadReadSet = new ThreadLocal<ReadSet<K,V>>(){
@@ -492,8 +500,12 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 		return oldValue;
 	}
 	
-	public HashSet<K> getRange(K min, K max){
-		HashSet<K> value; 
+	public int getRange(K min, K max){
+		boolean combinationRange = true; 
+		if(combinationRange){
+			return getCombinationRange(min, max);
+		}
+		int value; 		
 		Error err = threadError.get();
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
@@ -501,8 +513,7 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 		}
 		while(true){
 			err.clean();
-			//value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
-			value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
+			value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
 			if(!err.isSet()) break; 
 		}
 		return value;  
@@ -510,8 +521,173 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 	
 
 
+	private int getCombinationRange(K min, K max) {
+		int value; 
+		int count = 0; 
+		Error err = threadError.get();
+		if(threadPreds.get() == null){
+			threadPreds.set(new Object[maxHeight]);
+			threadSuccs.set(new Object[maxHeight]);
+		}
+		while(true){
+			err.clean();
+			if(count< 3){
+				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
+				if(!err.isSet()) break; 
+				count++;
+			}else if(count <6 ){
+				value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
+				if(!err.isSet()) break;
+				count++;
+			}else{
+				return value = dominationRangeImpl(comparable(min), comparable(max),self.get());
+			}
+		}
+		return value; 
+	}
+
 	@SuppressWarnings("unchecked")
-	private HashSet<K> optRangeImpl(Comparable<? super K> cmpMin,
+	private int dominationRangeImpl(Comparable<? super K> cmpMin,
+			Comparable<? super K> cmpMax, Thread self) {
+		Object[] result = rangeSet.get();
+		int rangeCount = 0; 
+		
+		int layerFound = -1; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){
+			Node<K,V> curr = (Node<K, V>) pred.next[layer];
+			curr.acquire(self);
+			while (true) {
+				int res = cmpMin.compareTo(curr.key);
+				if(res == 0) {
+					if(layerFound==-1){
+						layerFound = layer; 				
+					}				
+					break; 
+				}
+				if(res < 0){ 
+					break;
+				}			
+				pred.release();
+				pred = curr;
+				curr = (Node<K, V>) pred.next[layer];
+				curr.acquire(self);
+	
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			if(layer != 0){
+				//pred = pred.down;
+				pred.acquire(self);
+			}
+		}
+		
+		if( layerFound!= -1 ){ 	
+			int lockLayer = layerFound; 
+			pred = (Node<K, V>) succs[lockLayer]; 
+			Node<K,V> next = (Node<K, V>) pred.next[lockLayer];
+			while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+				lockLayer++;
+				pred = (Node<K, V>) preds[lockLayer]; 
+				next = (Node<K, V>) pred.next[lockLayer];
+			}
+			
+			//unlock uneeded locks in preds and succs... 
+			for(int i = maxLevel ; i > lockLayer ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			for(int i = lockLayer ; i > layerFound ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				curr.release();
+			}
+			
+			//travel the linked list 
+			pred = (Node<K, V>) preds[0];
+			Node<K, V> curr = (Node<K, V>) succs[0]; 
+			result[rangeCount] = curr.key;
+			rangeCount++;
+			pred = curr;
+			curr = (Node<K, V>) curr.next[0]; 
+			curr.acquire(self);
+			while(cmpMax.compareTo(curr.key) >= 0){		
+				result[rangeCount] = curr.key;
+				rangeCount++;
+				if ( !pred.equals(succs[0])){ 
+					pred.release();
+				}
+				pred = curr; 
+				curr = (Node<K, V>) curr.next[0]; 
+				curr.acquire(self);	
+			}
+			curr.release();
+			if ( !pred.equals(succs[0])){ //succs[layer] equals what should be succs[0]
+				pred.release();
+			}
+			for(int i = lockLayer ; i > layerFound ; i--){
+				pred = (Node<K,V>)preds[i];
+				pred.release();
+			}
+			
+			for(int i = layerFound ; i > -1 ; i--){
+				curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			return rangeCount; 
+		}
+		
+		//key was not found
+			int lockLayer = 0; 
+			Node<K,V> next = (Node<K, V>) succs[lockLayer];
+			while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+				lockLayer++;
+				next = (Node<K, V>) succs[lockLayer];
+			}
+			
+			for(int i = maxLevel ; i > lockLayer ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			
+			pred = (Node<K, V>) preds[0];
+			Node<K, V> curr = (Node<K, V>) succs[0]; 
+			curr.acquire(self);
+			while(cmpMax.compareTo(curr.key) >= 0){		
+				result[rangeCount] = curr.key;
+				rangeCount++;
+				if ( !pred.equals(preds[0])){ 
+					pred.release();
+				}
+				pred = curr; 
+				curr = (Node<K, V>) curr.next[0]; 
+				curr.acquire(self);	
+			}
+			curr.release();
+			if ( !pred.equals(preds[0])){ //succs[layer] equals what should be succs[0]
+				pred.release();
+			}
+			
+			for(int i = lockLayer ; i > -1 ; i--){
+				curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			return rangeCount;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private int optRangeImpl(Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadLargeReadSet.get();
 		readSet.clear(); 
@@ -520,34 +696,36 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 		Object[] succs = threadSuccs.get();
 		
 		Node<K,V> pred = readRef(root,readSet,err); 
-		if(err.isSet()) return null;
+		if(err.isSet()) return -1;
 		
 		for(int layer = maxLevel ; layer > -1 ; layer-- ){
 			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
-			if(err.isSet()) return null;			
+			if(err.isSet()) return -1;			
 			while (true) {
 				int res = cmpMin.compareTo(curr.key);
 				if(res == 0) {
-					HashSet<K> result = new HashSet<K>();
+					Object[] result = rangeSet.get();
+					int rangeCount = 0; 
 					while(cmpMax.compareTo(curr.key) >= 0){
-						result.add(curr.key);
+						result[rangeCount] = curr.key;
+						rangeCount++;
 						curr = readRef((Node<K, V>)curr.next[0],readSet,err);
-						if(err.isSet()) return null;			
+						if(err.isSet()) return -1;			
 					}
 					if (!validateReadOnly(readSet, self)) err.set();
-					return result;
+					return rangeCount;
 				}
 				if(res < 0){ //key < x.key
 					break;
 				}							
 				pred = curr;
 				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
-				if(err.isSet()) return null;
+				if(err.isSet()) return -1;
 				
 				if(count++ == LIMIT){
 					if (!validateReadOnly(readSet, self)){
 						err.set();
-						return null;
+						return -1;
 					}
 				}
 			}
@@ -556,19 +734,25 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 			
 		}
 		//key not found, start from predecessor 
-		HashSet<K> result = new HashSet<K>();
 		Node<K,V> curr = (Node<K, V>) preds[0]; 
-		while(cmpMax.compareTo(curr.key) >= 0){
-			result.add(curr.key);
+		Object[] result = rangeSet.get();
+		int rangeCount = 0; 
+		while(cmpMin.compareTo(curr.key)>0){
 			curr = readRef((Node<K, V>)curr.next[0],readSet,err);
-			if(err.isSet()) return null;			
+			if(err.isSet()) return -1;		
+		}
+		while(cmpMax.compareTo(curr.key) >= 0){
+			result[rangeCount] = curr.key;
+			rangeCount++;
+			curr = readRef((Node<K, V>)curr.next[0],readSet,err);
+			if(err.isSet()) return -1;			
 		}
 		if (!validateReadOnly(readSet, self)) err.set();
-		return result;
+		return rangeCount;
 	}
 
 	@SuppressWarnings("unchecked")
-	private HashSet<K> lockedRangeImpl(Comparable<? super K> cmpMin,
+	private int lockedRangeImpl(Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
@@ -577,11 +761,11 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 		Object[] succs = threadSuccs.get();
 		
 		Node<K,V> pred = readRef(root,readSet,err); 
-		if(err.isSet()) return null;
+		if(err.isSet()) return -1;
 		
 		for(int layer = maxLevel ; layer > -1 ; layer-- ){
 			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
-			if(err.isSet()) return null;			
+			if(err.isSet()) return -1;			
 			while (true) {
 				int res = cmpMin.compareTo(curr.key);
 				if(res == 0) {
@@ -594,29 +778,31 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 					}
 					int lockLayer = layer; 
 					Node<K,V> next = readRef( (Node<K, V>) curr.next[lockLayer],readSet,err);
-					if(err.isSet()) return null;
+					if(err.isSet()) return -1;
 					while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
 						lockLayer++;
 						pred = (Node<K, V>) preds[lockLayer]; 
 						next = readRef( (Node<K, V>) pred.next[lockLayer],readSet,err);
-						if(err.isSet()) return null;
+						if(err.isSet()) return -1;
 
 					}
 					
 					//VALIDATION lock only succs from lockedLayer
 					if(!mixedValidatePhase(preds,succs,lockLayer,layer,readSet,self)){
 						err.set();
-						return null; 
+						return -1; 
 					}
 					
-					HashSet<K> result = new HashSet<K>();
+					Object[] result = rangeSet.get();
+					int rangeCount = 0; 
 					pred = curr;
-					result.add(curr.key);
-					
+					result[rangeCount] = curr.key;
+					rangeCount++;
 					curr = (Node<K, V>) curr.next[0]; 
 					acquire(curr,self);
 					while(cmpMax.compareTo(curr.key) >= 0){		
-						result.add(curr.key);
+						result[rangeCount] = curr.key;
+						rangeCount++;
 						if ( !pred.equals(succs[layer])){ //succs[layer] equals what should be succs[0]
 							release(pred);
 						}
@@ -630,7 +816,7 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 					}
 					releaseLevel(preds,lockLayer,layer);
 					releaseLevel(succs,layer,-1);
-					return result;
+					return rangeCount;
 					
 				}
 				if(res < 0){ 
@@ -638,12 +824,12 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 				}							
 				pred = curr;
 				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
-				if(err.isSet()) return null;
+				if(err.isSet()) return -1;
 				
 				if(count++ == LIMIT){
 					if (!validateReadOnly(readSet, self)){
 						err.set();
-						return null;
+						return -1;
 					}
 				}
 			}
@@ -662,16 +848,18 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 		//VALIDATION lock preds from lockLayer
 		if(!smallValidatePhase(preds,lockLayer,readSet,self)){
 			err.set();
-			return null; 
+			return -1; 
 		}
 		
-		HashSet<K> result = new HashSet<K>();
+		Object[] result = rangeSet.get();
+		int rangeCount = 0; 
 		pred = (Node<K, V>) preds[0];
 		Node<K,V> curr = (Node<K, V>) pred.next[0]; 
 		acquire(curr,self);
 		while(cmpMax.compareTo(curr.key) >= 0){		
 			if(cmpMin.compareTo(curr.key) < 0){
-				result.add(curr.key);
+				result[rangeCount] = curr.key;
+				rangeCount++;
 			}
 			if ( !pred.equals(preds[0])){
 				release(pred);
@@ -685,7 +873,7 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 			release(pred);
 		}
 		releaseLevel(preds,lockLayer,-1);
-		return result;
+		return rangeCount;
 	}
 
 	
@@ -712,13 +900,17 @@ public class AutoSingleNodeSL<K,V> implements RangeMap<K, V>{
 	
 	@SuppressWarnings("unchecked")
 	private boolean validateList(Node<K, V> prev, int i){
+		if(prev.isLocked()) return false;
 		Node<K,V> curr = (Node<K, V>) prev.next[i]; 
-		if(curr == null) return true; //empty list 
+		if(curr == null || curr.isLocked()) return false; //missing end...  
 		prev = curr; 
 		curr = (Node<K, V>) curr.next[i]; 
 		while(curr!=null){
 			if(comparable(prev.key).compareTo(curr.key) >= 0){
 				return false;
+			}
+			if(curr.isLocked()){
+				return false; 
 			}
 			prev = curr; 
 			curr = (Node<K, V>) curr.next[i];

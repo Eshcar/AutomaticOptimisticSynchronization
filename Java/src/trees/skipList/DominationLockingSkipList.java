@@ -31,6 +31,16 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 		return root;
 	}
 	
+	private final int LIMIT = 5000; 
+	
+	private final ThreadLocal<Object[]> rangeSet = new ThreadLocal<Object[]>(){
+        @Override
+        protected Object[] initialValue()
+        {
+            return new Object[LIMIT]; 
+        }
+    };
+	
 	private final ThreadLocal<Thread> self = new ThreadLocal<Thread>(){
         @Override
         protected Thread initialValue()
@@ -300,7 +310,7 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 	}
 	
 	@Override
-	public HashSet<K> getRange(K min, K max) {
+	public int getRange(K min, K max) {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
@@ -309,10 +319,12 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 	}
 	
 	@SuppressWarnings("unchecked")
-	private HashSet<K> getRangeImplement(Comparable<? super K> cmpMin,
+	private int getRangeImplement(Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self) {
 		
-		HashSet<K> result = new HashSet<K>();
+		Object[] result = rangeSet.get();
+		int rangeCount = 0; 
+		
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
@@ -372,12 +384,14 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 			//travel the linked list 
 			pred = (Node<K, V>) preds[0];
 			Node<K, V> curr = (Node<K, V>) succs[0]; 
-			result.add(curr.key);
+			result[rangeCount] = curr.key;
+			rangeCount++;
 			pred = curr;
 			curr = (Node<K, V>) curr.next; 
 			curr.acquire(self);
 			while(cmpMax.compareTo(curr.key) >= 0){		
-				result.add(curr.key);
+				result[rangeCount] = curr.key;
+				rangeCount++;
 				if ( !pred.equals(succs[0])){ 
 					pred.release();
 				}
@@ -400,7 +414,7 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 				pred.release();
 				curr.release();
 			}
-			return result; 
+			return rangeCount; 
 			
 		}
 		
@@ -423,7 +437,8 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 		Node<K, V> curr = (Node<K, V>) succs[0]; 
 		curr.acquire(self);
 		while(cmpMax.compareTo(curr.key) >= 0){		
-			result.add(curr.key);
+			result[rangeCount] = curr.key;
+			rangeCount++;
 			if ( !pred.equals(preds[0])){ 
 				pred.release();
 			}
@@ -442,9 +457,8 @@ public class DominationLockingSkipList<K,V> implements RangeMap<K,V>{
 			pred.release();
 			curr.release();
 		}
-		return result;
+		return rangeCount;
 	}
-
 
 
 	@Override

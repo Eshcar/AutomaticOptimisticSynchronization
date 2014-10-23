@@ -110,7 +110,7 @@ public class AutoSingleNodeSLTest {
 	
 	@Test
 	public void smallMultiRangeTest() {
-		int numThreads = 8;
+		int numThreads = 4;
 		int maxKey = 10000; 
 		int rangeProbability = 20;
 		int insertProbability = 10; 
@@ -128,7 +128,7 @@ public class AutoSingleNodeSLTest {
 	
 	@Test
 	public void mediumMultiRangeTest() {
-		int numThreads = 8;
+		int numThreads = 4;
 		int maxKey = 100000; 
 		int rangeProbability = 20;
 		int insertProbability = 10; 
@@ -146,7 +146,7 @@ public class AutoSingleNodeSLTest {
 	
 	@Test
 	public void largeMultiRangeTest() {
-		int numThreads = 8;
+		int numThreads = 4;
 		int maxKey = 1000000; 
 		int rangeProbability = 20;
 		int insertProbability = 10; 
@@ -161,4 +161,5 @@ public class AutoSingleNodeSLTest {
 		
 		test.TestMultiRange(tree, numThreads, maxKey, rangeProbability, insertProbability, removeProbability, numOps, minRange, maxRange);
 	}
+	
 }

@@ -15,7 +15,7 @@ public class RangeMapTest {
 	public void TestSequentialRange( RangeMap<Integer,Integer> tree, int maxKey, int minRange, int maxRange){
 		System.out.println("Starting TestSmallSequentialRange");
 		int numElements = maxKey/2; 
-		HashSet<Integer> rangeResult; 
+		int rangeResult; 
 		int[] map = new int[maxKey];
 		Random rand = new Random(); 
 		int k;
@@ -41,11 +41,13 @@ public class RangeMapTest {
 			int max = min + rangeSize; 
 			System.out.println("Getting range from "+min+ " to "+ max);
 			rangeResult = tree.getRange(min, max);
+			int count=0; 
 			for(int i=min; i<=max; i++){
 				if(map[i]!=0){
-					assertTrue(rangeResult.contains(i));
+					count++;
 				}
 			}
+			assertEquals(count,rangeResult);
 		}
 	} 
 	
@@ -66,6 +68,18 @@ public class RangeMapTest {
 		}
 		
 		
+		for(int i=0; i<numThreads; i++){
+			threads[i] = new ReadWriteKeySum(tree,numOps,rangeProbibility,insertProbability,
+					removeProbability,maxKey,minRange,maxRange);
+			threads[i].start();
+		}
+		for(int i=0; i<numThreads; i++){
+			try {
+				threads[i].join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		for(int i=0; i<numThreads; i++){
 			threads[i] = new ReadWriteKeySum(tree,numOps,rangeProbibility,insertProbability,
 					removeProbability,maxKey,minRange,maxRange);
@@ -118,6 +132,15 @@ public class RangeMapTest {
 					int min = rand.nextInt(maxKey-rangeSize); 
 					int max = min + rangeSize; 
 					tree.getRange(min, max); 
+					for(int j =0; j< rangeSize/2; j++){
+						k = rand.nextInt(maxKey); 
+						op=rand.nextInt(100);
+						if(op<50){
+							tree.put(k, 0);
+						}else{
+							tree.remove(k);
+						}
+					}
 				}
 				else if(op <= range + insert) { 
 					tree.put(k, 0);
