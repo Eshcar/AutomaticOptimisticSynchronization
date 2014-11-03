@@ -1,33 +1,16 @@
-%-----------------------------------------------------------------------------
-%
-%               Template for sigplanconf LaTeX Class
-%
-% Name:         sigplanconf-template.tex
-%
-% Purpose:      A template for sigplanconf.cls, which is a LaTeX 2e class
-%               file for SIGPLAN conference proceedings.
-%
-% Guide:        Refer to "Author's Guide to the ACM SIGPLAN Class,"
-%               sigplanconf-guide.pdf
-%
-% Author:       Paul C. Anagnostopoulos
-%               Windfall Software
-%               978 371-2316
-%               paul@windfall.com
-%
-% Created:      15 February 2005
-%
-%-----------------------------------------------------------------------------
+\documentclass[pldi]{sigplanconf-pldi15}
+%\documentclass[preprint]{sigplanconf}
 
+\usepackage{SIunits}            % typset units correctly
+\usepackage{courier}            % standard fixed width font
+\usepackage[scaled]{helvet} % see www.ctan.org/get/macros/latex/required/psnfss/psnfss2e.pdf
+\usepackage{url}                  % format URLs
+\usepackage{listings}          % format code
+\usepackage{enumitem}      % adjust spacing in enums
+\usepackage[colorlinks=true,allcolors=blue,breaklinks,draft=false]{hyperref}   % hyperlinks, including DOIs and URLs in bibliography
+% known bug: http://tex.stackexchange.com/questions/1522/pdfendlink-ended-up-in-different-nesting-level-than-pdfstartlink
+\newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}   % print a hyperlinked DOI
 
-\documentclass[preprint]{sigplanconf}
-
-% The following \documentclass options may be useful:
-
-% preprint      Remove this option only once the paper is in final form.
-% 10pt          To set in 10-point type instead of 9-point.
-% 11pt          To set in 11-point type instead of 9-point.
-% authoryear    To obtain author/year citation style instead of numeric.
 
 \usepackage{amsmath}
 
@@ -49,69 +32,62 @@
 
 \begin{document}
 
-\special{papersize=8.5in,11in}
-\setlength{\pdfpageheight}{\paperheight}
-\setlength{\pdfpagewidth}{\paperwidth}
+%\special{papersize=8.5in,11in}
+%\setlength{\pdfpageheight}{\paperheight}
+%\setlength{\pdfpagewidth}{\paperwidth}
+%
+%\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country}
+%\copyrightyear{20yy}
+%\copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
+%\doi{nnnnnnn.nnnnnnn}
+%
+%% Uncomment one of the following two, if you are not going for the
+%% traditional copyright transfer agreement.
+%
+%%\exclusivelicense                % ACM gets exclusive license to publish,
+%                                  % you retain copyright
+%
+%%\permissiontopublish             % ACM gets nonexclusive license to publish
+%                                  % (paid open-access papers,
+%                                  % short abstracts)
+%
+%\titlebanner{PPoPP submission -- please do not distribute}        % These are ignored unless
+%\preprintfooter{Automatic lock removal for scalable synchronization}   % 'preprint' option specified.
+%
 
-\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country} 
-\copyrightyear{20yy} 
-\copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
-\doi{nnnnnnn.nnnnnnn}
-
-% Uncomment one of the following two, if you are not going for the 
-% traditional copyright transfer agreement.
-
-%\exclusivelicense                % ACM gets exclusive license to publish, 
-                                  % you retain copyright
-
-%\permissiontopublish             % ACM gets nonexclusive license to publish
-                                  % (paid open-access papers, 
-                                  % short abstracts)
-
-\titlebanner{PPoPP submission -- please do not distribute}        % These are ignored unless
-\preprintfooter{Automatic lock removal for scalable synchronization}   % 'preprint' option specified.
 
 \title{Automatic Lock Removal for Scalable Synchronization}
-%\title{Scalable Automatic Synchronization for Concurrent Data Structures}
-%\subtitle{Subtitle Text, if any}
-
-\authorinfo{}
-           {}
-           {}
+%%\title{Scalable Automatic Synchronization for Concurrent Data Structures}
+%%\subtitle{Subtitle Text, if any}
+%
+%\authorinfo{}
+%           {}
+%           {}
 
 \maketitle
 
 \begin{abstract}
-We present an \emph{automatic} approach for parallelizing sequential 
-data structures in a way that is both safe and scalable. 
-While there exist pessimistic transformations that make 
-code thread-safe by adding (either global or fine-grained) locks, 
-this approach is limited in its performance due to synchronization 
-bottlenecks, for example, locking the root in a tree data structure. 
-In this paper, we improve the performance and scalability of such 
-synthesized code by reducing bottlenecks. Specifically, 
-we present an automatic approach to eliminate many of the locking steps, 
-relying instead on optimistic partial traversals of the data structure. 
-We realize our approach for tree data structures using 
-the domination locking technique. 
-The resulting code scales well, significantly outperforms 
-pessimistic approaches, and its performance is comparable 
-to that achieved by custom-tailored implementations. 
-Our work thus shows the promise that automated approaches 
-bear for overcoming the difficulty involved in manually 
-hand-crafting concurrent data structures. 
+We present an \emph{automatic} approach for parallelizing sequential
+data structures in a way that is both safe and scalable.
+While there exist pessimistic transformations that make
+code thread-safe by adding (either global or fine-grained) locks,
+this approach is limited in its performance due to synchronization
+bottlenecks, for example, locking the root in a tree data structure.
+In this paper, we improve the performance and scalability of such
+synthesized code by reducing bottlenecks. Specifically,
+we present an automatic approach to eliminate many of the locking steps,
+relying instead on optimistic partial traversals of the data structure.
+We realize our approach for tree data structures using
+the domination locking technique.
+The resulting code scales well, significantly outperforms
+pessimistic approaches, and its performance is comparable
+to that achieved by custom-tailored implementations.
+Our work thus shows the promise that automated approaches
+bear for overcoming the difficulty involved in manually
+hand-crafting concurrent data structures.
 
 \end{abstract}
 
-\category{CR-number}{subcategory}{third-level}
-
-% general terms are not compulsory anymore, 
-% you may leave them out
-\terms
-Automatic code generation, parallel programming, synchronization
-
-\keywords
-Concurrent data structures, lock elision
 
 \input{introduction}
 \input{preliminaries}
@@ -126,16 +102,14 @@ Concurrent data structures, lock elision
 
 %This is the text of the appendix, if you need one.
 
-\acks
-
-Removed for blind review.
+%\acks
+%Removed for blind review.
 
 %Acknowledgments, if needed.
 
 % We recommend abbrvnat bibliography style.
 
-
-
+ 
 % The bibliography should be embedded for final submission.
 
 \bibliography{myRef}
@@ -151,11 +125,3 @@ Removed for blind review.
 
 
 \end{document}
-
-%                       Revision History
-%                       -------- -------
-%  Date         Person  Ver.    Change
-%  ----         ------  ----    ------
-
-%  2013.06.29   TU      0.1--4  comments on permission/copyright notices
-
