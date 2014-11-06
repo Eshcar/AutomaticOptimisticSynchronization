@@ -302,13 +302,135 @@ objects' versions.
 \end{figure}
 
 
+\textbf{TODO: explain how we handle exceptions}
+
 \subsection{Additional Details of the Transformation}\label{ssec:extendedTran}
 
-TODO:
+
+
+\begin{figure*}
+\scriptsize
+	\begin{center}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex --------------------
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex
+            \State
+            \State
+            \State
+            \State
+            \State
+            \State
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The original code of the data structure operation.} \label{figure:autoPartitioning:step1}
+	\end{subfigure}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex --------------------
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex --------------------
+            \State\hspace{-3mm}{1':\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{Step A}.}
+ \label{figure:autoPartitioning:step2}
+	\end{subfigure}
+	\begin{subfigure}[t]{.35\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex -------------------- \Comment{\textrm{read-only phase}}
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ \underline{\textbf{goto 3'}}}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
+            \Statex -------------------- \Comment{\textrm{update phase}}
+            \State\hspace{-3mm}{1' :\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{Step B}.
+        Lines 1-6 are treated as the read-only phase; and lines 1'-6' are treated as the update phase.
+} \label{figure:autoPartitioning:step3}
+	\end{subfigure}
+
+	\end{center}
+\vspace{-4mm}
+	\caption{Example for automatic code partitioning to read-only and update phases.}
+			\label{figure:autoPartitioning}
+\end{figure*}
+
+\paragraph{Automatic Phase Partitioning}
+We now explain our automatic technique to partition code to read-only and update phases.
+We demonstrate our technique by using the code in Figure~\ref{figure:autoPartitioning:step1}.
+Notice that, in Figure~\ref{figure:autoPartitioning:step1}, the code location in which the shared memory is updated depends on the operation's parameters (i.e., on the value of variable $i$): if $i>7$ then the code writes to shared memory at line $3$, otherwise the code does not update shared memory.
+
+Our technique produces code that is equivalent to the given code (from external point of view). The produced code is partitioned to
+read-only and update phases (as assumed in Section~\ref{ssec:transformation}). Moreover, in the produced code, the operation's execution stays in the read-phase as long as it only reads from shared memory.
+
+\noindent Our technique is realized by the following two steps:  
 \begin{itemize}
-  \item Dynamic Partitioning of the code
-  \item Exceptions
-  \item Limited Number of Restarts
-  \item Using bounded Sets
+  \item [Step A:] 
+Given a code $C$ of a data structure operation, we create a clone of $C$ which is denoted by $C'$.
+We now concatenate $C'$ to the end of $C$.
+For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
+Each location $l$ in $C$ has a matched location in its clone, this matched location is denoted by $l'$
+(e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matched location of line $5$ is line $5'$).
+  \item [Step B:] 
+Every location $l$ in $C$ that contains a write statement is replaced with the statement \emph{goto l'}.
+This ensures that $C'$ will be executed just before the first write statement  is invoked.
+In a similar manner, each location $l$ in $C$ which contains a \emph{return statement} (or any statement that exits from the operation)
+is replaced with the statement \emph{goto l'}.
+Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
 \end{itemize}
+
+
+
+
+In the produced code, $C$ is treated as the read-only phase  and $C'$ is treated as the update phase.
+For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
+This new code is equivalent to the original code, and it satisfies the assumption from Section~\ref{ssec:transformation}.
+
+
+
+
+
+\ \\ \\ \\ \\
+\textbf{TODO: we need to explain the following (in this subsection):}
+\begin{itemize}
+  \item Limited Number of Restarts (after several restarts we can jump to the beginning of $C'$)
+  \item Using bounded Sets (If we don't have enough thread-local memory, then we jump to the right place in $C'$)
+\end{itemize}
+
+
 
