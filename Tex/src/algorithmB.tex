@@ -30,7 +30,7 @@ Generally speaking, optimistic concurrency control is a form of lock-free synchr
 %The main idea:
 The main idea behind our approach is judicious use of optimistic synchronization to read
 shared variables without locks as long as no updates occur. Once an operation
-performs a write step, we start using the pessimistic (locking-based) synchronization. In
+performs a write instruction, we start using the pessimistic (locking-based) synchronization. In
 other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant
 locks that would have been freed
 before any change is made.
@@ -180,16 +180,16 @@ This field will be used to validate the correctness of the optimistic execution 
 Note that each object has its own version --- i.e., version numbers of different objects are independent of each other.
 
 \paragraph{Read-only Phase}
-In this phase, we replace all the lock and unlock operations with synchronization that avoids writing to shared memory.
+In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
 During this phase, our synchronization maintains two thread-local sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
 The \emph{readSet} is used to track versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
 At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
-We replace every lock and unlock operation with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
-A lock operation on object $o$ is replaced with code that \textbf{TODO: explain the code and Figure~\ref{figure::track}}.
-An unlock operation on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
+We replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
+A lock instruction on object $o$ is replaced with code that \textbf{TODO: explain the code and Figure~\ref{figure::track}}.
+An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
 
 \begin{table}
@@ -199,7 +199,7 @@ An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{co
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-\textbf{Original Locking Step} & \textbf{Transformed Code}\\
+\textbf{Original Locking Instruction} & \textbf{Transformed Code}\\
 \hline
 \textit{x.lock()}&
 \textit{if !track(x) then goto $S$}
@@ -213,7 +213,7 @@ An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{co
 \end{center}
 }
 \caption{Transformation for read-only phase:
-each locking step (left side) is replaced with the corresponding code in the right side.
+each locking instruction (left side) is replaced with the corresponding code in the right side.
 We write $S$ to denote the beginning of the operation.
 }
 \label{Ta:readOnlyTransformation}
@@ -246,15 +246,15 @@ The code of the validation phase is inserted in each edge from $C_r$ to $C_u$ (i
 This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
 It locks the objects in \emph{lockedSet} and validates the objects in \emph{readSet}.
 To avoid deadlocks, the locks are acquired using a tryLock
-step. 
-If a tryLock fails , the operation unlocks  all
+instruction.
+If a tryLock fails , the code unlocks  all
 previously acquired locks and restarts from the beginning
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
-Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).  
+Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
 
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
-Here, before each unlock statement \emph{\ttfamily x.unlock()} we insert a statement \emph{\ttfamily x.version++} .
+Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
 
@@ -398,19 +398,19 @@ Notice that, in Figure~\ref{figure:autoPartitioning:step1}, the code location in
 Our technique produces code that is equivalent to the given code (from external point of view). The produced code is partitioned to
 read-only and update phases (as assumed in Section~\ref{ssec:transformation}). Moreover, in the produced code, the operation's execution stays in the read-phase as long as it only reads from shared memory.
 
-\noindent Our technique is realized by the following two steps:  
+\noindent Our technique is realized by the following two steps:
 \begin{itemize}
-  \item [Step A:] 
+  \item [Step A:]
 Given a code $C$ of a data structure operation, we create a clone of $C$ which is denoted by $C'$.
 We now concatenate $C'$ to the end of $C$.
 For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
 Each location $l$ in $C$ has a matched location in its clone, this matched location is denoted by $l'$
 (e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matched location of line $5$ is line $5'$).
-  \item [Step B:] 
-Every location $l$ in $C$ that contains a write statement is replaced with the statement \emph{goto l'}.
-This ensures that $C'$ will be executed just before the first write statement  is invoked.
-In a similar manner, each location $l$ in $C$ which contains a \emph{return statement} (or any statement that exits from the operation)
-is replaced with the statement \emph{goto l'}.
+  \item [Step B:]
+Every location $l$ in $C$ that contains a write instruction is replaced with \emph{goto l'}.
+This ensures that $C'$ will be executed just before the first write instruction is invoked.
+In a similar manner, each location $l$ in $C$ which contains a \emph{return instruction} (or any instruction that exits from the operation)
+is replaced with \emph{goto l'}.
 Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
 \end{itemize}
 
