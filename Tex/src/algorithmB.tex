@@ -407,10 +407,10 @@ For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced 
 Each location $l$ in $C$ has a matched location in its clone, this matched location is denoted by $l'$
 (e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matched location of line $5$ is line $5'$).
   \item [Step B:]
-Every location $l$ in $C$ that contains a write instruction is replaced with \emph{goto l'}.
+Every write instruction at location $l \in C$ is replaced with the instruction \emph{goto l'}.
 This ensures that $C'$ will be executed just before the first write instruction is invoked.
-In a similar manner, each location $l$ in $C$ which contains a \emph{return instruction} (or any instruction that exits from the operation)
-is replaced with \emph{goto l'}.
+In a similar manner, every \emph{return instruction} (or any instruction that exits from the operation) 
+at location $l \in C$ is replaced with the instruction \emph{goto l'}.
 Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
 \end{itemize}
 
