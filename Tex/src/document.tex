@@ -18,7 +18,7 @@
 \usepackage{xspace}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
-\usepackage{caption}
+%\usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -67,20 +67,29 @@
 \maketitle
 
 \begin{abstract}
-We present an \emph{automatic} approach for parallelizing sequential
-data structures in a way that is both safe and scalable.
-While there exist pessimistic transformations that make
-code thread-safe by adding (either global or fine-grained) locks,
-this approach is limited in its performance due to synchronization
-bottlenecks, for example, locking the root in a tree data structure.
-In this paper, we improve the performance and scalability of such
-synthesized code by reducing bottlenecks. Specifically,
-we present an automatic approach to eliminate many of the locking steps,
-relying instead on optimistic partial traversals of the data structure.
-We realize our approach for tree data structures using
-the domination locking technique.
-The resulting code scales well, significantly outperforms
-pessimistic approaches, and its performance is comparable
+We present an \emph{automatic code transformation} for concurrent data structures, 
+which increases their scalability without sacrificing correctness. 
+Our transformation takes lock-based code, and replaces some of the 
+locking steps therein with optimistic synchronization. The main idea is to
+have each operation perform an optimistic traversal of the data structure 
+as long as no shared memory locations are updated, and then proceed with
+the original pessimistic code. The transformed code inherits essential 
+properties of the original code, including linearizability, serializability,
+and deadlock freedom. It reduces contention, both on locks and on access
+to shared memory locations. When applying our transformation to 
+hand-over-hand locking solutions, we obtain significantly superior scalability.  
+
+Our work complements existing pessimistic transformations that make
+sequential code thread-safe by adding locks.
+In essence, we provide a way to optimize such transformations by reducing 
+synchronization bottlenecks (for example, locking the root of a tree), 
+yielding a fully automatic approach to parallelize sequential code. 
+The resulting code scales well and significantly outperforms
+pessimistic approaches. We further compare the performance 
+achieved by our transformed code to that of state-of-the-art 
+custom-tailored data structures implemented by experts. 
+We find that the performance of our automatically-generated 
+code is comparable, and sometimes even superior, 
 to that achieved by custom-tailored implementations.
 Our work thus shows the promise that automated approaches
 bear for overcoming the difficulty involved in manually
