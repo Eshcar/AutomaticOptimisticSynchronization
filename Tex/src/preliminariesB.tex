@@ -1,0 +1,78 @@
+\section{Model and Definitions}\label{sec:model}
+
+
+
+\paragraph{Shared Memory Data Structures}
+
+A \emph{data structure} defines a set of \emph{operations} that may be invoked by
+clients of the data structure, potentially concurrently.
+%
+Operations have parameters and local variables, which are private to the invocation of the operations.
+(Thus, these are thread-local variables.)
+%
+We assume that the code of each operation is represented by a separate control-flow graph (CFG).
+
+The operations of a data structure interact via a shared memory which is composed of a set of \emph{shared objects}.
+%
+Each shared object supports atomic \emph{read} (load) and \emph{write} (store) instructions.
+%
+Below, we extend shared objects to also support locks.
+
+Every thread executes a sequence of operations, each of which is invoked with certain parameters and returns a response.
+An operation's execution consists of a sequence of primitive \emph{steps}, beginning with an \emph{invoke} step, followed by
+atomic accesses to shared objects, and ending with a \emph{return} step. Steps also modify the executing thread's local variables.
+
+A \emph{configuration} is an assignment of values to all shared objects and local variables. Thus, each step takes the system from one
+configuration to another. Steps are deterministically defined by the data structure's code and the current configuration.
+We assume that each data structure has a single \emph{initial configuration}.
+
+An \emph{execution} is an alternating sequence of configurations and steps,
+$C_0,s_1,C_1, \ldots,s_i,C_i,\ldots,$
+where $C_0$ is the initial configuration,
+and each configuration $C_i$ is the result of
+executing step $s_i$ on configuration $C_{i-1}$.
+We only consider finite executions in this paper.
+An execution is \emph{sequential} if steps of different operations are not interleaved.
+In other words, a sequential execution is a sequence of operation executions.
+
+\paragraph{Locks}
+Each shared object serves as a lock for itself.
+It supports atomic \emph{lock}, \emph{tryLock}, \emph{unlock} and \emph{isLockedByAnotherThread} instructions.
+Locks are exclusive (i.e., a lock can be held by at most one thread at a time).
+The execution of a thread
+trying to acquire a lock (by a \emph{lock} instruction) which is
+held by another thread is blocked until a time when the
+lock is available (i.e., is not held by any thread).
+The other instructions never block the execution.
+The \emph{tryLock} instruction returns \emph{false} if the lock is currently held by another thread, otherwise it acquires the lock and returns \emph{true}.
+The \emph{isLockedByAnotherThread} instruction returns \emph{true}, if and only if, the lock is currently held by another thread.
+
+We assume that in the given code every (read
+or write) access by an operation to a shared object is performed when the
+executing thread holds the lock on that object.
+We also assume that the locking in the given code only uses \emph{lock} and \emph{unlock} instructions 
+(i.e., the other locking instructions are not used).
+
+
+
+\paragraph{Correctness}
+
+The correctness of a data structure is defined in terms of its external behavior, as reflected in values returned by invoked operations.
+Correctness of a code transformation is proven by showing that the synthesized code's executions are equivalent to ones of the original code,
+where two executions are  \emph{equivalent} if every thread invokes the same
+operations in the same order  in both executions, and gets the same result for each operation. More formally, we say in this paper that a code transformation is \emph{correct} if every execution of the transformed code
+is equivalent to some execution of the original code.
+
+The widely-used correctness criterion of serializability relies on equivalence to sequential executions in order to
+link a data structure's behavior under concurrency to its sequentially specified behavior. Since equivalence is transitive,
+we get that any code transformation satisfying our correctness notion, when applied to serializable code, yields code that is also serializable.
+If the code transformation further ensures the real-time order of operations (i.e., operations that do not overlap appear in the same order in
+executions of the transformed and original code), then linearizability (atomicity) is also invariant under the transformation.
+Another important aspect of correctness is preserving the progress conditions of the original code, for example, deadlock-freedom.
+
+In this paper, we are not concerned with internal consistency (as required e.g., by opacity~\cite{GuerraouiK2008} or the validity notion of~\cite{LevAriCK2014}),
+which restricts the configurations an operation might see during its execution.
+This is because our code transformation uses timeouts and exception handlers to overcome unexpected behavior that may arise when a thread sees an inconsistent view of global variables (similar to~\cite{Nakaike:2010}).
+
+
+

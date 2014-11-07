@@ -1,0 +1,436 @@
+\renewcommand{\ttdefault}{pcr}
+%\algrenewcommand\textkeyword{\texttt}
+\algrenewcommand\algorithmicif{\texttt{if}}
+\algrenewcommand\algorithmicthen{\texttt{then}}
+\algrenewcommand\algorithmicfunction{\textsc{Function}}
+\algrenewcommand\algorithmicforall{\texttt{for all}}
+\algrenewcommand\algorithmicdo{\texttt{do}}
+\algrenewcommand\textproc{\textit}
+
+
+
+\section{Automatic Transformation}\label{sec:algorithm}
+
+The goal of our transformation is to optimize code of a given data structure which is implemented using locking-based concurrency control.
+The transformation produces a combination of pessimistic and optimistic synchronization
+by replacing part of the  locking (in the given code) with optimistic concurrency control.
+
+
+This section first overviews our general approach to combine optimism and pessimism (Section~\ref{ssec:overview}), and
+then delves into the details of our code transformation (Sections~\ref{ssec:transformation} and~\ref{ssec:extendedTran}).
+
+
+\subsection{Combining Optimism and Pessimism}\label{ssec:overview}
+
+% Optimism
+Generally speaking, optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using version numbers. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approach induce significant overhead~\cite{Cascaval:2008}.
+
+
+
+%The main idea:
+The main idea behind our approach is judicious use of optimistic synchronization to read
+shared variables without locks as long as no updates occur. Once an operation
+performs a write instruction, we start using the pessimistic (locking-based) synchronization. In
+other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant
+locks that would have been freed
+before any change is made.
+This scheme is particularly suitable for data structure implementations,
+since the common behavior of their operations
+is to first traverse the data structure, and then
+perform modifications at the end of the operation.
+
+
+
+Conceptually, our approach divides an operation into three phases: an optimistic \emph{read-only phase},
+a pessimistic \emph{update phase} and a \emph{validation phase} that conjoins them.
+The read-only phase traverses the data structure without taking any locks, while maintaining sufficient information to later ensure the correctness of the traversal.
+The update phase uses the original pessimistic (locking-based) synchronization.
+The validation phase bridges between the optimistic and pessimistic ones.
+It first locks the objects required by
+the original locking and then validates the correctness
+of the read-only phase, allowing the
+update phase to run as if an execution of the original pessimistic synchronization
+took place. If the validation fails, the operation
+restarts. In order to avoid livelock, we set a threshold on the number of restarts.
+If the threshold is exceeded, the code falls back on pessimistic execution.
+
+
+
+
+\subsection{Source-to-Source Transformation}\label{ssec:transformation}
+
+\newcommand{\spOne}{\hspace{-3mm}\ }
+\newcommand{\spZero}{\hspace{-3mm}}
+\begin{figure*}
+\scriptsize
+	\begin{center}
+	\begin{subfigure}[t]{.45\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{addThird}{List list, Node new} \label{code:begin}
+			\Statex ----------------------------
+			\State                               \label{code:beginRead}
+            \State{\spOne}\textbf{list.lock()}
+			\State{\spOne}Node prev = list.head
+			\State{\spOne}\textbf{prev.lock()}
+            \State{\spOne}\textbf{list.unlock()}
+			\State{\spOne}Node succ = prev.next
+			\State{\spOne}\textbf{succ.lock()}
+			\State{\spOne}\textbf{prev.unlock()}
+			\State{\spZero}prev = succ
+			\State{\spZero}succ = succ.next
+			\State{\spZero}\textbf{succ.lock()}  \label{code:endRead}
+			\Statex ----------------------------
+			\State                               \label{code:beginValidation}
+			\State
+			\State
+			\State
+			\State
+			\State
+            \State                               \label{code:endValidation}
+			\Statex ----------------------------
+			\State{\spZero}prev.next = new       \label{code:beginUpdate}
+			\State{\spZero}\textbf{new.lock()}
+			\State{\spZero}new.next = succ
+            \State
+			\State{\spZero}\textbf{prev.unlock()}
+            \State
+			\State{\spZero}\textbf{new.unlock()}
+            \State
+			\State{\spZero}\textbf{succ.unlock()}  \label{code:endUpdate}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{Code with original locking} \label{figure:transformation:before}
+	\end{subfigure}
+	\begin{subfigure}[t]{.45\textwidth}
+		\begin{algorithmic}[1]{}
+		{\ttfamily
+			\Function{addThird}{List list, Node new} \label{code:begin}
+			\Statex ----------------------------
+			\Comment{\textrm{read-only phase}}
+            \State{\spOne}\textbf{lockedSet.init(), readSet.init()} \label{code:initSets}
+            \State{\spOne}\textbf{if !track(list)  then {goto} \ref{code:begin}} \label{code:readGhaseGoto0}
+			\State{\spOne}Node prev = list.head
+			\State{\spOne}\textbf{if !track(prev)  then {goto} \ref{code:begin}} \label{code:readGhaseGoto1}
+            \State{\spOne}\textbf{lockedSet.remove(list)} \label{code:lockedSet:remove1}
+			\State{\spOne}Node succ = prev.next
+			\State{\spOne}\textbf{if !track(succ) then {goto} \ref{code:begin}}  \label{code:readGhaseGoto2}
+			\State{\spOne}\textbf{lockedSet.remove(prev)} \label{code:lockedSet:remove2}
+			\State{\spOne}prev = succ
+			\State{\spOne}succ = succ.next
+			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
+			\Statex ----------------------------
+			\Comment{\textrm{validation phase}}
+			\State{\spZero}\textbf{for all obj in lockedSet do} \label{code:validateLockedSet}	
+            \State{\spZero}\ \ \textbf{if !obj.tryLock() then}
+            \State{\spZero}\ \ \ \ \ \textbf{unlockAll()}
+            \State{\spZero}\ \ \ \ \ \textbf{{goto} \ref{code:begin}} \label{code:validateGoto1}
+			\State{\spZero}\textbf{if !validateReadSet() then} 		\label{code:validateReadSet}
+				\State{\spZero}\ \ \textbf{unlockAll()}
+				\State{\spZero}\ \ \textbf{{goto} \ref{code:begin}} \label{code:validateGoto2}
+				%\Comment Restart Operation
+			\Statex ----------------------------
+			\Comment{\textrm{update phase}}
+			\State{\spZero}prev.next = new
+			\State{\spZero}\textbf{new.lock()}
+			\State{\spZero}new.next = succ			
+			\State{\spZero}\textbf{prev.version++}
+			\State{\spZero}\textbf{prev.unlock()}
+			\State{\spZero}\textbf{new.version++}
+			\State{\spZero}\textbf{new.unlock()}
+			\State{\spZero}\textbf{succ.version++}
+			\State{\spZero}\textbf{succ.unlock()}
+
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code produced by our automatic transformation}\label{figure:transformation:after}
+	\end{subfigure}
+	%\bigskip
+	%\hline
+	\end{center}
+\vspace{-4mm}
+	\caption{Code example.
+	The synchronization code is in bold.
+			\label{figure:transformation}}
+\end{figure*}
+
+In this section we describe our code transformation (for simplicity, several details are deferred to Section~\ref{ssec:extendedTran}).
+We illustrate the transformation for a simple code snippet that adds a new element as the third node in a linked list.
+The transformed code is provided in Figure \ref{figure:transformation}. It uses
+the tracking and validation functions in Figures \ref{figure::track} and
+\ref{figure::validate}, resp.
+
+\paragraph{Simplifying Assumption}
+For simplicity, in this section, we assume that the code of each data structure operation is statically partitioned into a \emph{read-only phase} $C_r$ and an \emph{update phase} $C_u$.
+This means that the control-flow-graph (CFG) of each operation is partitioned into two subgraphs $C_r$ and $C_u$ such that:
+(1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
+and (3) $C_r$ does not contain instructions that write to shared objects.
+%
+In the example of Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
+and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
+%
+In Section~\ref{ssec:extendedTran} we show that this simplifying assumption is not required by our full transformation.
+
+\paragraph{Version Numbers}
+Our transformation instruments each object $o$ with an additional field \emph{version}.
+Later we will show that if $o$ is not locked, then this field  represents the current version number of $o$.
+This field will be used to validate the correctness of the optimistic execution of the read-only phase.
+Note that each object has its own version --- i.e., version numbers of different objects are independent of each other.
+
+\paragraph{Read-only Phase}
+In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
+During this phase, our synchronization maintains two thread-local sets: \emph{lockedSet} and \emph{readSet}.
+The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
+The \emph{readSet} is used to track versions of all objects read by the
+operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
+
+At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
+We replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
+A lock instruction on object $o$ is replaced with code that \textbf{TODO: explain the code and Figure~\ref{figure::track}}.
+An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
+An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
+
+\begin{table}
+\scriptsize
+\ttfamily
+{\tt
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Original Locking Instruction} & \textbf{Transformed Code}\\
+\hline
+\textit{x.lock()}&
+\textit{if !track(x) then goto $S$}
+\\
+\hline
+\textit{x.unlock()}&
+\textit{lockedSet.remove(x)}
+\\
+\hline
+\end{tabular}
+\end{center}
+}
+\caption{Transformation for read-only phase:
+each locking instruction (left side) is replaced with the corresponding code in the right side.
+We write $S$ to denote the beginning of the operation.
+}
+\label{Ta:readOnlyTransformation}
+\end{table}
+
+\paragraph{Inconsistent Views}
+Beyond reading objects already in the read set, the read phase does not validate past reads during its executions ---
+as a result, it may observe an inconsistent state of shared memory.
+%
+The function \emph{validateReadSet} in Figure~\ref{figure::validate} can be used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
+%
+The function checks that each object in the read set is not locked by another thread,
+and that the object's current version matches the version saved in the
+read set.
+This check guarantees that the object was not locked from the time it was read until
+the time it was validated.
+Since operations write only to
+locked nodes, it follows that the object was not changed.
+This read set validation can be viewed as a double collect
+of all objects accessed by the read-only phase.
+
+In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads~\cite{xxx}, a timeout is set.
+If the timeout expires before the read-only phase is completed, read set
+validation takes place (by invoking the function \emph{validateReadSet}). If the validation fails, then the operation is restarted.
+This is realized by inserting code that examines the timeout in each backward edge which appears in CFG of the read-only phase.
+
+
+\paragraph{Validation Phase}
+The code of the validation phase is inserted in each edge from $C_r$ to $C_u$ (i.e., this code is invoked between the read-only phase and the update phase).
+This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
+It locks the objects in \emph{lockedSet} and validates the objects in \emph{readSet}.
+To avoid deadlocks, the locks are acquired using a tryLock
+instruction.
+If a tryLock fails , the code unlocks  all
+previously acquired locks and restarts from the beginning
+(lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
+Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
+
+\paragraph{Update Phase}
+In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
+Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
+An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
+
+
+\begin{figure}
+\scriptsize
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{track}{obj}
+		\State lockedSet.add(obj) \label{code:lockedSet:add}
+			\State long ver = obj.version \label{code:track:getVersion}
+			\State readSet.add(obj,version)
+			\State if {obj.isLocked()} then return false \label{code:track:returnFalse}
+			\State retrun true
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{ In read-only phase, locking is replaced by
+tracking locks and read
+objects' versions.
+\label{figure::track}}
+\end{figure}
+
+
+
+
+\begin{figure}
+\scriptsize
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{validateReadSet}{}()
+		\ForAll {obj in readSet}
+			\If{obj.isLockedByAnotherThread()}
+			\State return false \Comment{\textrm{validation failed (due to a locked object)}}
+			\EndIf
+			\State long ver = readSet.getVersion(obj)
+			\If{obj.version != ver}
+				\State return false \Comment{\textrm{validation failed (due to a different version)}}
+			\EndIf
+		\EndFor
+		\State retrun true \Comment{\textrm{validation succeed}}
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{Read set validation.\label{figure::validate}}
+\end{figure}
+
+
+\textbf{TODO: explain how we handle exceptions}
+
+\subsection{Additional Details of the Transformation}\label{ssec:extendedTran}
+
+
+
+\begin{figure*}
+\scriptsize
+	\begin{center}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex --------------------
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex
+            \State
+            \State
+            \State
+            \State
+            \State
+            \State
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The original code of the data structure operation.} \label{figure:autoPartitioning:step1}
+	\end{subfigure}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex --------------------
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex --------------------
+            \State\hspace{-3mm}{1':\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{Step A}.}
+ \label{figure:autoPartitioning:step2}
+	\end{subfigure}
+	\begin{subfigure}[t]{.35\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex -------------------- \Comment{\textrm{read-only phase}}
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ \underline{\textbf{goto 3'}}}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
+            \Statex -------------------- \Comment{\textrm{update phase}}
+            \State\hspace{-3mm}{1' :\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{Step B}.
+        Lines 1-6 are treated as the read-only phase; and lines 1'-6' are treated as the update phase.
+} \label{figure:autoPartitioning:step3}
+	\end{subfigure}
+
+	\end{center}
+\vspace{-4mm}
+	\caption{Example for automatic code partitioning to read-only and update phases.}
+			\label{figure:autoPartitioning}
+\end{figure*}
+
+\paragraph{Automatic Phase Partitioning}
+We now explain our automatic technique to partition code to read-only and update phases.
+We demonstrate our technique by using the code in Figure~\ref{figure:autoPartitioning:step1}.
+Notice that, in Figure~\ref{figure:autoPartitioning:step1}, the code location in which the shared memory is updated depends on the operation's parameters (i.e., on the value of variable $i$): if $i>7$ then the code writes to shared memory at line $3$, otherwise the code does not update shared memory.
+
+Our technique produces code that is equivalent to the given code (from external point of view). The produced code is partitioned to
+read-only and update phases (as assumed in Section~\ref{ssec:transformation}). Moreover, in the produced code, the operation's execution stays in the read-phase as long as it only reads from shared memory.
+
+\noindent Our technique is realized by the following two steps:
+\begin{itemize}
+  \item [Step A:]
+Given a code $C$ of a data structure operation, we create a clone of $C$ which is denoted by $C'$.
+We now concatenate $C'$ to the end of $C$.
+For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
+Each location $l$ in $C$ has a matched location in its clone, this matched location is denoted by $l'$
+(e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matched location of line $5$ is line $5'$).
+  \item [Step B:]
+Every write instruction at location $l \in C$ is replaced with the instruction \emph{goto l'}.
+This ensures that $C'$ will be executed just before the first write instruction is invoked.
+In a similar manner, every \emph{return instruction} (or any instruction that exits from the operation) 
+at location $l \in C$ is replaced with the instruction \emph{goto l'}.
+Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
+\end{itemize}
+
+
+
+
+In the produced code, $C$ is treated as the read-only phase  and $C'$ is treated as the update phase.
+For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
+This new code is equivalent to the original code, and it satisfies the assumption from Section~\ref{ssec:transformation}.
+
+
+
+
+
+\ \\ \\ \\ \\
+\textbf{TODO: we need to explain the following (in this subsection):}
+\begin{itemize}
+  \item Limited Number of Restarts (after several restarts we can jump to the beginning of $C'$)
+  \item Using bounded Sets (If we don't have enough thread-local memory, then we jump to the right place in $C'$)
+\end{itemize}
+
+
+

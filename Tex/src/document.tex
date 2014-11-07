@@ -1,5 +1,14 @@
+%
+% LaTeX template for prepartion of submissions to PLDI'15
+%
+% Requires temporary version of sigplanconf style file provided on
+% PLDI'15 web site.
+%
 \documentclass[pldi]{sigplanconf-pldi15}
-%\documentclass[preprint]{sigplanconf}
+
+%
+% the following standard packages may be helpful, but are not required
+%
 
 \usepackage{SIunits}            % typset units correctly
 \usepackage{courier}            % standard fixed width font
@@ -9,6 +18,7 @@
 \usepackage{enumitem}      % adjust spacing in enums
 \usepackage[colorlinks=true,allcolors=blue,breaklinks,draft=false]{hyperref}   % hyperlinks, including DOIs and URLs in bibliography
 % known bug: http://tex.stackexchange.com/questions/1522/pdfendlink-ended-up-in-different-nesting-level-than-pdfstartlink
+%\newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}   % print a hyperlinked DOI
 \newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}   % print a hyperlinked DOI
 
 
@@ -35,6 +45,25 @@
 %\special{papersize=8.5in,11in}
 %\setlength{\pdfpageheight}{\paperheight}
 %\setlength{\pdfpagewidth}{\paperwidth}
+
+%\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country}
+%\copyrightyear{20yy}
+%\copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
+%\doi{nnnnnnn.nnnnnnn}
+
+% Uncomment one of the following two, if you are not going for the
+% traditional copyright transfer agreement.
+
+%\exclusivelicense                % ACM gets exclusive license to publish,
+                                  % you retain copyright
+
+%\permissiontopublish             % ACM gets nonexclusive license to publish
+                                  % (paid open-access papers,
+                                  % short abstracts)
+
+%\titlebanner{PPoPP submission -- please do not distribute}        % These are ignored unless
+%\preprintfooter{Automatic lock removal for scalable synchronization}   % 'preprint' option specified.
+
 %
 %\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country}
 %\copyrightyear{20yy}
@@ -54,7 +83,6 @@
 %\titlebanner{PPoPP submission -- please do not distribute}        % These are ignored unless
 %\preprintfooter{Automatic lock removal for scalable synchronization}   % 'preprint' option specified.
 %
-
 
 \title{Automatic Lock Removal for Scalable Synchronization}
 %%\title{Scalable Automatic Synchronization for Concurrent Data Structures}
@@ -98,8 +126,8 @@ hand-crafting concurrent data structures.
 
 
 \input{introduction}
-\input{preliminaries}
-\input{algorithm}
+\input{preliminariesB}
+\input{algorithmB}
 \input{proof2}
 \input{evaluation}
 \input{related}
@@ -117,7 +145,7 @@ hand-crafting concurrent data structures.
 
 % We recommend abbrvnat bibliography style.
 
- 
+
 % The bibliography should be embedded for final submission.
 
 \bibliography{myRef}
