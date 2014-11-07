@@ -74,23 +74,22 @@ locking steps therein with optimistic synchronization. The main idea is to
 have each operation perform an optimistic traversal of the data structure 
 as long as no shared memory locations are updated, and then proceed with
 the original pessimistic code. The transformed code inherits essential 
-properties of the original code, including linearizability, serializability,
+properties of the original one, including linearizability, serializability,
 and deadlock freedom. It reduces contention, both on locks and on access
-to shared memory locations. When applying our transformation to 
-hand-over-hand locking solutions, we obtain significantly superior scalability.  
+to shared memory locations. 
+%When applying our transformation to 
+%hand-over-hand locking solutions, we obtain significantly superior scalability.  
 
 Our work complements existing pessimistic transformations that make
 sequential code thread-safe by adding locks.
 In essence, we provide a way to optimize such transformations by reducing 
 synchronization bottlenecks (for example, locking the root of a tree), 
-yielding a fully automatic approach to parallelize sequential code. 
+yielding a fully automatic approach to parallelize sequential code efficiently. 
 The resulting code scales well and significantly outperforms
-pessimistic approaches. We further compare the performance 
-achieved by our transformed code to that of state-of-the-art 
+pessimistic approaches. We further compare our transformed code to state-of-the-art 
 custom-tailored data structures implemented by experts. 
-We find that the performance of our automatically-generated 
-code is comparable, and sometimes even superior, 
-to that achieved by custom-tailored implementations.
+We find that its performance is comparable, and sometimes even superior, 
+to that achieved by the custom-tailored implementations.
 Our work thus shows the promise that automated approaches
 bear for overcoming the difficulty involved in manually
 hand-crafting concurrent data structures.
