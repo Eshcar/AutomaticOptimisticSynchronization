@@ -460,22 +460,22 @@ the read-only prefix, which is usually skipped. This property is important in or
 operation pessimistically, as we now explain. 
 
 \paragraph{Pessimistic Fallback}
-An important feature of our transformation is that the shared state at the end of the validation phase
+Note that, using our transformation, the shared state at the end of the validation phase
 is identical to the state that would have been reached had the code been executed pessimistically from
 the outset. Hence, the three-phase version of the code is compatible with the instrumented
-pessimistic version. This means that if the optimistic phases is unsuccessful for any reason, we can always
+pessimistic version. This means that if the optimistic phase is unsuccessful for any reason, we can always
 fall back on the pessimistic version. We use this property in two ways, as we now describe.
 
- First, we avoid livelock by limiting 
-the number of restarts due to conflicts. The validation phase tracks the number of restarts in a thread-local variable, and 
-if it exceeds a certain threshold, branches to $S'$, the matching clone for the beginning location 
-of the operation, $S$. 
+First, we avoid livelocks by limiting the number of restarts due to conflicts: 
+The validation phase tracks the number of restarts in a thread-local variable. 
+If this number exceeds a certain threshold, we branch to $S'$, i.e., the location in the clone $C_u$ that matches 
+the beginning of the operation $S$. 
 
-Second, this property offers us the liberty of allowing the optimistic implementation to
-fail spuriously, even in the absence of conflicts, because it can always fallback on the safe pessimistic version
-of the code. In the implementation in the next section, 
-we take advantage of this liberty, and implement the \emph{lockedSet} and \emph{readSet} as constant 
-size arrays. If too many items are read or locked, we also branch to $Sw$, 
-the beginning of the operation's execution in $C_w$.  
-
-
+Second, this property offers the optimistic implementation the liberty of 
+failing spuriously, even in the absence of conflicts, because it can always fall back on the safe pessimistic version
+of the code. Our implementation
+takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}. 
+In case either of these arrays becomes full, we cannot proceed with the optimistic version, but also
+do not need to start the operation anew. 
+Instead, we immediately perform the validation phase, which, if successful, branches to the location in $C_u$
+that matches the current code location, after having acquired all the needed locks. 
