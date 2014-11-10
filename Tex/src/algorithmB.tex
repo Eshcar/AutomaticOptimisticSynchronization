@@ -11,7 +11,8 @@
 
 \section{Automatic Transformation}\label{sec:algorithm}
 
-The goal of our transformation is to optimize the code of a given data structure implemented using lock-based concurrency control.
+We present an automatic source-to-source transformation, whose
+goal is to optimize the code of a given data structure implemented using lock-based concurrency control.
 In Section~\ref{ssec:locks}, we detail our assumptions about the given code and the locks it uses.
 
 The transformation produces a combination of pessimistic and optimistic synchronization
@@ -203,7 +204,7 @@ into two subgraphs corresponding to two phases --
 read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
 (1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
 and (3) $C_r$ does not contain instructions that write to shared objects\footnote{
-Note that, it may contain \emph{lock} and \emph{unlock} instructions (even though they actually write to shared memory); 
+Note that, it may contain \emph{lock} and \emph{unlock} instructions (even though they actually write to shared memory);
 $C_r$ does not contain \emph{non-locking write instructions}.
 }.
 %
@@ -467,7 +468,9 @@ Note that, using our transformation, the shared state at the end of the validati
 is identical to the state that would have been reached had the code been executed pessimistically from
 the outset. Hence, the three-phase version of the code is compatible with the instrumented
 pessimistic version. This means that if the optimistic phase is unsuccessful for any reason, we can always
-fall back on the pessimistic version. We use this property in two ways, as we now describe.
+fall back on the pessimistic version. Moreover, we can switch from optimistic to pessimistic synchronization
+\emph{at any point} during the read phase.
+We use this property in two ways, as we now describe.
 
 First, we avoid livelocks by limiting the number of restarts due to conflicts:
 The validation phase tracks the number of restarts in a thread-local variable.
