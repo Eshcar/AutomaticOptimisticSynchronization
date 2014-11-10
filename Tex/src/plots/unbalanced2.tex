@@ -1,0 +1,36 @@
+\begin{tikzpicture}
+\begin{axis}[mystyle,unbalanced,
+title={\textbf{write-intensive}},
+ylabel = { million ops/sec}]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
+{results/0C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
+{results/0C2000K.txt}; 
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
+{results/0C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,unbalanced,title={\textbf{mixed workload}}]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
+{results/50C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
+{results/50C2000K.txt}; 
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
+{results/50C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,unbalanced,
+title= { \textbf{read-only}}]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
+{results/100C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={Danaunbalanced}]
+{results/100C2000K.txt}; 
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingBinaryTree}]
+{results/100C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+
+
+\ref{unbalancedLegened}
