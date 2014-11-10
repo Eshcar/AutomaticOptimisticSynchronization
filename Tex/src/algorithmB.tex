@@ -68,7 +68,7 @@ shared variables without locks, but only as long as the operation does not updat
 writes to shared memory, we revert to pessimistic (lock-based) synchronization. In
 other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant
 locks that would have been acquired and freed before the first update.
-This scheme is particularly suitable for data structure implementations,
+This scheme is particularly suitable for data structures,
 since the common behavior of their operations
 is to first traverse the data structure, and then
 perform modifications.
@@ -268,7 +268,7 @@ This check guarantees that the object was not locked from the time it was read u
 the time it was validated.
 Since operations write only to
 locked nodes, it follows that the object was not changed.
-This read set validation can be viewed as a double collect
+This read set validation can be viewed as a double collect~\cite{Afek:1993:ASS:153724.153741}
 of all objects accessed by the read-only phase.
 
 In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads~\cite{xxx}, a timeout is set.
@@ -428,8 +428,8 @@ objects' versions.
 			\label{figure:autoPartitioning}
 \end{figure*}
 
-We now explain our automatic technique to partition code $C$ to read-only and update phases $C_r$ and $C_w$, resp.
-By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_w$) both for the code section and 
+We now explain our automatic technique to partition code $C$ to read-only and update phases $C_r$ and $C_u$, resp.
+By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) both for the code section and 
 for its corresponding CFG.  
 %
 We demonstrate our technique for the code in Figure~\ref{figure:autoPartitioning:step1}.
