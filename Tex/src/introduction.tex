@@ -15,13 +15,13 @@ some of which are widely used in real-world systems~\cite{Ohad:OOPSLA11}.
 
 % They are difficult to build and of resticted use
 Each of these projects generally focuses on a single data
-structure (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation. These data structures are developed by concurrency experts, typically PhDs or PhD candidates.
+structure (for example, a binary search tree~\cite{BronsonCCO2010} or a queue~\cite{Michael:1996}) and manually optimizes its implementation. These data structures are developed by concurrency experts, typically PhDs or PhD candidates.
 Proving the correctness of such custom-tailored data structures is painstaking;
 for example, the proofs of \cite{BraginskyP2012,EllenFRB2010} are $31$ and $20$ pages long
 respectively.
 The rationale behind dedicating so much effort to one data structure is that it is
 generic and can be used by many applications. Nevertheless,  systems often use data structures in unique ways
-that necessitate changing or extending their code~\cite{levelDB,zyulkyarov2009atomic,jmonkey}, which limits the usability of custom-tailored
+that necessitate changing or extending their code (e.g.,\cite{levelDB,zyulkyarov2009atomic,jmonkey,Ohad:OOPSLA11}), which limits the usability of custom-tailored
 implementations. Hence, the return-on-investment for such endeavors may be suboptimal.
 Here, we propose an approach to facilitate this labor-intensive process by automatic means,
 making scalable synchronization more readily available.
@@ -100,7 +100,8 @@ is scalable, and its throughput continues to grow with the number of threads.
 
 We compare our synthesized code to state-of-the-art data structures
 that were hand-crafted by experts in the field and resulted in publications in
-leading venues~\cite{DrachslerVY2014,BronsonCCO2010}. Our results show that the
+leading venues~\cite{DrachslerVY2014,BronsonCCO2010}\guy{At this point, we may want to mention Java's ConcurrentSkipList.}. 
+Our results show that the
 fully-automatically generated code for the search tree and treap
 achieves comparable (and in some cases, even superior) performance to that of
 custom-tailored solutions.
@@ -111,7 +112,9 @@ While range queries implemented using the iterators available in the Java$^{\sc 
 somewhat better than ones in our synthesized code, it is important to note that these iterators are \emph{not}
 linearizable (atomic), and only support so-called weak consistency, whereas range queries in our implementation are linearizable.
 The only previous linearizable implementation we are familiar with is due to Bronson et al.~\cite{BronsonCCO2010},
-and it is significantly out-performed by our synthesized code. This illustrates the benefit of the broad applicability
+and it is significantly out-performed by our synthesized code. 
+\guy{what about Trevor Brown's paper }
+This illustrates the benefit of the broad applicability
 of our automatic approach compared to specific custom-tailored implementations.
 
 Note that the alternative automatic approaches we compare with are domination locking~\cite{Gueta2011} and a global lock, neither of which is scalable.
