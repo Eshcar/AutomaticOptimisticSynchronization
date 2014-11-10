@@ -4,64 +4,67 @@
 \subsection{Automatic Lock Removal}
 % Parallelizing data strucutres is important for performance
 The steady increase in the number of cores in today's computers is driving software developers to allow more and more parallelism.
-An important focal point for such efforts is scaling the concurrency of shared data structures, which are often a principal friction point among threads; recent work has illustrated that improved data structure concurrency can lead to  
-benefits in overall system performance~\cite{clsm-poster}.  
-It is therefore not surprising that many recent works have been dedicated to developing scalable concurrent data structures~\cite{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
-AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,Michael:1996}, 
-some of which are widely used in real-world systems~\cite{xxx}.
+An important focal point for such efforts is scaling the concurrency of shared data structures, which are often a principal friction point among threads.
+%; recent work has illustrated that improved data structure concurrency can lead to
+%benefits in overall system performance~\cite{clsm-poster}.
+%It is therefore not surprising that many recent works have been dedicated to developing scalable concurrent data
+Many recent works have been dedicated to developing scalable concurrent data
+structures~\cite{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
+AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,Michael:1996},
+some of which are widely used in real-world systems~\cite{Ohad:OOPSLA11}.
 
 % They are difficult to build and of resticted use
 Each of these projects generally focuses on a single data
-structure (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation. These data structures are developed by concurrency experts, typically PhDs or PhD candidates. 
-Proving the correctness of such custom-tailored data structures is painstaking; 
+structure (for example, a binary search tree~\cite{ArbelA2014} or a queue~\cite{Michael:1996}) and manually optimizes its implementation. These data structures are developed by concurrency experts, typically PhDs or PhD candidates.
+Proving the correctness of such custom-tailored data structures is painstaking;
 for example, the proofs of \cite{BraginskyP2012,EllenFRB2010} are $31$ and $20$ pages long
-respectively. 
-The rationale behind dedicating so much effort to one data structure is that it is  
-generic and can be used by many applications. Nevertheless,  systems often use data structures in unique ways 
-that necessitate changing or extending their code~\cite{levelDB,xxx}, which limits the usability of custom-tailored
-implementations. Hence, the return-on-investment for such endeavors may be suboptimal. 
+respectively.
+The rationale behind dedicating so much effort to one data structure is that it is
+generic and can be used by many applications. Nevertheless,  systems often use data structures in unique ways
+that necessitate changing or extending their code~\cite{levelDB,zyulkyarov2009atomic,jmonkey}, which limits the usability of custom-tailored
+implementations. Hence, the return-on-investment for such endeavors may be suboptimal.
 Here, we propose an approach to facilitate this labor-intensive process by automatic means,
-making scalable synchronization more readily available. 
+making scalable synchronization more readily available.
 
 % We give a transformation
 Specifically, we present in Section~\ref{sec:algorithm} a source-to-source
-code transformation that takes a lock-based concurrent data structure implementation as its input 
-and generates more scalable code for the same data structure via judicious use of optimism. 
-%%%Section~\ref{sec:model} details our model and assumptions, and 
+code transformation that takes a lock-based concurrent data structure implementation as its input
+and generates more scalable code for the same data structure via judicious use of optimism.
+%%%Section~\ref{sec:model} details our model and assumptions, and
 %%%Section~\ref{sec:algorithm} specifies the transformation.
-Our approach combines optimism and pessimism in a new, practical, way. 
+Our approach combines optimism and pessimism in a new, practical, way.
 In striking the balance between the two, we exploit the common access pattern in data structure operations,
 (for example, tree insertion or removal), which typically begin by traversing the data structure (to the insertion or removal point), and then perform (mostly) local updates at that location.
-Our transformation replaces locking steps in the initial read-only traversal of each operation with 
-optimistic synchronization, whereas the update phase employs the original lock-based synchronization. 
+Our transformation replaces locking steps in the initial read-only traversal of each operation with
+optimistic synchronization, whereas the update phase employs the original lock-based synchronization.
 Our work may thus be seen as a form of software lock elision for read-only operation prefixes.
 
 % Best of both worlds
 Combining optimism and pessimism allows us to achieve ``the best of both worlds'' -- while the
-optimistic traversal increases concurrency and eliminates bottlenecks, 
+optimistic traversal increases concurrency and eliminates bottlenecks,
 the use of pessimistic updates saves the overhead associated with speculative or deferred shared
-memory updates, (as in software transactional memory~\cite{HLR:SLCA2010}). 
-The partially-optimistic execution is compatible with the original code, which permits us to re-execute operations 
-pessimistically when too many conflicts occur, avoiding livelocks. 
-%Furthermore, it allows for code optimizations 
+memory updates, (as in software transactional memory~\cite{HLR:SLCA2010}).
+The partially-optimistic execution is compatible with the original code, which permits us to re-execute operations
+pessimistically when too many conflicts occur, avoiding livelocks.
+%Furthermore, it allows for code optimizations
 %that make the optimistic execution fail in some conflict-free cases (for example, when too many items would have been locked
-%by the original code), since we can always fallback upon lock-based execution.  
+%by the original code), since we can always fallback upon lock-based execution.
 
 % Properties of our transformation
-We show in Section~\ref{sec:proof} that our transformation preserves all essential properties of the original code: serializability, linearizability, and deadlock-freedom. In other words, if the original code is correct, so is the 
-transformed version. Moreover, the transformation 
-%does not introduce any new accesses to shared data; in particular, it 
+We show in Section~\ref{sec:proof} that our transformation preserves all essential properties of the original code: serializability, linearizability, and deadlock-freedom. In other words, if the original code is correct, so is the
+transformed version. Moreover, the transformation
+%does not introduce any new accesses to shared data; in particular, it
 refrains from introducing a shared global clock (as used in some transactional memory systems~\cite{DBLP:conf/eurosys/ShalevS06}) or other
-shared data structures. Thus, if the original code is \emph{disjoint access parallel}~\cite{Israeli:1994:DIS:197917.198079}, i.e., threads 
-that access disjoint (abstract) data objects do not contend on (low level) shared memory locations, then this 
-property holds also for the transformed code. 
+shared data structures. Thus, if the original code is \emph{disjoint access parallel}~\cite{Israeli:1994:DIS:197917.198079}, i.e., threads
+that access disjoint (abstract) data objects do not contend on (low level) shared memory locations, then this
+property holds also for the transformed code.
 
 \subsection{Fully Automatic Parallelization}
 % Automatic parallelization
-One important use case for our transformation is to apply it in conjunction with automatic lock-based 
-parallelization mechanisms~\cite{Gueta2011,MZGB:POPL06}. 
-The latter automatically instrument sequential code (at compile time) 
-and add fine-grained lock and unlock instructions that ensure its safety in concurrent executions. 
+One important use case for our transformation is to apply it in conjunction with automatic lock-based
+parallelization mechanisms~\cite{Gueta2011,MZGB:POPL06}.
+The latter automatically instrument sequential code (at compile time)
+and add fine-grained lock and unlock instructions that ensure its safety in concurrent executions.
 %For example, \emph{domination locking}~\cite{Gueta2011} is applicable to trees or forests
 %(including binary search trees, b-trees, treaps~\cite{AragonS1989}, and self adjusting heaps~\cite{Sleator:SAH1986:SAH}); it
 %employs a variant of hand-over-hand locking~\cite{SilberschatzK1980},
@@ -70,55 +73,55 @@ and add fine-grained lock and unlock instructions that ensure its safety in conc
 Our evaluation shows that, by themselves, solutions of this sort may scale poorly.
 %~\cite{Gueta2011}.
 This is due to synchronization bottlenecks, e.g., the root of a tree,
-which is locked by all operations. 
-By subsequently applying our transformation, one can optimize 
-the lock-based code they produce, yielding a \emph{fully automatic approach to 
-scalable parallelization of sequential code}. 
+which is locked by all operations.
+By subsequently applying our transformation, one can optimize
+the lock-based code they produce, yielding a \emph{fully automatic approach to
+scalable parallelization of sequential code}.
 
-% Why not read-write locks
-It is worth noting that the aforementioned mechanisms synthesize code that uses conventional symmetric locks, 
-which is the type of locks handled by our transformation. We are not aware of any automatic transformation
-inserting read-write locks. We further note that read-write locks 
-are more costly than conventional ones, and, moreover, threads using 
-read locks contend on the shared memory locations employed by the lock's implementation~\cite{xxx}. 
-In contrast, with our transformation, threads executing the optimistic phase do not contend on locks,
-and are completely invisible to other threads. 
+%% Why not read-write locks
+%It is worth noting that the aforementioned mechanisms synthesize code that uses conventional symmetric locks,
+%which is the type of locks handled by our transformation. We are not aware of any automatic transformation
+%inserting read-write locks. We further note that read-write locks
+%are more costly than conventional ones, and, moreover, threads using
+%read locks contend on the shared memory locations employed by the lock's implementation~\cite{xxx}.
+%In contrast, with our transformation, threads executing the optimistic phase do not contend on locks,
+%and are completely invisible to other threads.
 
 \subsection{Evaluation}
 In Section~\ref{sec:eval} we evaluate our transformation by generating three data structures-- an unbalanced search tree, a treap
-(randomized balanced search tree), 
-and a skip list that supports range queries. We synthesize the first two from sequential implementations using domination locking~\cite{Gueta2011}, followed by our transformation. 
-For the skip list, we manually add fine-grained locks (in a straightforward manner), and then apply our transformation. 
-All examples are implemented in Java$^{\sc TM}$. We evaluate the scalability of the resulting code 
+(randomized balanced search tree),
+and a skip list that supports range queries. We synthesize the first two from sequential implementations using domination locking~\cite{Gueta2011}, followed by our transformation.
+For the skip list, we manually add fine-grained locks (in a straightforward manner), and then apply our transformation.
+All examples are implemented in Java$^{\sc TM}$. We evaluate the scalability of the resulting code
 in a range of workload scenarios on a $32$-core machine.
-In all cases, the lock-based implementations do not scale -- 
-their throughput remains flat as the number of running threads increases. In contrast, the code generated by our transformation 
+In all cases, the lock-based implementations do not scale --
+their throughput remains flat as the number of running threads increases. In contrast, the code generated by our transformation
 is scalable, and its throughput continues to grow with the number of threads.
 
-We compare our synthesized code to state-of-the-art data structures 
-that were hand-crafted by experts in the field and resulted in publications in 
-leading venues~\cite{DrachslerVY2014,BronsonCCO2010}. Our results show that the 
+We compare our synthesized code to state-of-the-art data structures
+that were hand-crafted by experts in the field and resulted in publications in
+leading venues~\cite{DrachslerVY2014,BronsonCCO2010}. Our results show that the
 fully-automatically generated code for the search tree and treap
-achieves comparable (and in some cases, even superior) performance to that of 
-custom-tailored solutions. 
+achieves comparable (and in some cases, even superior) performance to that of
+custom-tailored solutions.
 
-We also consider a data structure that supports range queries, which are required by 
-many applications~\cite{levelDB,xxx}. To this end we implement a skip list -- a data structure that naturally supports range queries. 
-While range queries implemented using the iterators available in the Java$^{\sc TM}$ concurrency library's skip list~\cite{xxx} perform 
+We also consider a data structure that supports range queries, which are required by
+many applications~\cite{levelDB,FerroJKRY14}. To this end we implement a skip list -- a data structure that naturally supports range queries.
+While range queries implemented using the iterators available in the Java$^{\sc TM}$ concurrency library's skip list~\cite{xxx} perform
 somewhat better than ones in our synthesized code, it is important to note that these iterators are \emph{not}
 linearizable (atomic), and only support so-called weak consistency, whereas range queries in our implementation are linearizable.
 The only previous linearizable implementation we are familiar with is due to Bronson et al.~\cite{BronsonCCO2010},
 and it is significantly out-performed by our synthesized code. This illustrates the benefit of the broad applicability
 of our automatic approach compared to specific custom-tailored implementations.
 
-Note that the alternative automatic approaches we compare with are domination locking~\cite{Gueta2011} and a global lock, neither of which is scalable. 
+Note that the alternative automatic approaches we compare with are domination locking~\cite{Gueta2011} and a global lock, neither of which is scalable.
 \Idit{Say something about transactional memory.}
 %The only other automatic parallelization approach we are familiar with is software transactional memory~\cite{xxx},
 %which has been shown to perform even worse than a global lock~\cite{}, hence we do not empirically
-%compare our solution with it. 
-Further discussion of related work appears in Section~\ref{sec:related}. 
+%compare our solution with it.
+Further discussion of related work appears in Section~\ref{sec:related}.
 
 To conclude, this paper demonstrates that automatic synchronization, based on a careful combination of optimistic and
-pessimistic concurrency control, is a promising approach for bringing legacy code to emerging computer architectures. 
-While this paper illustrates the method for tree and skip list data structures, we believe that the general direction may be more broadly applicable, and maybe used with a variety of locking schemes, such as two phase locking. 
+pessimistic concurrency control, is a promising approach for bringing legacy code to emerging computer architectures.
+While this paper illustrates the method for tree and skip list data structures, we believe that the general direction may be more broadly applicable, and maybe used with a variety of locking schemes, such as two phase locking.
 Section~\ref{sec:discussion} concludes the paper and touches on some directions for future work. 
