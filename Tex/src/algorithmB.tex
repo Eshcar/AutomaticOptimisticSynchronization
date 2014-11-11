@@ -441,7 +441,7 @@ Notice that here, the code location where the shared memory is updated depends o
   \item [CFG cloning:]
 Given code $C$ of a data structure operation, we create a clone $C_u$ of $C$, and concatenate $C_u$ to the end of $C$.
 For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
-Each location $l$ in $C$ has a matching location in its clone, denoted by $l'$
+Each location $\ell$ in $C$ has a matching location in its clone, denoted by $\ell'$
 (e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matching location of line $5$ is line $5'$).
   \item [Phase separation:]
 Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the 

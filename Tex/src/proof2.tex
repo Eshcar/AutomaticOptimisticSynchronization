@@ -4,6 +4,58 @@
 \section{Analysis}
 \label{sec:proof}
 
+
+We argue that our transformation is \emph{correct}, in the sense that all the behaviors of 
+the synthesized code are allowed by the original implementation.
+In this section we provide informal correctness arguments; a formal proof is deferred to Appendix~\ref{sec:formal-proof}.
+
+\paragraph{Indistinguishability of successful executions}
+Every operation execution of the modified code starts at the beginning of the read-only phase and, 
+(barring exceptions, deadlocks, or infinite loops, which will be discussed later), 
+ends in a return statement in the update phase. The transition to the update phase 
+from some location $\ell$ in the read-only phase first performs the validation phase successfully, then branches
+to the matching point $\ell'$ in the update section. Note that the special case of falling back on the update phase in case of too
+many validation failures is a branch from the starting location $S$ of the read-only phase, 
+through an empty validation phase, to the starting point $S'$ of the update phase.
+
+To show the correctness of such an execution, we argue that it is indistinguishable from an execution of the entire
+operation using the instrumented update phase. Note that the latter essentially executes the original code, 
+with the exception of updating version numbers, which have no effect in this phase.
+%
+The indistinguishability hinges on the following properties:
+\begin{itemize}
+\item \emph{The read-only phase has no side effects} since it does not modify shared state.
+\item \emph{An unsuccessful validation phase has no lasting effect on shared state}, 
+since it releases all locks it acquires. Moreover, it does not cause deadlock thanks to the use of tryLocks 
+and releasing all locks	upon failure to acquire one. Since we assume that the update phase only uses 
+blocking lock calls, the only impact an unsuccessful validation phase can have on it is additional waiting
+on locks, which does not impact its behavior. 
+\item  \emph{A successful validation phase executed after point $\ell$ in the read-only phase leads to 
+an identical state as would have been reached by performing the (instrumented)
+update phase from the beginning until point $\ell'$}.
+\end{itemize}
+
+While the first two properties can be directly observed from the code, the third requires more careful reasoning.
+To understand why it is correct, recall that the read-only phase only reads shared state and does not modify it. 
+The difference between the optimistic execution and the original one is that these reads are performed without 
+holding a lock. We need to show that the execution is equivalent to one that would have acquired and released
+locks as in the code of the update phase. First, we observe that we can perturb the original code to acquire each
+such lock immediately before the first read of the object. We then distinguish between two cases:
+\begin{enumerate}
+\item In case the lock would have been released by original code before location $\ell$ is reached, 
+we argue that the lock was free during the read-only phase from the time of the first read and at least until the time 
+when it would have been released by the original code, implying that the execution is equivalent to one that would 
+have held the lock in this period. This is because the successful validation means that (1) the object is currently
+unlocked, and (2) object's version had not increased from the time it was read in the read-only phase, and until the 
+validation phase, i.e., after it would have 
+been released. Recall that in our instrumented code, the object's version increases every time it is locked.
+\item In case the lock would have been held by the original code before location $\ell$, it is included in
+the \emph{lockedSet} during the validation phase, and hence acquired before branching to the update phase.
+As in the previous case, the successful validation of the \emph{readSet} ensures that the lock had been
+available since the first read of the object.
+\end{enumerate}
+
+\Xomit{
 We show  three properties of our automatic transformation. First, we prove that the  transformation is correct, i.e., 
 every execution of the  synthesized code is equivalent to some execution of the \emph{locking algorithm}, that is, the
 sequential code instrumented with the locking protocol.
@@ -11,7 +63,7 @@ This implies that if the locking protocol ensures serializability, then so does 
 Second, we show that the equivalent execution preserves the real-time order of the original one, 
 which implies that linearizability is also invariant under the transformation.
 Finally, we argue that our transformation preserves deadlock-freedom.
-In this section, we provide informal correctness arguments. A formal proof is deferred to Appendix~\ref{sec:formal-proof}.
+
 
 \paragraph{Transformation Correctness}
 
@@ -65,8 +117,14 @@ By repeating this for all operations in \op, we get an execution $\pi_k$ of the 
 
 \paragraph{Real-Time Order}
 It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it does not change the order of invoke or return steps. 
+}
 
 \paragraph{Progress}
+Finally, we argue that our read-only and validation phases do not generate spurious deadlocks, exceptions,
+or infinite loops that were not present in the original code. In other words, if the original code would have
+successfully completed with a return step, so does the instrumented code.
+
+First, consider deadlocks.
 The read and validation phases of our instrumented code do not use blocking locks -- the read-phase does not use locks at all, whereas the 
 validation phase uses tryLocks. Therefore, both phases are non-blocking. In principle, the optimistic approach may lead to livelocks, but 
 our algorithm fall-back on the pessimistic approach following a bounded number of restarts, and hence cannot livelock. We get that any lack
@@ -74,4 +132,5 @@ of progress must be due to blocking in the locking algorithm. Since the section 
 since we ensure that it begins when holding the same locks as in the original protocol, we get that our transformation does not introduce any
 source of spurious blocking that is not present in the original locking protocol. 
 
-
+Exceptions and infinite loops may be introduced in the read-only phase due to reading an inconsistent view of shared memory.
+However, the fact that we perform validation both periodically and on exceptions means that we have a chance to detect these cases before they have any external impact. It remains to show that the validation phase fails in every situations where the read-only operation sees a view of shared memory that was impossible with the original code. And indeed, since we have argued above that the validation phase is successful only if the execution is equivalent to a lock-based one, it follows that in all other cases it fails, and hence the problematic situation is detected.
