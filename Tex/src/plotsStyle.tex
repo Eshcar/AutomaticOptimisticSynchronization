@@ -43,3 +43,12 @@
 	   legend entries={\autoTreap, \danaAVL,\bronson, \skiplist,
 	   \domTreap, \globalTreap}, legend to name=balancedLegened,
 }}
+
+\pgfplotsset{skiplist/.style={%
+	   width=\textwidth,
+       ymin=0,ymax=3500000,
+       xtick={2,4,8,16,32}, 
+       legend columns=-1,
+	   legend entries={\autoSkiplist,\bronson, \skiplist,
+	   \domSkiplist}, legend to name=skiplistLegened,
+}}

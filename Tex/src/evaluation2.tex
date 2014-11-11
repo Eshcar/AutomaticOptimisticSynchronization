@@ -21,7 +21,7 @@ phase, which continues until the size of the data structure is within 5\% of
 $10^6$ records. The presented results are the average throughput over all trials.    
 The keys in each trial and pre-filling phase are selected uniformly at random
 from the range $[0,2\cdot10^6]$.
-We also experimented with a smaller range ($[0,2\cdot10^6]$) to test different
+We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
 contention levels; since the results show similar trends they are omitted. 
 
 All implementations are written in Java. We ran the experiments on four Intel
@@ -38,11 +38,11 @@ delete and get (lookup) operations. Our experiments evaluate unbalanced as well
 as balanced trees.  
 
 We consider textbook sequential implementations of an unbalanced binary
-tree, and a treap. To
+tree, and a treap~\cite{AragonS1989}. To
 generate a pessimistic lock-based implementation we manually synthesize
 concurrent code by applying the domination locking technique to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
-Finally, we manually apply the lock-removal method to the reference
+Finally, we manually apply our lock-removal transformation to the reference
 implementations to get our semi-optimistic version of the code, which we call
 \autoTree and \autoTreap, respectively.     
 
@@ -60,9 +60,9 @@ We further compare our implementations to their hand-crafted state-of-the-art co
 \item \bronson The locked based relaxed balanced AVL tree
 				of Bronson et al.~\cite{BronsonCCO2010}\footnote{Implementation available at \\
 				\texttt{https://github.com/nbronson/snaptree}}.
-\item \skiplist The non-blocking skip-list by Doug 
-				Lea included in the 
-				the Java standard library.
+\item \skiplist The non-blocking skip-list in the 
+				the Java standard library; based on the work of
+				Fraser and Harris~\cite{fraser2004practical}.
 \end{itemize}
 
 We evaluate performance in three representative workloads distributions:
@@ -103,7 +103,7 @@ of our automatic approach. By profiling the code, we learned
 that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our automatic transformation. 
 This is in contrast with the hand-crafted implementations,
-which have no overhead on reads in this scenario, thanks to either 
+which have small overhead on reads in this scenario, thanks to either 
 wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \bronson). 
  
 As the ratio of updates in the workload increases, our automatic implementation 
@@ -156,12 +156,63 @@ guaranteed to be atomic.
 
 The evaluation of range queries focuses on a mixed workload where half of the
 threads are dedicated to performing range queries, and the other half performs a
-mix of insert and delete operations (50\% each). \eshcar{what about a workload that includes only 100\% range
-queries?} We experiment with small
-ranges, where the size of each query is a number selected uniform at random
-from $[10,20]$.  \eshcar{ what about medium/big size scans?}. 
+mix of insert and delete operations (50\% each). 
+\eshcar{what about a workload that includes only 100\% range
+queries?} 
+We experiment with queries with ranges varying between $10$ to $20$
+keys.
+% selected uniform at random from $[10,20]$.  
+\eshcar{ what about medium/big size scans?}.
 
 We measure the throughput of range queries and update operations separately,
 that is, the overall number of range queries executed per time unit - reported
-in Figure~\ref{figure:range}, and the overall number of update (insert and
-delete) operations executed per time unit - reported in Figure~\ref{figure:update}.
+in Figure~\ref{evaluation:results:range}, and the overall number of update (insert and
+delete) operations executed per time unit - reported in
+Figure~\ref{evaluation:results:update}.
+
+% \begin{figure*}
+% \begin{center}
+% \input{plots/range}
+% \end{center}
+% \caption{Throughput of skip-list operations.}
+% \label{evaluation:results:range}
+% \end{figure*}
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.45\textwidth}
+		\caption{Range queries} 
+		\input{plots/range}
+		\label{evaluation:results:range}
+	\end{subfigure}
+	\quad\quad\quad
+	\begin{subfigure}[t]{.45\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update}
+		\label{evaluation:results:update}
+	\end{subfigure}
+	\ref{skiplistLegened}
+	\end{center}
+\caption{Mixed workload -- half the threads execute range queries and half the
+threads execute insert and delete operations}
+\label{evaluation:results:skiplist}
+\end{figure*}
+
+These results demonstrate again that our semi-optimistic
+solution is far superior to fully-pessimistic fine-grain solution, with two
+order of magnitude higher throughput (x75 for range queries and x100 for
+update operations). Furthermore, the performance of \autoSkiplist is almost
+identical to that of \skiplist, despite the fact that \skiplist performs
+inconsistent iterations.
+
+The throughput of \bronson flattens out. For range queries
+(Figure~\ref{evaluation:results:range}) the reason might be that this
+implementation is
+optimized for full scans or very big range queries running sequentially.
+The overhead of initiating an epoch per range query---waiting for all
+pending update operations to complete---prevents them from scaling when the
+ranges are small, and several queries are executed in parallel. 
+In addition, the lazy cloning required to support
+range queries imposes an overhead on the update operations
+(Figure~\ref{evaluation:results:update})---copying each node during downward
+traversal---preventing these operations from scaling as well. 

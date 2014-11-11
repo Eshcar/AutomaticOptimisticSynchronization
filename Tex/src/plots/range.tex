@@ -1,0 +1,20 @@
+
+\begin{tikzpicture}
+\begin{axis}[mystyle,skiplist,
+ ylabel = { million ops/sec},
+ %title={\textbf{0\% read-only}}]
+ ]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutSkiplist}]
+{results/range.txt}; 
+\addplot [darkspringgreen,mark=triangle] table [x={threads}, y={Bronson}]
+{results/range.txt}; 
+\addplot [coralred,mark=asterisk] table [x={threads}, y={JavaSkipList}]
+{results/range.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkiplist}]
+{results/range.txt};
+\end{axis}
+\end{tikzpicture}
+
+%\ref{skiplistLegened}
+
+
