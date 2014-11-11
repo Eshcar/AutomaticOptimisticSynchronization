@@ -204,9 +204,8 @@ into two subgraphs corresponding to two phases --
 read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
 (1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
 and (3) $C_r$ does not contain instructions that write to shared objects\footnote{
-Note that, it may contain \emph{lock} and \emph{unlock} instructions (even though they actually write to shared memory);
-$C_r$ does not contain \emph{non-locking write instructions}.
-}.
+Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even though their implementation may write to shared memory);
+only \emph{non-locking write instructions} cannot appear in $C_r$.}.
 %
 In the example of Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
 and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
@@ -462,7 +461,7 @@ Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\
 For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
 
 It is easy to see that this new code is equivalent to the original one (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
-the read-only prefix, which is usually skipped. This allows us to separate the phases differently by branching to 
+the read-only prefix, which is usually skipped. This allows us to separate the phases differently by branching to
 the update phase earlier than the first write, and in particular, to fall back on executing the
 operation pessimistically, as we now explain.
 
