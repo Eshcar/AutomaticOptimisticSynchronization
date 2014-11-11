@@ -220,8 +220,9 @@ Note that each object has its own version --- i.e., version numbers of different
 
 \paragraph{Read-only Phase}
 In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
-During this phase, our synchronization maintains two thread-local sets: \emph{lockedSet} and \emph{readSet}.
+During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
+Using a multi-set allows for reentrant locks.
 The \emph{readSet} is used to track versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
@@ -448,7 +449,8 @@ Each location $\ell$ in $C$ has a matching location in its clone, denoted by $\e
 (e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matching location of line $5$ is line $5'$).
   \item [Phase separation:]
 Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the
-update phase begins. To this end, we replace every shared memory write instruction
+update phase begins. Our basic phase partitioning branches out to the update phase at the time of the first update in $C_r$.
+To this end, we replace every shared memory write instruction
 at location $l \in C$ with the instruction \emph{goto l'}.
 Likewise, every \emph{return instruction} (or any other instruction that exits from the operation)
 at location $l \in C$ is replaced with the instruction \emph{goto l'}.
@@ -459,11 +461,12 @@ Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\
 
 For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
 
-It is easy to see that this new code is equivalent to the original code (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
-the read-only prefix, which is usually skipped. This property is important in order to allow us to fall back on executing the
+It is easy to see that this new code is equivalent to the original one (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
+the read-only prefix, which is usually skipped. This allows us to separate the phases differently by branching to 
+the update phase earlier than the first write, and in particular, to fall back on executing the
 operation pessimistically, as we now explain.
 
-\paragraph{Pessimistic Fallback}{\guy{Please consider to move to a new subsection.}}
+\paragraph{Early Phase Separation}
 Note that, using our transformation, the shared state at the end of the validation phase
 is identical to the state that would have been reached had the code been executed pessimistically from
 the outset. Hence, the three-phase version of the code is compatible with the instrumented
