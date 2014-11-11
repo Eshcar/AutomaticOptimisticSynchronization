@@ -11,25 +11,25 @@
 
 \section{Automatic Transformation}\label{sec:algorithm}
 
-We present an automatic source-to-source transformation, whose 
+We present an automatic source-to-source transformation, whose
 goal is to optimize the code of a given data structure implemented using lock-based concurrency control.
-In Section~\ref{ssec:locks}, we detail our assumptions about the given code and the locks it uses. 
+In Section~\ref{ssec:locks}, we detail our assumptions about the given code and the locks it uses.
 
 The transformation produces a combination of pessimistic and optimistic synchronization
 by replacing part of the locking (in the given code) with optimistic concurrency control.
-Section~\ref{ssec:overview} overviews our general approach to combining optimism and pessimism. 
+Section~\ref{ssec:overview} overviews our general approach to combining optimism and pessimism.
 
 The synthesized code consists of three phases - an optimistic read-only phase, a validation phase,
-and a pessimistic update phase. The transformation first partitions the given code into a read-only phase and 
+and a pessimistic update phase. The transformation first partitions the given code into a read-only phase and
 an update phase, then instruments each of these phases separately and adds the validation phase between the two.
-Section~\ref{ssec:transformation} describes how the code of each of the three phases is produced, whereas 
+Section~\ref{ssec:transformation} describes how the code of each of the three phases is produced, whereas
 Section~\ref{ssec:extendedTran} explains how the code is partitioned into two phases.
 
 \subsection{Lock-based Data Structures}\label{ssec:locks}
 
 A \emph{data structure} defines a set of \emph{operations} that may be invoked by
 clients of the data structure, potentially concurrently.
-We assume that the code of each operation is represented by a separate \emph{control-flow graph (CFG)}~\cite{xxx}.
+We assume that the code of each operation is represented by a separate \emph{control-flow graph (CFG)}~\cite{Nielson:1999}.
 
 Operations have parameters and local variables, which are private to the invocation, and are thus thread-local.
 %
@@ -39,7 +39,7 @@ Each shared object supports atomic \emph{read} (load) and \emph{write} (store) i
 %
 %Below, we extend shared objects to also support locks.
 
-In addition, each shared object is associated with a unique lock, and supports 
+In addition, each shared object is associated with a unique lock, and supports
 atomic \emph{lock}, \emph{tryLock}, \emph{unlock} and \emph{isLockedByAnotherThread} instructions.
 Locks are exclusive (i.e., a lock can be held by at most one thread at a time).
 The execution of a thread
@@ -189,8 +189,8 @@ with the fully pessimistic one.
 			\label{figure:transformation}}
 \end{figure*}
 
-In this section we assume that the code had already been partitioned into a read-phase and an update phase using 
-the transformation described in Section~\ref{ssec:extendedTran}, and 
+In this section we assume that the code had already been partitioned into a read-phase and an update phase using
+the transformation described in Section~\ref{ssec:extendedTran}, and
 describe how we synthesize the code for each of the phases.
 We illustrate the transformation for a simple code snippet that adds a new element as the third node in a linked list.
 The original and transformed code are provided in Figure \ref{figure:transformation}. The latter uses
@@ -198,19 +198,22 @@ the tracking and validation functions in Figures \ref{figure::track} and
 \ref{figure::validate}, resp.
 
 \paragraph{Code Phases in the CFG}
-In this section we assume that 
+In this section we assume that
 control-flow-graph (CFG) of each operation has been partitioned (by the transformation in the next section)
-into two subgraphs corresponding to two phases -- 
+into two subgraphs corresponding to two phases --
 read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
 (1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
-and (3) $C_r$ does not contain instructions that write to shared objects.
+and (3) $C_r$ does not contain instructions that write to shared objects\footnote{
+Note that, it may contain \emph{lock} and \emph{unlock} instructions (even though they actually write to shared memory);
+$C_r$ does not contain \emph{non-locking write instructions}.
+}.
 %
 In the example of Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
 and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
 
 \paragraph{Version Numbers}
 Our transformation instruments each object $o$ with an additional field \emph{version}.
-%Later we will show that 
+%Later we will show that
 If $o$ is not locked, then this field  represents the current version number of $o$.
 Version numbers are used to validate the correctness of the optimistic execution of the read-only phase.
 Note that each object has its own version --- i.e., version numbers of different objects are independent of each other.
@@ -224,7 +227,7 @@ operation, in order to allow us to later validate that the operation has observe
 
 At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
 We replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
-A lock instruction on object $o$ is replaced with code that tracks the object and its version in 
+A lock instruction on object $o$ is replaced with code that tracks the object and its version in
 thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figure::track}).
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
@@ -272,14 +275,14 @@ locked nodes, it follows that the object was not changed.
 This read set validation can be viewed as a double collect~\cite{Afek:1993:ASS:153724.153741}
 of all objects accessed by the read-only phase.
 
-In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads~\cite{xxx}, a timeout is set.
+In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads~\cite{HLR:SLCA2010}, a timeout is set.
 If the timeout expires before the read-only phase is completed, read set
 validation takes place (by invoking the function \emph{validateReadSet}). If the validation fails, the operation is restarted.
 This is realized by inserting code that examines the timeout in each backward edge in the CFG of the read-only phase.
 
-Similarly, inconsistent views may lead to spurious exceptions in the read-only phase. These are manifested as branches that 
-may lead outside of $C_r$ (end even outside of the operation's code altogether). We instrument such edges in the CFG, and 
-perform validation. Here too, if the validation fails, the operation is restarted. Otherwise, the exception is handled as in 
+Similarly, inconsistent views may lead to spurious exceptions in the read-only phase. These are manifested as branches that
+may lead outside of $C_r$ (end even outside of the operation's code altogether). We instrument such edges in the CFG, and
+perform validation. Here too, if the validation fails, the operation is restarted. Otherwise, the exception is handled as in
 the original code.
 
 
@@ -308,12 +311,12 @@ An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figu
 		\State lockedSet.add(obj) \label{code:lockedSet:add}
 			\State long ver = obj.version \label{code:track:getVersion}
 			\State readSet.add(obj,ver)
-			\State if {obj.isLocked()} then return false \label{code:track:returnFalse}
+			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:returnFalse}
 			\State retrun true
 		\EndFunction
 		}
 \end{algorithmic}
-\caption{ In read-only phase, locking is replaced by
+\caption{In read-only phase, locking is replaced by
 tracking locks and read
 objects' versions.
 \label{figure::track}}
@@ -430,11 +433,11 @@ objects' versions.
 \end{figure*}
 
 We now explain our automatic technique to partition code $C$ to read-only and update phases $C_r$ and $C_u$, resp.
-By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) both for the code section and 
-for its corresponding CFG.  
+By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) both for the code section and
+for its corresponding CFG.
 %
 We demonstrate our technique for the code in Figure~\ref{figure:autoPartitioning:step1}.
-Notice that here, the code location where the shared memory is updated depends on the operation's parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
+Notice that here, the code location where the shared memory is updated depends on the runtime value of the parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
 
 \noindent Our technique is realized by the following two steps:
 \begin{description}
@@ -444,41 +447,41 @@ For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced 
 Each location $\ell$ in $C$ has a matching location in its clone, denoted by $\ell'$
 (e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matching location of line $5$ is line $5'$).
   \item [Phase separation:]
-Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the 
-update phase begins. To this end, we replace every shared memory write instruction 
+Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the
+update phase begins. To this end, we replace every shared memory write instruction
 at location $l \in C$ with the instruction \emph{goto l'}.
-Likewise, every \emph{return instruction} (or any other instruction that exits from the operation) 
+Likewise, every \emph{return instruction} (or any other instruction that exits from the operation)
 at location $l \in C$ is replaced with the instruction \emph{goto l'}.
-The transformed version of $C$ is denoted $C_r$. 
+The transformed version of $C$ is denoted $C_r$.
 Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
 \end{description}
 
 
 For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
 
-It is easy to see that this new code is equivalent to the original code (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including  
-the read-only prefix, which is usually skipped. This property is important in order to allow us to fall back on executing the 
-operation pessimistically, as we now explain. 
+It is easy to see that this new code is equivalent to the original code (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
+the read-only prefix, which is usually skipped. This property is important in order to allow us to fall back on executing the
+operation pessimistically, as we now explain.
 
-\paragraph{Pessimistic Fallback}
+\paragraph{Pessimistic Fallback}{\guy{Please consider to move to a new subsection.}}
 Note that, using our transformation, the shared state at the end of the validation phase
 is identical to the state that would have been reached had the code been executed pessimistically from
 the outset. Hence, the three-phase version of the code is compatible with the instrumented
 pessimistic version. This means that if the optimistic phase is unsuccessful for any reason, we can always
-fall back on the pessimistic version. Moreover, we can switch from optimistic to pessimistic synchronization 
+fall back on the pessimistic version. Moreover, we can switch from optimistic to pessimistic synchronization
 \emph{at any point} during the read phase.
 We use this property in two ways, as we now describe.
 
-First, we avoid livelocks by limiting the number of restarts due to conflicts: 
-The validation phase tracks the number of restarts in a thread-local variable. 
-If this number exceeds a certain threshold, we branch to $S'$, i.e., the location in the clone $C_u$ that matches 
-the beginning of the operation $S$. 
+First, we avoid livelocks by limiting the number of restarts due to conflicts:
+The validation phase tracks the number of restarts in a thread-local variable.
+If this number exceeds a certain threshold, we branch to $S'$, i.e., the location in the clone $C_u$ that matches
+the beginning of the operation $S$.
 
-Second, this property offers the optimistic implementation the liberty of 
+Second, this property offers the optimistic implementation the liberty of
 failing spuriously, even in the absence of conflicts, because it can always fall back on the safe pessimistic version
 of the code. Our implementation
-takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}. 
+takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}.
 In case either of these arrays becomes full, we cannot proceed with the optimistic version, but also
-do not need to start the operation anew. 
+do not need to start the operation anew.
 Instead, we immediately perform the validation phase, which, if successful, branches to the location in $C_u$
-that matches the current code location, after having acquired all the needed locks. 
+that matches the current code location, after having acquired all the needed locks.
