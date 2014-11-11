@@ -1,6 +1,6 @@
 \begin{tikzpicture}
 \begin{axis}[mystyle,unbalanced,
-title={\textbf{write-intensive}},
+title={\textbf{write-dominated}},
 ylabel = { million ops/sec}]
 \addplot [black,mark=square*] table [x={threads}, y={TimeoutBinaryTree}]
 {results/0C2000K.txt}; 

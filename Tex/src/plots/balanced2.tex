@@ -2,7 +2,7 @@
 \begin{tikzpicture}
 \begin{axis}[mystyle,balanced,
  ylabel = { million ops/sec},
- title={\textbf{write-intensive}}]
+ title={\textbf{write-dominated}}]
 \addplot [black,mark=square*] table [x={threads}, y={TimeoutTreap}]
 {results/0C2000K.txt}; 
 \addplot [orange,mark=diamond] table [x={threads}, y={DanaAVL}]

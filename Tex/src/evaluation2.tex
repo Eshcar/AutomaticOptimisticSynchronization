@@ -2,69 +2,83 @@
 \label{sec:eval}
 
 In this section we evaluate the performance of our approach on two types of data
-structures 1)~supporting only insert delete and get operations (see
-Section~\ref{sec:readwrite}), 2)~supporting range queries--retrieve all records
-within the range---in addition to the basic single record operations (see
+structures (1)~supporting only insert delete and get operations (see
+Section~\ref{sec:readwrite}), (2)~supporting range queries that retrieve all
+records within the range in addition to the basic single record operations (see
 Section~\ref{sec:range}). We compare the performance of our approach in terms of
-throughput to fully pessimistic approaches,  applying fine-grain locking. These
+throughput to fully pessimistic approaches, applying fine-grain locking. These
 algorithms also serve as the lock-based reference implementation at the base of
 our semi-optimistic implementations. To complement the evaluation, we also
-compare our approach to hand-crafted state-of-the-art implementation of each
+compare our approach to hand-crafted state-of-the-art implementations of each
 data structure.         
 
-We run the experiments on our Intel Xeon E5-4650 processors, 
-each with 8 cores for a total of 32 threads 
+We follow a standard evaluation methodology
+(\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). Each experiment
+consists of $5$ trials. A trial is a five second run in which each thread continuously executes
+randomly chosen operations with respect to the workload distribution. Each trial
+begins by initiating a new data structure and applying an untimed pre-filling
+phase, which continues until the size of the data structure is within 5\% of
+$10^6$ records. The presented results are the average throughput over all trials.    
+The keys in each trial and pre-filling phase are selected uniformly at random
+from the range $[0,2\cdot10^6]$.
+We also experimented with a smaller range ($[0,2\cdot10^6]$) to test different
+contention levels; since the results show similar trends they are omitted. 
+
+All implementations are written in Java. We ran the experiments on four Intel
+Xeon E5-4650 processors, each with 8 cores for a total of 32 threads 
 (with hyper-threading disabled). 
 We used Ubuntu 12.04.4 LTS and Java Runtime Environment (build
 1.7.0\_51-b13) using the 64-Bit Server VM (build 24.51-b03, mixed mode).
 
-
-The keys in the experiments are selected uniform at random from the range
-$[0,2\cdot10^6]$. We initiate each experiment by pre-filling the data structure until its size is within 5\% of $10^6$records.   
-
-To increase accuracy and reduce variance, each experiment consists of $7$ trials. A trial is a $5$ second run in which each thread continuously executes randomly chosen operations; each trial initiates a new data structure. The presented results are the average throughput over all trials after eliminating outliers.
-
 \subsection{Insert-Delete-Get Operations}
 \label{sec:readwrite} 
 
-We start by benchmarking search-tree data structure supporting the basic insert delete and get (lookup) operations. Our experiments evaluate unbalanced as well as balanced trees.
+We start by benchmarking search-tree data structure supporting the basic insert
+delete and get (lookup) operations. Our experiments evaluate unbalanced as well
+as balanced trees.  
 
-We consider sequential Java implementations of an unbalanced binary
-tree~\cite{binary tree source code}, and a treap~\cite{treap source code}. To
-generate a pessimistic lock-based implementation we manually synthesize a concurrent code by applying the domination locking technique to both data structures. The resulting algorithms are denoted \domTree and \domTreap. Finally, we manually apply the lock-removal method to the referene implementations to get our semi-optimistic version of the code, which we call \autoTree and \autoTreap, respectively.
+We consider textbook sequential implementations of an unbalanced binary
+tree, and a treap. To
+generate a pessimistic lock-based implementation we manually synthesize
+concurrent code by applying the domination locking technique to the sequential
+data structures. The resulting algorithms are denoted \domTree and \domTreap.
+Finally, we manually apply the lock-removal method to the reference
+implementations to get our semi-optimistic version of the code, which we call
+\autoTree and \autoTreap, respectively.     
 
 We further compare our implementations to their hand-crafted state-of-the-art counterparts. We compare \autoTree to
 \begin{itemize}
-\item \danaTree - The locked-based 
-				unbalanced tree of Drachsler at al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}. 
+\item \danaTree The locked-based 
+				unbalanced tree of Drachsler et
+				al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
 \end{itemize}
-and \autoTreap is evaluated against three hand-crafted implementations
+\autoTreap is evaluated against three hand-crafted implementations
 \begin{itemize}
-\item \danaAVL - The locked-based relaxed balanced AVL tree of 
+\item \danaAVL The locked-based relaxed balanced AVL tree of 
 				Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation available at \\
 				\texttt{https://github.com/logicalordering/trees}}.
-\item \bronson - The locked based relaxed balanced AVL tree
+\item \bronson The locked based relaxed balanced AVL tree
 				of Bronson et al.~\cite{BronsonCCO2010}\footnote{Implementation available at \\
 				\texttt{https://github.com/nbronson/snaptree}}.
-\item \skiplist - The non-blocking skip-list by Doug 
+\item \skiplist The non-blocking skip-list by Doug 
 				Lea included in the 
 				the Java standard library.
 \end{itemize}
 
-We evaluate performance in three representative workloads: \emph{read-only}
-workload comprising of $100\%$ lookup operations, \emph{write-intensive}
+We evaluate performance in three representative workloads distributions:
+\emph{read-only} workload comprising of $100\%$ lookup operations, \emph{write-dominated}
 workload comprising of insert and delete operations ($50\%$ each), and
 \emph{mixed workload} comprising of $50\%$ lookups, $25\%$ inserts and $25\%$
 deletes.
 
 Figure~\ref{evaluation:results:unbalanced} 
-shows the throughput of unbalanced data structures and Figure~
-\ref{evaluation:results:balanced} shows
+shows the throughput of unbalanced data structures and Figure~\ref{evaluation:results:balanced} shows
 the throughput of the balanced ones. We see that our semi-optimistic
 solution is far superior to previous, fully-pessimistic, 
 automated approaches, with up-to two order of magnitude higher performance
-(between x50 in write intensive workload to x70 in read-only workload). It
-successfully overcomes the bottlenecks associated with lock contention, and in many scenarios comes close to custom-tailored implementations.
+(between x50 in write dominated workload to x70 in read-only workload). It
+successfully overcomes the bottlenecks associated with lock contention, and in
+many scenarios comes close to custom-tailored implementations. 
 
 \begin{figure*}
 \begin{center}
@@ -103,8 +117,51 @@ read-only operations.
 \subsection{Range Queries}
 \label{sec:range} 
 
-This section evaluates the performance of our approach when supporting a more
-intricate functionality like range queries. Supporting atomic (linearizable)
-range query is challenging and the implementation is often forced to pose an
-overhead on the basic insert and delete to allow the range queries to complete.
- 
+This section evaluates the performance of our approach when the data
+structure supports a more intricate functionality like range queries. Hand
+crafting an implementation of a data structure that supports atomic
+(linearizable) range queries is challenging.
+The implementations that do support iterating through records may impose an
+additional overhead on the regular read and write operations to ensure
+progress of range queries.
+The results in this section demonstrate that our automatic method
+allows generating a correct and efficient code, which is otherwise difficult
+to obtain.
+
+We use a skip-list that easily supports range queries by the
+nature of its linked-structure. The core of the implementation is the key lookup
+method; once reaching the key, a record can be added or be removed in place or
+an iteration of subsequent records can be executed by traversing
+the bottom level linked-list.
+
+The domination locking scheme cannot be efficiently applied to the skip list
+structure since it is a DAG rather than a tree structure. Therefore, we need to
+manually devise a pessimistic locking protocol. Our
+textbook~\cite{HerlihyS2008} algorithm applies hand-over-hand locking of each
+level, such that at the end of the search the operation holds locks on two
+records in each level, which define the minimal interval within this level that
+contains the lookup key or the range in the case of a range query. 
+Once these locks are held any update can be executed in isolation from other
+update operations. The operation uses hand-over-hand locking to traverse over
+all records within the range. This pessimistic lock-based algorithm
+is denoted \domSkiplist. As in previous data structures, we manually apply the
+lock-removal method to the reference implementation to get a semi-optimistic algorithm, which we call \autoSkiplist.
+
+\autoSkiplist is compared to \domSkiplist and is further evaluated against two
+state-of-the-art data structures which support range queries \bronson and \skiplist.
+\bronson provides atomic range queries by traversing a clone of the
+original tree that is lazily generated,
+whereas iterations in Java's concurrent skip list are not
+guaranteed to be atomic.
+
+The evaluation of range queries focuses on a mixed workload where half of the
+threads are dedicated to performing range queries, and the other half performs a
+mix of insert and delete operations (50\% each). \eshcar{what about a workload that includes only 100\% range
+queries?} We experiment with small
+ranges, where the size of each query is a number selected uniform at random
+from $[10,20]$.  \eshcar{ what about medium/big size scans?}. 
+
+We measure the throughput of range queries and update operations separately,
+that is, the overall number of range queries executed per time unit - reported
+in Figure~\ref{figure:range}, and the overall number of update (insert and
+delete) operations executed per time unit - reported in Figure~\ref{figure:update}.
