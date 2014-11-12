@@ -29,7 +29,7 @@ Section~\ref{ssec:extendedTran} explains how the code is partitioned into two ph
 
 A \emph{data structure} defines a set of \emph{operations} that may be invoked by
 clients of the data structure, potentially concurrently.
-We assume that the code of each operation is represented by a separate \emph{control-flow graph (CFG)}~\cite{Nielson:1999}.
+We assume that the code of each operation is represented by a separate \emph{control-flow graph (CFG)}~\cite{Grune:2000}.
 
 Operations have parameters and local variables, which are private to the invocation, and are thus thread-local.
 %
@@ -291,7 +291,7 @@ objects' versions.
 \paragraph{Inconsistent Views}
 %Other than when reading objects already in the read set, the read phase does not validate past reads during its executions ---
 Other than in Figure~\ref{figure::track}, the read phase does not validate past reads during its executions ---
-as a result, it may observe an inconsistent state of shared memory (as explained, e.g., in~\cite{todo}).
+as a result, it may observe an inconsistent state of shared memory (as explained, e.g., in~\cite{HLR:SLCA2010}).
 %
 The function \emph{validateReadSet} in Figure~\ref{figure::validate} can be used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
 %

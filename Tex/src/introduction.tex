@@ -120,10 +120,15 @@ This illustrates the benefit of the broad applicability
 of our automatic approach compared to specific custom-tailored implementations.
 
 Note that the alternative automatic approaches we compare with are domination locking~\cite{Gueta2011} and a global lock, neither of which is scalable.
-\Idit{Say something about transactional memory.}
+%\Idit{Say something about transactional memory.}
 %The only other automatic parallelization approach we are familiar with is software transactional memory~\cite{xxx},
 %which has been shown to perform even worse than a global lock~\cite{}, hence we do not empirically
 %compare our solution with it.
+Software transactional memory is another approach for automatic parallelization,
+yet due to the significant overhead associated with this approach~\cite{Cascaval:2008,DuffyTM2010}, it is often complemented
+by custom-tailored data structure implementations whose operations
+can be called from within transactions~\cite{Herlihy:2008,Koskinen:2010,NathanBronson11}.
+%
 Further discussion of related work appears in Section~\ref{sec:related}.
 
 To conclude, this paper demonstrates that automatic synchronization, based on a careful combination of optimistic and
