@@ -232,7 +232,7 @@ thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figu
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
 
-In Figure~\ref{figure::track} we use an eager validation scheme. 
+In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme. 
 If the object already exists in \emph{readSet}, we check that its current version is equal
 to the version in \emph{readSet}; if the versions are different  the operation restarts from the beginning (line~\ref{code:track:verifyVersion}).
 Similarly, it is also checked to be unlocked; if it is locked, the operation restarts from the beginning (line~\ref{code:track:verifyUnlocked}).
@@ -273,9 +273,10 @@ each locking instruction (left side) is replaced with the corresponding code on 
 		\Function{track}{obj}
 		\State{}lockedSet.add(obj) \label{code:lockedSet:add}
 			\State long ver = obj.version \label{code:track:getVersion}
+			\State readSet.add(<obj,ver>)
+%\Statex	\hspace{-30mm} \Comment{\textrm{Eager validation}} 
 			\State if {$\exists$<o,v>$\in$lockedSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
 			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:verifyUnlocked}
-			\State readSet.add(<obj,ver>)
 			\State retrun true
 		\EndFunction
 		}
@@ -290,7 +291,7 @@ objects' versions.
 \paragraph{Inconsistent Views}
 %Other than when reading objects already in the read set, the read phase does not validate past reads during its executions ---
 Other than in Figure~\ref{figure::track}, the read phase does not validate past reads during its executions ---
-as a result, it may observe an inconsistent state of shared memory.
+as a result, it may observe an inconsistent state of shared memory (as explained, e.g., in~\cite{todo}).
 %
 The function \emph{validateReadSet} in Figure~\ref{figure::validate} can be used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
 %
