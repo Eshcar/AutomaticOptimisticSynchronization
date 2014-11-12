@@ -211,14 +211,14 @@ In the example of Figure~\ref{figure:transformation:before}, $C_r$ is the code i
 and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
 
 \paragraph{Version Numbers}
+Version numbers are used to validate the correctness of the optimistic execution of the read-only phase.
 Our transformation instruments each object $o$ with an additional field \emph{version}.
 %Later we will show that
 If $o$ is not locked, then this field  represents the current version number of $o$.
-Version numbers are used to validate the correctness of the optimistic execution of the read-only phase.
 Note that each object has its own version --- i.e., version numbers of different objects are independent of each other.
 
 \paragraph{Read-only Phase}
-In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
+In this phase, we replace all the lock and unlock instructions with synchronization that avoids any contention on shared memory both in terms of writing and in terms of locking.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
 %
@@ -232,7 +232,9 @@ thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figu
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
 
-In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme.
+In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme\footnote{
+This validation scheme may be omitted, since it is not required for correctness.
+}.
 If the object already exists in \emph{readSet}, we check that its current version is equal
 to the version in \emph{readSet}; if the versions are different  the operation restarts from the beginning (line~\ref{code:track:verifyVersion}).
 Similarly, it is also checked to be unlocked; if it is locked, the operation restarts from the beginning (line~\ref{code:track:verifyUnlocked}).
@@ -319,7 +321,7 @@ the original code.
 \paragraph{Validation Phase}
 The code of the validation phase is inserted in each edge from $C_r$ to $C_u$ (i.e., this code is invoked between the read-only phase and the update phase).
 This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
-It locks the objects in \emph{lockedSet} and validates the objects in \emph{readSet}.
+It locks the objects that are left in \emph{lockedSet} and validates the objects in \emph{readSet}.
 To avoid deadlocks, the locks are acquired using a tryLock
 instruction.
 If a tryLock fails, the code unlocks  all
@@ -448,7 +450,7 @@ By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) 
 for its corresponding CFG.
 %
 We demonstrate our technique for the code in Figure~\ref{figure:autoPartitioning:step1}.
-Notice that here, the code location where the shared memory is updated depends on the runtime value of the parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
+Note that here, the first code location where the shared memory is updated depends on the runtime value of the parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
 
 \noindent Our technique is realized by the following two steps:
 \begin{description}
@@ -472,7 +474,8 @@ Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\
 For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
 
 It is easy to see that this new code is equivalent to the original one (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
-the read-only prefix, which is usually skipped. This allows us to separate the phases differently by branching to
+the read-only prefix, which is usually skipped. This allows us to branch  to
+%separate the phases differently by branching to
 the update phase earlier than the first write, and in particular, to fall back on executing the
 operation pessimistically, as we now explain.
 
