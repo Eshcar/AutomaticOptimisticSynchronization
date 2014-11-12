@@ -221,7 +221,7 @@ Note that each object has its own version --- i.e., version numbers of different
 In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
-Using a multi-set allows for reentrant locks \guy{TBD: at this point, it may be hard to understand why we need multi-set} .
+%
 The \emph{readSet} is used to track versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
@@ -232,7 +232,7 @@ thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figu
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
 
-In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme. 
+In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme.
 If the object already exists in \emph{readSet}, we check that its current version is equal
 to the version in \emph{readSet}; if the versions are different  the operation restarts from the beginning (line~\ref{code:track:verifyVersion}).
 Similarly, it is also checked to be unlocked; if it is locked, the operation restarts from the beginning (line~\ref{code:track:verifyUnlocked}).
@@ -274,7 +274,7 @@ each locking instruction (left side) is replaced with the corresponding code on 
 		\State{}lockedSet.add(obj) \label{code:lockedSet:add}
 			\State long ver = obj.version \label{code:track:getVersion}
 			\State readSet.add(<obj,ver>)
-%\Statex	\hspace{-30mm} \Comment{\textrm{Eager validation}} 
+%\Statex	\hspace{-30mm} \Comment{\textrm{Eager validation}}
 			\State if {$\exists$<o,v>$\in$lockedSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
 			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:verifyUnlocked}
 			\State retrun true
@@ -423,7 +423,7 @@ An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figu
             \State\hspace{-3mm}{5 :\ x.unlock()}
             \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
             \Statex -------------------- \Comment{\textrm{update phase $C_u$}}
-            \State\hspace{-3mm}{1' :\ x.lock()}
+            \State\hspace{-3mm}{1':\ x.lock()}
             \State\hspace{-3mm}{2':\ if x.f1>i  then}
             \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
             \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
@@ -492,7 +492,7 @@ the beginning of the operation $S$.
 
 Second, this property offers the optimistic implementation the liberty of
 failing spuriously, even in the absence of conflicts, because it can always fall back on the safe pessimistic version
-of the code. 
+of the code.
 We take advantage of this liberty, and implement the \emph{lockedSet} and \emph{readSet} by using constant size arrays.
 %Our implementation takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}.
 In case either of these arrays becomes full, we cannot proceed with the optimistic version, but also

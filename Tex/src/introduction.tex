@@ -52,7 +52,7 @@ pessimistically when too many conflicts occur, avoiding livelocks.
 
 % Properties of our transformation
 We show in Section~\ref{sec:proof} that our transformation preserves the external behaviour of the original lock-based code.
-%all essential properties of the original code: serializability, linearizability, and deadlock-freedom. 
+%all essential properties of the original code: serializability, linearizability, and deadlock-freedom.
 In other words, if the original code is correct (in the sense of serializability, linearizability, and deadlock-freedom), so is the
 transformed version. Moreover, the transformation
 %does not introduce any new accesses to shared data; in particular, it
@@ -92,7 +92,7 @@ scalable parallelization of sequential code}.
 \subsection{Evaluation}
 In Section~\ref{sec:eval} we evaluate our transformation by generating three data structures-- an unbalanced search tree, a treap
 (randomized balanced search tree),
-and a skip list that supports range queries. We automatically synthesize the first two from sequential implementations using domination locking~\cite{Gueta2011}, followed by our transformation.
+and a skip list that supports range queries. We automatically synthesize the first two from sequential implementations using the algorithm of~\cite{Gueta2011}, followed by our transformation.
 For the skip list, we manually add fine-grained locks (in a straightforward manner), and then apply our transformation.
 All examples are implemented in Java$^{\sc TM}$. We evaluate the scalability of the resulting code
 in a range of workload scenarios on a $32$-core machine.
@@ -102,7 +102,7 @@ is scalable, and its throughput continues to grow with the number of threads.
 
 We compare our synthesized code to state-of-the-art data structures
 that were hand-crafted by experts in the field~\cite{DrachslerVY2014,BronsonCCO2010,ConcurrentSkipList,fraser2004practical}.
-%and resulted in publications in leading venues~\cite{DrachslerVY2014,BronsonCCO2010}. 
+%and resulted in publications in leading venues~\cite{DrachslerVY2014,BronsonCCO2010}.
 Our results show that the
 fully-automatically generated code for the search tree and treap
 achieves comparable performance to that of
@@ -114,7 +114,7 @@ While range queries implemented using the iterators available in the Java$^{\sc 
 somewhat better than ones in our synthesized code, it is important to note that these iterators are \emph{not}
 linearizable (atomic), and only support so-called weak consistency, whereas range queries in our implementation are linearizable.
 A notable previous linearizable implementation is due to Bronson et al.~\cite{BronsonCCO2010},
-and it is significantly out-performed by our synthesized code. 
+and it is significantly out-performed by our synthesized code.
 %
 This illustrates the benefit of the broad applicability
 of our automatic approach compared to specific custom-tailored implementations.

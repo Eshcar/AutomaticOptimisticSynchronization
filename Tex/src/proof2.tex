@@ -5,71 +5,71 @@
 \label{sec:proof}
 
 
-We argue that our transformation is \emph{correct}, in the sense that all the external behaviors of 
+We argue that our transformation is \emph{correct}, in the sense that all the external behaviors of
 the synthesized code are allowed by the original implementation.
 This implies that the transformed code preserves essential properties of the original, such as serializability,
 linearizability, and deadlock-freedom.
 In this section we provide informal correctness arguments; a formal proof is deferred to Appendix~\ref{sec:formal-proof}.
 
 \paragraph{Indistinguishability of successful executions}
-Every operation execution of the modified code starts at the beginning of the read-only phase and, 
-(barring exceptions, deadlocks, or infinite loops, which will be discussed later), 
-ends in a return statement in the update phase. The transition to the update phase 
+Every operation execution of the modified code starts at the beginning of the read-only phase and,
+(barring exceptions, deadlocks, or infinite loops, which will be discussed later),
+ends in a return statement in the update phase. The transition to the update phase
 from some location $\ell$ in the read-only phase first performs the validation phase successfully, then branches
 to the matching point $\ell'$ in the update section. Note that the special case of falling back on the update phase in case of too
-many validation failures is a branch from the starting location $S$ of the read-only phase, 
+many validation failures is a branch from the starting location $S$ of the read-only phase,
 through an empty validation phase, to the starting point $S'$ of the update phase.
 
 To show the correctness of such an execution, we argue that it is indistinguishable from an execution of the entire
 operation using the  update phase. Since the instrumented code maintains version numbers that are not present in
 the original code, we need to project these out of the state in order to argue that the same states are reached in
-both cases. For a state $s$ of the shared memory (i.e., an assignment of values to shared variables) in an execution
+both cases. For a state $s$ (i.e., an assignment of values to shared and local variables) in an execution
 of the instrumented code, we denote by $\hat{s}$ the same state without version numbers.
 
 \noindent
 The indistinguishability hinges on the following properties:
 \begin{enumerate}
 \item \emph{The read-only phase has no side effects} since it does not modify shared state.
-\item \emph{An unsuccessful validation phase has no lasting effect on shared state}, 
-since it releases all locks it acquires. Moreover, it does not cause deadlock thanks to the use of tryLocks 
-and releasing all locks	upon failure to acquire one. Since we assume that the update phase only uses 
+\item \emph{An unsuccessful validation phase has no lasting effect on shared state},
+since it releases all locks it acquires. Moreover, it does not cause deadlock thanks to the use of tryLocks
+and releasing all locks	upon failure to acquire one. Since we assume that the update phase only uses
 blocking lock calls, the only impact an unsuccessful validation phase can have on it is additional waiting
-on locks, which does not impact its external behavior. 
-\item \emph{A successful validation phase 
-executed after point $\ell$ in the read-only phase 
-leads to a shared memory state $s$, such that $\hat{s}$ 
-would have been reached by performing the original 
+on locks, which does not impact its external behavior.
+\item \emph{A successful validation phase
+executed after point $\ell$ in the read-only phase
+leads to a memory state $s$, such that $\hat{s}$
+would have been reached by performing the original
 update phase (from the beginning) until point $\ell'$}.
 \end{enumerate}
 
 While the first two properties can be directly observed from the code, the third requires more careful reasoning.
-To understand why it is correct, recall that, in the read-only phase,  
-the only difference between the optimistic execution and the original one is that reads are performed without 
+To understand why it is correct, recall that, in the read-only phase,
+the only difference between the optimistic execution and the original one is that reads are performed without
 holding a lock. We argue that the execution is equivalent to one that would have acquired and released
-locks as in the code of the update phase. To this end, we show that the object was unlocked 
+locks as in the code of the update phase. To this end, we show that the object was unlocked
 (and hence, was not modified), for the duration of entire the period when the original code would have locked it.
 We distinguish between two cases:
 \begin{enumerate}
-\item In case the lock would have been released by original code before location $\ell$, 
+\item In case the lock would have been released by original code before location $\ell$,
 we argue that the lock was free during the read-only phase from the time when it would have been locked
 and at least until the time when it would have been released by the original code.
 This is because the successful validation means that (1) the object is currently
 unlocked, and (2) object's version had not increased from the time it was added to the \emph{readSet} in the read-only phase
-(i.e., the \emph{lock} instruction in the original code), and until the 
-validation phase, i.e., after it would have 
+(i.e., the \emph{lock} instruction in the original code), and until the
+validation phase, i.e., after it would have
 been released. Recall that in our instrumented code, the object's version increases every time it is locked.
-\item In case the lock would have been held by the original code before location $\ell$, it is included in
+\item In case the lock would have been held by the original code at location $\ell$, it is included in
 the \emph{lockedSet} during the validation phase, and hence acquired before branching to the update phase.
 As in the previous case, the successful validation of the \emph{readSet} ensures that the lock had been
-available since the first read of the object.
+available since the time when it would have been locked by the original code.
 \end{enumerate}
 
 \Xomit{
-We show  three properties of our automatic transformation. First, we prove that the  transformation is correct, i.e., 
+We show  three properties of our automatic transformation. First, we prove that the  transformation is correct, i.e.,
 every execution of the  synthesized code is equivalent to some execution of the \emph{locking algorithm}, that is, the
 sequential code instrumented with the locking protocol.
 This implies that if the locking protocol ensures serializability, then so does our protocol.
-Second, we show that the equivalent execution preserves the real-time order of the original one, 
+Second, we show that the equivalent execution preserves the real-time order of the original one,
 which implies that linearizability is also invariant under the transformation.
 Finally, we argue that our transformation preserves deadlock-freedom.
 
@@ -80,8 +80,8 @@ Let $\pi$ be a finite execution of the transformed algorithm. We will show an eq
 Let \op\ be the set of operations in $\pi$.
 First, we project object versions out of $\pi$'s configurations, and remove all accesses (reads and writes) to object versions.
 That is, we replace steps that access versions with local steps that modify the operation's local memory only.
-(Note that we get an execution with exactly the same invocations, responses, local states, and shared object states, but without 
-versions). 
+(Note that we get an execution with exactly the same invocations, responses, local states, and shared object states, but without
+versions).
 Second, note that each operation $op \in$ \op\ executes at most one successful read-only
 phase, namely a complete read-only phase followed by a successful validation phase.
 For each such $op$, we remove the prefix of $op$ that precedes the successful read-only phase.
@@ -90,42 +90,42 @@ We call the resulting execution $\pi'$. It is easy to see that $\pi$ and $\pi'$ 
 since the removed failed read-only phases have no effect.
 
 We next iteratively perturb $\pi'$ to construct an equivalent execution that satisfies the locking protocol.
-We order the operations in \op\ according to the order in which the first steps of their 
+We order the operations in \op\ according to the order in which the first steps of their
 respective (successful) read set validation phases occur in $\pi'$.
 Denote the sequence of these first validations steps $e_1, e_2, \ldots, e_k$, and the respective operations
-$op_1, op_2, \ldots, op_k$. Let $\pi_0 = \pi'$. 
+$op_1, op_2, \ldots, op_k$. Let $\pi_0 = \pi'$.
 In each iteration $i \geq 1$, we construct $\pi_i$ by replacing the execution of $op_i$
-in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. To do this, we first move all steps of $op_i$ that precede 
+in $\pi_{i-1}$ with an execution of $op_i$ that follows the locking protocol. To do this, we first move all steps of $op_i$ that precede
 its first validation step, $e_i$, to occur immediately before $e_i$. We can move the reads to this point without affecting the read
-values because the validation phase of $op_i$ succeeds, implying that these objects' values remain the same. 
+values because the validation phase of $op_i$ succeeds, implying that these objects' values remain the same.
  We then add steps that lock these objects before their read steps (and unlock
 them) as dictated by the locking protocol.
 %We then add steps that lock all of them immediately before these moved read
-% steps. Finally, we add unlock steps immediately before $e_i$ for objects that are in the read set but not in the lock set during $e_i$, 
-Finally we remove the tryLock and validation steps by $op_i$. 
+% steps. Finally, we add unlock steps immediately before $e_i$ for objects that are in the read set but not in the lock set during $e_i$,
+Finally we remove the tryLock and validation steps by $op_i$.
 
 Our ability to lock each object in $op_i$'s read set follows from the
 observation that in $\pi$, no operation except $op_i$ locks an object in
 $op_i$'s read set between the last time $op_i$ read the object in its
-read-only phase and $op_i$'s first validation step (see Claim~\ref{claim:locks}). 
+read-only phase and $op_i$'s first validation step (see Claim~\ref{claim:locks}).
 During the construction of $\pi_i$ we maintain
 an invariant that all objects in the read set are not locked when $op_i$ needs
 to lock them (Condition~\ref{cond:locks} in Lemma~\ref{lemma:pitagtag}).
 
 % Our ability to lock each object in $op_i$'s read set follows from the following observation:
 % \begin{observation}
-% Between the first time in which $op_i$ first reads an object $obj$ in its read-only phase in $\pi'$, 
-% and until the first step of $op_i$'s validation phase in $\pi'$, no thread locks $obj$. 
+% Between the first time in which $op_i$ first reads an object $obj$ in its read-only phase in $\pi'$,
+% and until the first step of $op_i$'s validation phase in $\pi'$, no thread locks $obj$.
 % \end{observation}
 % The observation follows immediately from the fact that $op_i$'s read validation is successful and that every lock step increases the
-% respective object's version number. Although in $\pi_{i-1}$ this may no longer hold, because some operation $op_j, j < i$ may 
-% have locked $obj$, our construction of $\pi_{i-1}$ releases this lock before $e_i$, and hence $obj$ is available for locking. 
+% respective object's version number. Although in $\pi_{i-1}$ this may no longer hold, because some operation $op_j, j < i$ may
+% have locked $obj$, our construction of $\pi_{i-1}$ releases this lock before $e_i$, and hence $obj$ is available for locking.
 
-We formally prove in the appendix that $\pi'$ and $\pi_i$ are equivalent. 
+We formally prove in the appendix that $\pi'$ and $\pi_i$ are equivalent.
 By repeating this for all operations in \op, we get an execution $\pi_k$ of the locking protocol.
 
 \paragraph{Real-Time Order}
-It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it does not change the order of invoke or return steps. 
+It is easy to see that $\pi_k$ preserves the real-time order of $\pi$, since it does not change the order of invoke or return steps.
 }
 
 \paragraph{Progress}
@@ -134,16 +134,16 @@ or infinite loops that were not present in the original code. In other words, if
 successfully completed with a return step, so does the instrumented code.
 
 First, consider deadlocks.
-The read and validation phases of our instrumented code do not use blocking locks -- the read-phase does not use locks at all, whereas the 
-validation phase uses tryLocks. Therefore, both phases are non-blocking. In principle, the optimistic approach may lead to livelocks, but 
-our algorithm fall-back on the pessimistic approach following a bounded number of restarts, and hence cannot livelock. 
+The read and validation phases of our instrumented code do not use blocking locks -- the read-phase does not use locks at all, whereas the
+validation phase uses tryLocks. Therefore, both phases are non-blocking. In principle, the optimistic approach may lead to livelocks, but
+our algorithm fall-back on the pessimistic approach following a bounded number of restarts, and hence cannot livelock.
 We get that any lack
 of progress must be due to blocking in the update phase. Since this section of the code is unchanged, and
 since we ensure that it begins when holding the same locks as in the original protocol, we get that our transformation does not introduce any
-source of spurious blocking that is not present in the original  code. 
+source of spurious blocking that is not present in the original  code.
 
 Exceptions and infinite loops may be introduced in the read-only phase due to reading an inconsistent view of shared memory.
 Nevertheless, we detect these situations by performing validation both periodically and on exceptions: As we have argued above,
 the validation phase is successful only if the execution is equivalent to a lock-based one. Thus, every inconsistent
-view that might lead to a spurious exception or infinite loop causes the validation to fail, and we  
+view that might lead to a spurious exception or infinite loop causes the validation to fail, and we
 detect these cases before they have any external impact. 
