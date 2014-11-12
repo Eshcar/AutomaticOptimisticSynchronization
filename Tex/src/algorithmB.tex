@@ -53,7 +53,7 @@ The \emph{isLockedByAnotherThread} instruction returns \emph{true}, if and only 
 We assume that in the given code every (read
 or write) access by an operation to a shared object is performed when the
 executing thread holds the lock on that object.
-We also assume that the locking in the given code only uses the \emph{lock} and \emph{unlock} instructions only.
+We also assume that the locking in the given code only uses the \emph{lock} and \emph{unlock} instructions.
 %(i.e., the other locking instructions are not used).
 
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
@@ -221,7 +221,7 @@ Note that each object has its own version --- i.e., version numbers of different
 In this phase, we replace all the lock and unlock instructions with synchronization that avoids writing to shared memory.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} is used to track the objects that were supposed to be locked by the original synchronization.
-Using a multi-set allows for reentrant locks.
+Using a multi-set allows for reentrant locks \guy{TBD: at this point, it may be hard to understand why we need multi-set} .
 The \emph{readSet} is used to track versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
@@ -231,6 +231,13 @@ A lock instruction on object $o$ is replaced with code that tracks the object an
 thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figure::track}).
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
+
+In Figure~\ref{figure::track} we use an eager validation scheme. 
+If the object already exists in \emph{readSet}, we check that its current version is equal
+to the version in \emph{readSet}; if the versions are different  the operation restarts from the beginning (line~\ref{code:track:verifyVersion}).
+Similarly, it is also checked to be unlocked; if it is locked, the operation restarts from the beginning (line~\ref{code:track:verifyUnlocked}).
+
+
 
 \begin{table}
 \scriptsize
@@ -259,8 +266,30 @@ each locking instruction (left side) is replaced with the corresponding code on 
 \label{Ta:readOnlyTransformation}
 \end{table}
 
+\begin{figure}
+\scriptsize
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{track}{obj}
+		\State{}lockedSet.add(obj) \label{code:lockedSet:add}
+			\State long ver = obj.version \label{code:track:getVersion}
+			\State if {$\exists$<o,v>$\in$lockedSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
+			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:verifyUnlocked}
+			\State readSet.add(<obj,ver>)
+			\State retrun true
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{In read-only phase, locking is replaced by
+tracking locks and read
+objects' versions.
+\label{figure::track}}
+\end{figure}
+
+
 \paragraph{Inconsistent Views}
-Other than when reading objects already in the read set, the read phase does not validate past reads during its executions ---
+%Other than when reading objects already in the read set, the read phase does not validate past reads during its executions ---
+Other than in Figure~\ref{figure::track}, the read phase does not validate past reads during its executions ---
 as a result, it may observe an inconsistent state of shared memory.
 %
 The function \emph{validateReadSet} in Figure~\ref{figure::validate} can be used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
@@ -303,24 +332,6 @@ Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the c
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
 
-\begin{figure}
-\scriptsize
-\begin{algorithmic}[1]{}
-		{\ttfamily
-		\Function{track}{obj}
-		\State lockedSet.add(obj) \label{code:lockedSet:add}
-			\State long ver = obj.version \label{code:track:getVersion}
-			\State readSet.add(obj,ver)
-			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:returnFalse}
-			\State retrun true
-		\EndFunction
-		}
-\end{algorithmic}
-\caption{In read-only phase, locking is replaced by
-tracking locks and read
-objects' versions.
-\label{figure::track}}
-\end{figure}
 
 
 
@@ -330,11 +341,10 @@ objects' versions.
 \begin{algorithmic}[1]{}
 		{\ttfamily
 		\Function{validateReadSet}{}()
-		\ForAll {obj in readSet}
+		\ForAll {<obj,ver> in readSet}
 			\If{obj.isLockedByAnotherThread()}
 			\State return false \Comment{\textrm{validation failed (due to a locked object)}}
 			\EndIf
-			\State long ver = readSet.getVersion(obj)
 			\If{obj.version != ver}
 				\State return false \Comment{\textrm{validation failed (due to a different version)}}
 			\EndIf
@@ -481,8 +491,9 @@ the beginning of the operation $S$.
 
 Second, this property offers the optimistic implementation the liberty of
 failing spuriously, even in the absence of conflicts, because it can always fall back on the safe pessimistic version
-of the code. Our implementation
-takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}.
+of the code. 
+We take advantage of this liberty, and implement the \emph{lockedSet} and \emph{readSet} by using constant size arrays.
+%Our implementation takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}.
 In case either of these arrays becomes full, we cannot proceed with the optimistic version, but also
 do not need to start the operation anew.
 Instead, we immediately perform the validation phase, which, if successful, branches to the location in $C_u$
