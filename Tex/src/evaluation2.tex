@@ -77,8 +77,10 @@ the throughput of the balanced ones. We see that our semi-optimistic
 solution is far superior to previous, fully-pessimistic, 
 automated approaches, with up-to two order of magnitude higher performance
 (between x50 in write dominated workload to x70 in read-only workload). It
-successfully overcomes the bottlenecks associated with lock contention, and in
-many scenarios comes close to custom-tailored implementations. 
+successfully overcomes the bottlenecks associated with lock contention, and 
+specifically the contention on the lock of the root, even if held only for short
+periods in the \domTree and \domTreap implementations. In
+many scenarios our solution comes close to custom-tailored implementations. 
 
 \begin{figure*}
 \begin{center}
@@ -140,12 +142,16 @@ manually devise a pessimistic locking protocol. Our
 textbook~\cite{HerlihyS2008} algorithm applies hand-over-hand locking of each
 level, such that at the end of the search the operation holds locks on two
 records in each level, which define the minimal interval within this level that
-contains the lookup key or the range in the case of a range query. 
-Once these locks are held any update can be executed in isolation from other
-update operations. The operation uses hand-over-hand locking to traverse over
-all records within the range. This pessimistic lock-based algorithm
-is denoted \domSkiplist. As in previous data structures, we manually apply the
-lock-removal method to the reference implementation to get a semi-optimistic algorithm, which we call \autoSkiplist.
+contains the lookup key (first key in the case of a range query). Once reaching
+the bottom level, unnecessary locks are released. Update operations keep only
+the locks on nodes that will be modified; while holding these locks any
+modification can be executed in isolation from other update operations. Range
+queries keep the locks in the level with the minimal interval spanning the
+range. The operation uses hand-over-hand locking to traverse over all records
+within the range. This pessimistic lock-based algorithm is denoted \domSkiplist. 
+As in previous data structures, we manually apply the lock-removal method to the
+reference implementation to get a semi-optimistic algorithm, which we call
+\autoSkiplist.  
 
 \autoSkiplist is compared to \domSkiplist and is further evaluated against two
 state-of-the-art data structures which support range queries \bronson and \skiplist.
@@ -180,30 +186,50 @@ Figure~\ref{evaluation:results:update}.
 
 \begin{figure*}
 	\begin{center}
-	\begin{subfigure}[t]{.45\textwidth}
+	\begin{subfigure}[t]{.35\textwidth}
 		\caption{Range queries} 
 		\input{plots/range}
 		\label{evaluation:results:range}
 	\end{subfigure}
-	\quad\quad\quad
-	\begin{subfigure}[t]{.45\textwidth}
+	\begin{subfigure}[t]{.35\textwidth}
 		\caption{Insert and delete operations}
 		\input{plots/update}
 		\label{evaluation:results:update}
 	\end{subfigure}
 	\ref{skiplistLegened}
 	\end{center}
-\caption{Mixed workload -- half the threads execute range queries and half the
-threads execute insert and delete operations}
+\caption{Half the threads execute small range queries$[10,20]$
+and half the threads execute insert and delete operations}
 \label{evaluation:results:skiplist}
 \end{figure*}
+
+% \begin{figure*}
+% 	\begin{center}
+% 	\begin{subfigure}[t]{.35\textwidth}
+% 		\caption{Range queries} 
+% 		\input{plots/range1000}
+% 		\label{evaluation:results:range}
+% 	\end{subfigure}
+% 	\begin{subfigure}[t]{.35\textwidth}
+% 		\caption{Insert and delete operations}
+% 		\input{plots/update1000}
+% 		\label{evaluation:results:update}
+% 	\end{subfigure}
+% 	\ref{skiplistLegened1000}
+% 	\end{center}
+% \caption{Half the threads execute big range queries$[1000,2000]$
+% and half the threads execute insert and delete operations}
+% \label{evaluation:results:skiplist}
+% \end{figure*}
 
 These results demonstrate again that our semi-optimistic
 solution is far superior to fully-pessimistic fine-grain solution, with two
 order of magnitude higher throughput (x75 for range queries and x100 for
-update operations). Furthermore, the performance of \autoSkiplist is almost
-identical to that of \skiplist, despite the fact that \skiplist performs
-inconsistent iterations.
+update operations). As in the domination locking version of the tree data
+structures, holding a lock on the head sentinel of the skip list in
+\domSkiplist, even for short periods, imposes a performance penalty similar to
+using a global lock. Furthermore, the performance of \autoSkiplist is almost
+identical to that of \skiplist, despite the fact that \skiplist performs inconsistent iterations.
 
 The throughput of \bronson flattens out. For range queries
 (Figure~\ref{evaluation:results:range}) the reason might be that this
