@@ -53,8 +53,7 @@ The \emph{isLockedByAnotherThread} instruction returns \emph{true}, if and only 
 We assume that in the given code every (read
 or write) access by an operation to a shared object is performed when the
 executing thread holds the lock on that object.
-We also assume that the locking in the given code only uses blocking locks. 
-%the \emph{lock} and \emph{unlock} instructions.
+We also assume that the locking in the given code only uses the \emph{lock} and \emph{unlock} instructions.
 %(i.e., the other locking instructions are not used).
 
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
@@ -87,14 +86,14 @@ update phase to run as if an execution of the original pessimistic synchronizati
 took place. If the validation fails, the operation
 restarts. In order to avoid livelock, we set a threshold on the number of restarts.
 If the threshold is exceeded, the code falls back on pessimistic execution.
-We show below that 
+We show below that
 it is safe to do so, since our semi-optimistic code is compatible
 with the fully pessimistic one.
 
 
 \subsection{Phase Partitioning}\label{ssec:extendedTran}
 
-The first step of our transformation is to partition the 
+The first step of our transformation is to partition the
 control-flow-graph (CFG) $C$ of each operation
 into two subgraphs corresponding to two phases --
 read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
@@ -318,7 +317,7 @@ operation pessimistically.
 			\label{figure:transformation}}
 \end{figure*}
 
-We now describe how we synthesize the code for each of the phases. The regular there-phase flow is described in 
+We now describe how we synthesize the code for each of the phases. The regular three-phase flow is described in
 Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
 
 \subsubsection{Normal Flow}
@@ -330,8 +329,8 @@ the tracking and validation functions in Figures \ref{figure::track} and
 \ref{figure::validate}, resp.
 In  Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
 and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
-For clarity of exposition, we remove the branching commands between the phases, and present the 
-entire flow as if it is continuous. 
+For clarity of exposition, we remove the branching commands between the phases, and present the
+entire flow as if it is continuous.
 
 %\paragraph{Version Numbers}
 We use \emph{version numbers} to validate the correctness of the optimistic execution of the read-only phase.
@@ -400,7 +399,7 @@ each locking instruction (left side) is replaced with the corresponding code on 
 			\State long ver = obj.version \label{code:track:getVersion}
 			\State readSet.add(<obj,ver>)
 %\Statex	\hspace{-30mm} \Comment{\textrm{Eager validation}}
-			\State if {$\exists$<o,v>$\in$lockedSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
+			\State if {$\exists$<o,v>$\in$readSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
 			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:verifyUnlocked}
 			\State retrun true
 		\EndFunction
@@ -421,7 +420,20 @@ instruction.
 If a tryLock fails, the code unlocks  all
 previously acquired locks and restarts from the beginning
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
-Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
+
+The function \emph{validateReadSet} in Figure~\ref{figure::validate} is used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
+%
+The function checks that each object in the read set is not locked by another thread,
+and that the object's current version matches the version saved in the
+read set.
+This check guarantees that the object was not locked from the time it was read until
+the time it was validated.
+Since operations write only to
+locked nodes, it follows that the object was not changed.
+This read set validation can be viewed as a double collect~\cite{Afek:1993:ASS:153724.153741}
+of all objects accessed by the read-only phase.
+%
+The operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
 
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
@@ -459,19 +471,9 @@ An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figu
 Other than in Figure~\ref{figure::track}, the read phase does not validate past reads during its executions ---
 as a result, it may observe an inconsistent state of shared memory (as explained, e.g., in~\cite{HLR:SLCA2010}).
 %
-The function \emph{validateReadSet} in Figure~\ref{figure::validate} can be used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
-%
-The function checks that each object in the read set is not locked by another thread,
-and that the object's current version matches the version saved in the
-read set.
-This check guarantees that the object was not locked from the time it was read until
-the time it was validated.
-Since operations write only to
-locked nodes, it follows that the object was not changed.
-This read set validation can be viewed as a double collect~\cite{Afek:1993:ASS:153724.153741}
-of all objects accessed by the read-only phase.
 
-In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads~\cite{HLR:SLCA2010}, a timeout is set.
+
+In order to avoid infinite loops (in the read-only phase) that might occur due to inconsistent reads, a timeout is set.
 If the timeout expires before the read-only phase is completed, read set
 validation takes place (by invoking the function \emph{validateReadSet}). If the validation fails, the operation is restarted.
 This is realized by inserting code that examines the timeout in each backward edge in the CFG of the read-only phase.
