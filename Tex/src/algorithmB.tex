@@ -279,8 +279,8 @@ operation pessimistically.
 			\State{\spOne}Node succ = prev.next
 			\State{\spOne}\textbf{if !track(succ) then {goto} \ref{code:begin}}  \label{code:readGhaseGoto2}
 			\State{\spOne}\textbf{lockedSet.remove(prev)} \label{code:lockedSet:remove2}
-			\State{\spOne}prev = succ
-			\State{\spOne}succ = succ.next
+			\State{\spZero}prev = succ
+			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
 			\Statex ----------------------------
 			\Comment{\textrm{validation phase}}
