@@ -12,6 +12,7 @@ our semi-optimistic implementations.
 To complement the evaluation, we 
 compare our approach to hand-crafted state-of-the-art implementations of each
 data structure. 
+
 We also measure the performance of a global lock implementation of the data
 structures. In all workloads the results are identical or inferior to the
 performance of the pessimistic fine-grain locking implementations. Adding these
@@ -147,17 +148,17 @@ the bottom level linked-list.
 The domination locking scheme cannot be efficiently applied to the skip list
 structure since it is a DAG rather than a tree structure. Therefore, we need to
 manually devise a pessimistic locking protocol. Our
-textbook~\cite{HerlihyS2008} algorithm applies hand-over-hand locking of each
-level, such that at the end of the search the operation holds locks on two
-records in each level, which define the minimal interval within this level that
-contains the lookup key (first key in the case of a range query). Once reaching
-the bottom level, unnecessary locks are released. Update operations only keep
+algorithm (inspired by the algorithm in~\cite{HerlihyS2008}) applies
+hand-over-hand locking of each level, such that at the end of the search the
+operation holds locks on two records in each level, which define the minimal interval within this level
+containing the lookup key (first key in the case of a range query). Once
+reaching the bottom level, unnecessary locks are released. Update operations only keep
 the locks on nodes that will be modified; while holding these locks any
 modification can be executed in isolation from other update operations. Range
 queries keep the locks in the level with the minimal interval spanning the
 range. The operation uses hand-over-hand locking to traverse through all records
 within the range. This pessimistic lock-based algorithm is denoted \domSkiplist. 
-As in previous data structures, we  apply the lock-removal method to the
+As in previous data structures, we  apply the lock-removal transformation to the
 reference implementation to get a semi-optimistic algorithm, which we call
 \autoSkiplist.  
 
