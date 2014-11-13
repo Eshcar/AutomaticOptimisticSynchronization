@@ -40,6 +40,11 @@
 \input{macros}
 
 
+\usepackage{ifthen}
+\newboolean{TechReport}
+\setboolean{TechReport}{false}
+
+
 \begin{document}
 
 %\special{papersize=8.5in,11in}
@@ -148,8 +153,13 @@ hand-crafting concurrent data structures.
 
 \bibliography{myRef}
 \bibliographystyle{abbrvnat}
+%
+\ifthenelse{\boolean{TechReport}}{
 \appendix
 \input{proof-appendix}
+}
+{
+}
 
 %\bibliographystyle{plain}
 

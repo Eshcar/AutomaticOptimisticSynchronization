@@ -9,7 +9,15 @@ We argue that our transformation is \emph{correct}, in the sense that all the ex
 the synthesized code are allowed by the original implementation.
 This implies that the transformed code preserves essential properties of the original, such as serializability,
 linearizability, and deadlock-freedom.
-In this section we provide informal correctness arguments; a formal proof is deferred to Appendix~\ref{sec:formal-proof}.
+In this section we provide informal correctness arguments;\  
+%
+\ifthenelse{\boolean{TechReport}}{
+a formal proof is deferred to Appendix~\ref{sec:formal-proof}.
+}
+{
+a formal proof is included in the supplemental material submitted with this paper.
+}
+
 
 \paragraph{Indistinguishability of successful executions}
 Every operation execution of the modified code starts at the beginning of the read-only phase and,
