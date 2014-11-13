@@ -1,7 +1,7 @@
 
 \begin{tikzpicture}
 \begin{axis}[mystyle,skiplist1000,
- ylabel = { million ops/sec},
+ ylabel = { Kops/sec},
  %title={\textbf{0\% read-only}}]
  ]
 \addplot [black,mark=square*] table [x={threads}, y={TimeoutSkiplist}]

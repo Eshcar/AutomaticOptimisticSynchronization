@@ -8,9 +8,14 @@ records within the range in addition to the basic single record operations (see
 Section~\ref{sec:range}). We compare the performance of our approach in terms of
 throughput to fully pessimistic approaches, applying fine-grain locking. These
 algorithms also serve as the lock-based reference implementation at the base of
-our semi-optimistic implementations. To complement the evaluation, we also
+our semi-optimistic implementations. 
+To complement the evaluation, we 
 compare our approach to hand-crafted state-of-the-art implementations of each
-data structure.         
+data structure. 
+We also measure the performance of a global lock implementation of the data
+structures. In all workloads the results are identical or inferior to the
+performance of the pessimistic fine-grain locking implementations. Adding these
+results to the figures only obscures the presentation, and hence they are omitted.        
 
 We follow a standard evaluation methodology
 (\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). Each experiment
@@ -39,10 +44,10 @@ as balanced trees.
 
 We consider textbook sequential implementations of an unbalanced binary
 tree, and a treap~\cite{AragonS1989}. To
-generate a pessimistic lock-based implementation we manually synthesize
+generate a pessimistic lock-based implementation we synthesize
 concurrent code by applying the domination locking technique to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
-Finally, we manually apply our lock-removal transformation to the reference
+Finally, we apply our lock-removal transformation to the reference
 implementations to get our semi-optimistic version of the code, which we call
 \autoTree and \autoTreap, respectively.     
 
@@ -54,6 +59,8 @@ We further compare our implementations to their hand-crafted state-of-the-art co
 \end{itemize}
 \autoTreap is evaluated against three hand-crafted implementations
 \begin{itemize}
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
 \item \danaAVL The locked-based relaxed balanced AVL tree of 
 				Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation available at \\
 				\texttt{https://github.com/logicalordering/trees}}.
@@ -64,6 +71,7 @@ We further compare our implementations to their hand-crafted state-of-the-art co
 				the Java standard library; based on the work of
 				Fraser and Harris~\cite{fraser2004practical}.
 \end{itemize}
+
 
 We evaluate performance in three representative workloads distributions:
 \emph{read-only} workload comprising of $100\%$ lookup operations, \emph{write-dominated}
@@ -103,7 +111,7 @@ structures.}
 The results for the read-only workload show the main overhead
 of our automatic approach. By profiling the code, we learned 
 that the bulk of this overhead stems from the need to track all read objects,
-which is inherent to our automatic transformation. 
+which is inherent to our transformation. 
 This is in contrast with the hand-crafted implementations,
 which have small overhead on reads in this scenario, thanks to either 
 wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \bronson). 
@@ -119,14 +127,14 @@ read-only operations.
 \subsection{Range Queries}
 \label{sec:range} 
 
-This section evaluates the performance of our approach when the data
+Next we evaluate the performance of our approach when the data
 structure supports a more intricate functionality like range queries. Hand
 crafting an implementation of a data structure that supports atomic
 (linearizable) range queries is challenging.
 The implementations that do support iterating through records may impose an
 additional overhead on the regular read and write operations to ensure
 progress of range queries.
-The results in this section demonstrate that our automatic method
+The results in this section demonstrate that our method
 allows generating a correct and efficient code, which is otherwise difficult
 to obtain.
 
@@ -143,18 +151,19 @@ textbook~\cite{HerlihyS2008} algorithm applies hand-over-hand locking of each
 level, such that at the end of the search the operation holds locks on two
 records in each level, which define the minimal interval within this level that
 contains the lookup key (first key in the case of a range query). Once reaching
-the bottom level, unnecessary locks are released. Update operations keep only
+the bottom level, unnecessary locks are released. Update operations only keep
 the locks on nodes that will be modified; while holding these locks any
 modification can be executed in isolation from other update operations. Range
 queries keep the locks in the level with the minimal interval spanning the
-range. The operation uses hand-over-hand locking to traverse over all records
+range. The operation uses hand-over-hand locking to traverse through all records
 within the range. This pessimistic lock-based algorithm is denoted \domSkiplist. 
-As in previous data structures, we manually apply the lock-removal method to the
+As in previous data structures, we  apply the lock-removal method to the
 reference implementation to get a semi-optimistic algorithm, which we call
 \autoSkiplist.  
 
 \autoSkiplist is compared to \domSkiplist and is further evaluated against two
-state-of-the-art data structures which support range queries \bronson and \skiplist.
+state-of-the-art data structures which support range queries: \bronson and
+\skiplist.
 \bronson provides atomic range queries by traversing a clone of the
 original tree that is lazily generated,
 whereas iterations in Java's concurrent skip list are not
@@ -163,18 +172,13 @@ guaranteed to be atomic.
 The evaluation of range queries focuses on a mixed workload where half of the
 threads are dedicated to performing range queries, and the other half performs a
 mix of insert and delete operations (50\% each). 
-\eshcar{what about a workload that includes only 100\% range
-queries?} 
-We experiment with queries with ranges varying between $10$ to $20$
-keys.
-% selected uniform at random from $[10,20]$.  
-\eshcar{ what about medium/big size scans?}.
+%\eshcar{what about a workload that includes only 100\% range
+%queries?} 
+We experiment with queries with big ranges varying between $1000$ to $2000$ keys
+(Figure~\ref{evaluation:results:skiplist1000}) and small ranges
+between $10$ to $20$
+keys (Figure~\ref{evaluation:results:skiplist}).
 
-We measure the throughput of range queries and update operations separately,
-that is, the overall number of range queries executed per time unit - reported
-in Figure~\ref{evaluation:results:range}, and the overall number of update (insert and
-delete) operations executed per time unit - reported in
-Figure~\ref{evaluation:results:update}.
 
 % \begin{figure*}
 % \begin{center}
@@ -187,10 +191,32 @@ Figure~\ref{evaluation:results:update}.
 \begin{figure*}
 	\begin{center}
 	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/range1000}
+		\label{evaluation:results:range1000}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update1000}
+		\label{evaluation:results:update1000}
+	\end{subfigure}
+	\ref{skiplistLegened1000}
+	\end{center}
+\caption{Half the threads execute big range queries $[1000,2000]$
+and half the threads execute insert and delete operations}
+\label{evaluation:results:skiplist1000}
+\end{figure*}
+
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.35\textwidth}
 		\caption{Range queries} 
 		\input{plots/range}
 		\label{evaluation:results:range}
 	\end{subfigure}
+	\quad\quad
 	\begin{subfigure}[t]{.35\textwidth}
 		\caption{Insert and delete operations}
 		\input{plots/update}
@@ -203,42 +229,40 @@ and half the threads execute insert and delete operations}
 \label{evaluation:results:skiplist}
 \end{figure*}
 
-% \begin{figure*}
-% 	\begin{center}
-% 	\begin{subfigure}[t]{.35\textwidth}
-% 		\caption{Range queries} 
-% 		\input{plots/range1000}
-% 		\label{evaluation:results:range}
-% 	\end{subfigure}
-% 	\begin{subfigure}[t]{.35\textwidth}
-% 		\caption{Insert and delete operations}
-% 		\input{plots/update1000}
-% 		\label{evaluation:results:update}
-% 	\end{subfigure}
-% 	\ref{skiplistLegened1000}
-% 	\end{center}
-% \caption{Half the threads execute big range queries$[1000,2000]$
-% and half the threads execute insert and delete operations}
-% \label{evaluation:results:skiplist}
-% \end{figure*}
+We measure the throughput of range queries and update operations separately,
+that is, the overall number of range queries executed per second - reported
+in Figures~\ref{evaluation:results:range1000}
+and~\ref{evaluation:results:range}, and the overall number of update (insert 
+and delete) operations executed per second - reported in
+Figures~\ref{evaluation:results:update1000} and~\ref{evaluation:results:update}.
 
 These results demonstrate again that our semi-optimistic
-solution is far superior to fully-pessimistic fine-grain solution, with two
-order of magnitude higher throughput (x75 for range queries and x100 for
-update operations). As in the domination locking version of the tree data
-structures, holding a lock on the head sentinel of the skip list in
+solution is superior to fully-pessimistic fine-grain solution, with up-to two
+order of magnitude higher throughput (x75 for small range queries, x4 for small
+ranges, and x100 for update operations, regardless of the range size). As in the
+domination locking version of the tree data structures, holding a lock on the head sentinel of the skip list in
 \domSkiplist, even for short periods, imposes a performance penalty similar to
-using a global lock. Furthermore, the performance of \autoSkiplist is almost
+using a global lock. Put in other words, our transformation generates a DAP
+implementation---only locking objects of nodes that are modified by the
+operations---from a non-DAP one. The great increase in throughput can
+be attributed to this property.
+
+The performance of \autoSkiplist is almost
 identical to that of \skiplist, despite the fact that \skiplist performs inconsistent iterations.
 
-The throughput of \bronson flattens out. For range queries
-(Figure~\ref{evaluation:results:range}) the reason might be that this
-implementation is
+Figure~\ref{evaluation:results:range1000}
+shows that for big ranges \bronson scales well up to 8 threads, outperforming
+all other implementations, but then its performance drops down at 32 threads.
+The reason could be that this implementation is
 optimized for full scans or very big range queries running sequentially.
 The overhead of initiating an epoch per range query---waiting for all
-pending update operations to complete---prevents them from scaling when the
-ranges are small, and several queries are executed in parallel. 
+pending update operations to complete---prevents them from scaling when 
+several queries are executed in parallel. This is even more prevalent when the
+ranges are small (Figure~\ref{evaluation:results:range}), and the throughput of
+\bronson flattens out. 
+  
 In addition, the lazy cloning required to support
-range queries imposes an overhead on the update operations
-(Figure~\ref{evaluation:results:update})---copying each node during downward
-traversal---preventing these operations from scaling as well. 
+range queries imposes an overhead on the update operations. Copying each node
+during downward traversal prevents these operations from scaling when
+the ranges are small (Figure~\ref{evaluation:results:update}) as well as when
+they are big (Figure~\ref{evaluation:results:update1000}).
