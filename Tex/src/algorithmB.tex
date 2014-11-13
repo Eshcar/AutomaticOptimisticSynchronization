@@ -21,9 +21,9 @@ Section~\ref{ssec:overview} overviews our general approach to combining optimism
 
 The synthesized code consists of three phases - an optimistic read-only phase, a validation phase,
 and a pessimistic update phase. The transformation first partitions the given code into a read-only phase and
-an update phase, then instruments each of these phases separately and adds the validation phase between the two.
-Section~\ref{ssec:transformation} describes how the code of each of the three phases is produced, whereas
-Section~\ref{ssec:extendedTran} explains how the code is partitioned into two phases.
+an update phase as described in Section~\ref{ssec:extendedTran}, and
+then instruments each of these phases separately and adds the validation phase between the two;
+Section~\ref{ssec:transformation} details how the code of each of the three phases is produced.
 
 \subsection{Lock-based Data Structures}\label{ssec:locks}
 
@@ -53,7 +53,8 @@ The \emph{isLockedByAnotherThread} instruction returns \emph{true}, if and only 
 We assume that in the given code every (read
 or write) access by an operation to a shared object is performed when the
 executing thread holds the lock on that object.
-We also assume that the locking in the given code only uses the \emph{lock} and \emph{unlock} instructions.
+We also assume that the locking in the given code only uses blocking locks. 
+%the \emph{lock} and \emph{unlock} instructions.
 %(i.e., the other locking instructions are not used).
 
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
@@ -86,8 +87,134 @@ update phase to run as if an execution of the original pessimistic synchronizati
 took place. If the validation fails, the operation
 restarts. In order to avoid livelock, we set a threshold on the number of restarts.
 If the threshold is exceeded, the code falls back on pessimistic execution.
-Note that it is safe to do so, since our semi-optimistic code is compatible
+We show below that 
+it is safe to do so, since our semi-optimistic code is compatible
 with the fully pessimistic one.
+
+
+\subsection{Phase Partitioning}\label{ssec:extendedTran}
+
+The first step of our transformation is to partition the 
+control-flow-graph (CFG) $C$ of each operation
+into two subgraphs corresponding to two phases --
+read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
+(1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
+and (3) $C_r$ does not contain instructions that write to shared objects\footnote{
+Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even though their implementation may write to shared memory), but $C_r$ cannot modify the objects protected by locks.}.
+
+\begin{figure*}
+\scriptsize
+	\begin{center}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex --------------------
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex
+            \State
+            \State
+            \State
+            \State
+            \State
+            \State
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{Original code.} \label{figure:autoPartitioning:step1}
+	\end{subfigure}
+	\begin{subfigure}[t]{.3\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex -------------------- \Comment{\textrm{original code $C$}}
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ return temp}
+            \Statex -------------------- \Comment{\textrm{clone $C_u$}}
+            \State\hspace{-3mm}{1':\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{CFG cloning}.}
+ \label{figure:autoPartitioning:step2}
+	\end{subfigure}
+	\begin{subfigure}[t]{.35\textwidth}
+		\begin{algorithmic}[0]{}
+		{\ttfamily
+			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
+            \Statex -------------------- \Comment{\textrm{read-only phase $C_r$}}
+            \State\hspace{-3mm}{1 :\ x.lock()}
+            \State\hspace{-3mm}{2 :\ if i>7  then}
+            \State\hspace{-3mm}{3 :\ \ \ \underline{\textbf{goto 3'}}}
+            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5 :\ x.unlock()}
+            \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
+            \Statex -------------------- \Comment{\textrm{update phase $C_u$}}
+            \State\hspace{-3mm}{1':\ x.lock()}
+            \State\hspace{-3mm}{2':\ if x.f1>i  then}
+            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
+            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
+            \State\hspace{-3mm}{5':\ x.unlock()}
+            \State\hspace{-3mm}{6':\ return temp}
+			\EndFunction
+			}
+		\end{algorithmic}
+		\caption{The code after \emph{phase branching}.
+        %Lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
+} \label{figure:autoPartitioning:step3}
+	\end{subfigure}
+
+	\end{center}
+\vspace{-4mm}
+	\caption{Example for automatic code partitioning to read-only and update phases.}
+			\label{figure:autoPartitioning}
+\end{figure*}
+
+By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) both for the code section and
+for its corresponding CFG.
+%
+We demonstrate our technique for the code in Figure~\ref{figure:autoPartitioning:step1}.
+Note that here, the first code location where the shared memory is updated depends on the runtime value of the parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
+
+\noindent Our technique is realized by the following two steps:
+\begin{description}
+  \item [CFG cloning:]
+Given code $C$ of a data structure operation, we create a clone $C_u$ of $C$, and concatenate $C_u$ to the end of $C$.
+For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
+Each location $\ell$ in $C$ has a matching location in its clone, denoted by $\ell'$
+(e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matching location of line $5$ is line $5'$).
+  \item [Phase branching:]
+Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the
+update phase begins. Our basic phase partitioning branches out to the update phase at the time of the first update in $C_r$.
+To this end, we replace every shared memory write instruction
+at location $l \in C$ with the instruction \emph{goto l'}.
+Likewise, every \emph{return instruction} (or any other instruction that exits from the operation)
+at location $l \in C$ is replaced with the instruction \emph{goto l'}.
+The transformed version of $C$ is denoted $C_r$.
+Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
+\end{description}
+
+
+For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
+
+It is easy to see that this new code is equivalent to the original one (in terms of external behavior), and it satisfies properties (1)-(3) above. Note further that $C_u$ consists of the complete original code, including
+the read-only prefix, which is usually skipped. This allows us to branch  to
+the update phase earlier than the first write, and in particular, to fall back on executing the entire
+operation pessimistically.
 
 
 \subsection{Transforming the Code Phases}\label{ssec:transformation}
@@ -102,6 +229,7 @@ with the fully pessimistic one.
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
 			\Statex ----------------------------
+				\Comment{\textrm{read-only phase $C_r$}}
 			\State                               \label{code:beginRead}
             \State{\spOne}\textbf{list.lock()}
 			\State{\spOne}Node prev = list.head
@@ -122,6 +250,7 @@ with the fully pessimistic one.
 			\State
             \State                               \label{code:endValidation}
 			\Statex ----------------------------
+							\Comment{\textrm{update phase $C_u$}}
 			\State{\spZero}prev.next = new       \label{code:beginUpdate}
 			\State{\spZero}\textbf{new.lock()}
 			\State{\spZero}new.next = succ
@@ -189,29 +318,23 @@ with the fully pessimistic one.
 			\label{figure:transformation}}
 \end{figure*}
 
-In this section we assume that the code had already been partitioned into a read-phase and an update phase using
-the transformation described in Section~\ref{ssec:extendedTran}, and
-describe how we synthesize the code for each of the phases.
+We now describe how we synthesize the code for each of the phases. The regular there-phase flow is described in 
+Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
+
+\subsubsection{Normal Flow}
+\label{sssec:alg-normal}
+
 We illustrate the transformation for a simple code snippet that adds a new element as the third node in a linked list.
 The original and transformed code are provided in Figure \ref{figure:transformation}. The latter uses
 the tracking and validation functions in Figures \ref{figure::track} and
 \ref{figure::validate}, resp.
-
-\paragraph{Code Phases in the CFG}
-In this section we assume that
-control-flow-graph (CFG) of each operation has been partitioned (by the transformation in the next section)
-into two subgraphs corresponding to two phases --
-read-only phase $C_r$, and update phase $C_u$. The partitioning satisfies the following:
-(1)~every execution of the operation starts in $C_r$ and ends in $C_u$; (2)~there is no edge from $C_u$ to  $C_r$;
-and (3) $C_r$ does not contain instructions that write to shared objects\footnote{
-Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even though their implementation may write to shared memory);
-only \emph{non-locking write instructions} cannot appear in $C_r$.}.
-%
-In the example of Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
+In  Figure~\ref{figure:transformation:before}, $C_r$ is the code in lines \ref{code:beginRead}-\ref{code:endRead},
 and $C_u$ is the code in lines \ref{code:beginUpdate}-\ref{code:endUpdate}.
+For clarity of exposition, we remove the branching commands between the phases, and present the 
+entire flow as if it is continuous. 
 
-\paragraph{Version Numbers}
-Version numbers are used to validate the correctness of the optimistic execution of the read-only phase.
+%\paragraph{Version Numbers}
+We use \emph{version numbers} to validate the correctness of the optimistic execution of the read-only phase.
 Our transformation instruments each object $o$ with an additional field \emph{version}.
 %Later we will show that
 If $o$ is not locked, then this field  represents the current version number of $o$.
@@ -289,8 +412,49 @@ objects' versions.
 \label{figure::track}}
 \end{figure}
 
+\paragraph{Validation Phase}
+The code of the validation phase is inserted in each edge from $C_r$ to $C_u$ (i.e., this code is invoked between the read-only phase and the update phase).
+This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
+It locks the objects that are left in \emph{lockedSet} and validates the objects in \emph{readSet}.
+To avoid deadlocks, the locks are acquired using a tryLock
+instruction.
+If a tryLock fails, the code unlocks  all
+previously acquired locks and restarts from the beginning
+(lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
+Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
 
-\paragraph{Inconsistent Views}
+\paragraph{Update Phase}
+In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
+Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
+An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
+
+\begin{figure}
+\scriptsize
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{validateReadSet}{}()
+		\ForAll {<obj,ver> in readSet}
+			\If{obj.isLockedByAnotherThread()}
+			\State return false \Comment{\textrm{validation failed (due to a locked object)}}
+			\EndIf
+			\If{obj.version != ver}
+				\State return false \Comment{\textrm{validation failed (due to a different version)}}
+			\EndIf
+		\EndFor
+		\State retrun true \Comment{\textrm{validation succeed}}
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{Read set validation.\label{figure::validate}}
+\end{figure}
+
+
+
+\subsubsection{Exceptions from Regular Flow}
+\label{sssec:alg-abnormal}
+
+
+%\paragraph{Inconsistent Views}
 %Other than when reading objects already in the read set, the read phase does not validate past reads during its executions ---
 Other than in Figure~\ref{figure::track}, the read phase does not validate past reads during its executions ---
 as a result, it may observe an inconsistent state of shared memory (as explained, e.g., in~\cite{HLR:SLCA2010}).
@@ -318,168 +482,7 @@ perform validation. Here too, if the validation fails, the operation is restarte
 the original code.
 
 
-\paragraph{Validation Phase}
-The code of the validation phase is inserted in each edge from $C_r$ to $C_u$ (i.e., this code is invoked between the read-only phase and the update phase).
-This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
-It locks the objects that are left in \emph{lockedSet} and validates the objects in \emph{readSet}.
-To avoid deadlocks, the locks are acquired using a tryLock
-instruction.
-If a tryLock fails, the code unlocks  all
-previously acquired locks and restarts from the beginning
-(lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
-Similarity, the operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
-
-\paragraph{Update Phase}
-In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
-Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
-An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
-
-
-
-
-
-
-\begin{figure}
-\scriptsize
-\begin{algorithmic}[1]{}
-		{\ttfamily
-		\Function{validateReadSet}{}()
-		\ForAll {<obj,ver> in readSet}
-			\If{obj.isLockedByAnotherThread()}
-			\State return false \Comment{\textrm{validation failed (due to a locked object)}}
-			\EndIf
-			\If{obj.version != ver}
-				\State return false \Comment{\textrm{validation failed (due to a different version)}}
-			\EndIf
-		\EndFor
-		\State retrun true \Comment{\textrm{validation succeed}}
-		\EndFunction
-		}
-\end{algorithmic}
-\caption{Read set validation.\label{figure::validate}}
-\end{figure}
-
-\subsection{Phase Partitioning}\label{ssec:extendedTran}
-
-
-
-\begin{figure*}
-\scriptsize
-	\begin{center}
-	\begin{subfigure}[t]{.3\textwidth}
-		\begin{algorithmic}[0]{}
-		{\ttfamily
-			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex --------------------
-            \State\hspace{-3mm}{1 :\ x.lock()}
-            \State\hspace{-3mm}{2 :\ if i>7  then}
-            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
-            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
-            \State\hspace{-3mm}{5 :\ x.unlock()}
-            \State\hspace{-3mm}{6 :\ return temp}
-            \Statex
-            \State
-            \State
-            \State
-            \State
-            \State
-            \State
-			\EndFunction
-			}
-		\end{algorithmic}
-		\caption{Original code.} \label{figure:autoPartitioning:step1}
-	\end{subfigure}
-	\begin{subfigure}[t]{.3\textwidth}
-		\begin{algorithmic}[0]{}
-		{\ttfamily
-			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex -------------------- \Comment{\textrm{original code $C$}}
-            \State\hspace{-3mm}{1 :\ x.lock()}
-            \State\hspace{-3mm}{2 :\ if i>7  then}
-            \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
-            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
-            \State\hspace{-3mm}{5 :\ x.unlock()}
-            \State\hspace{-3mm}{6 :\ return temp}
-            \Statex -------------------- \Comment{\textrm{clone $C_u$}}
-            \State\hspace{-3mm}{1':\ x.lock()}
-            \State\hspace{-3mm}{2':\ if x.f1>i  then}
-            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
-            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
-            \State\hspace{-3mm}{5':\ x.unlock()}
-            \State\hspace{-3mm}{6':\ return temp}
-			\EndFunction
-			}
-		\end{algorithmic}
-		\caption{The code after \emph{CFG cloning}.}
- \label{figure:autoPartitioning:step2}
-	\end{subfigure}
-	\begin{subfigure}[t]{.35\textwidth}
-		\begin{algorithmic}[0]{}
-		{\ttfamily
-			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex -------------------- \Comment{\textrm{read-only phase $C_r$}}
-            \State\hspace{-3mm}{1 :\ x.lock()}
-            \State\hspace{-3mm}{2 :\ if i>7  then}
-            \State\hspace{-3mm}{3 :\ \ \ \underline{\textbf{goto 3'}}}
-            \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
-            \State\hspace{-3mm}{5 :\ x.unlock()}
-            \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
-            \Statex -------------------- \Comment{\textrm{update phase $C_u$}}
-            \State\hspace{-3mm}{1':\ x.lock()}
-            \State\hspace{-3mm}{2':\ if x.f1>i  then}
-            \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
-            \State\hspace{-3mm}{4':\ temp = x.f1 + x.f2}
-            \State\hspace{-3mm}{5':\ x.unlock()}
-            \State\hspace{-3mm}{6':\ return temp}
-			\EndFunction
-			}
-		\end{algorithmic}
-		\caption{The code after \emph{phase separation}.
-        %Lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
-} \label{figure:autoPartitioning:step3}
-	\end{subfigure}
-
-	\end{center}
-\vspace{-4mm}
-	\caption{Example for automatic code partitioning to read-only and update phases.}
-			\label{figure:autoPartitioning}
-\end{figure*}
-
-We now explain our automatic technique to partition code $C$ to read-only and update phases $C_r$ and $C_u$, resp.
-By slight abuse of terminology, we use the same notation ($C$, $C_r$, or $C_u$) both for the code section and
-for its corresponding CFG.
-%
-We demonstrate our technique for the code in Figure~\ref{figure:autoPartitioning:step1}.
-Note that here, the first code location where the shared memory is updated depends on the runtime value of the parameter $i$: if $i>7$ then the code writes to shared memory in line $3$, and otherwise the code does not update shared memory.
-
-\noindent Our technique is realized by the following two steps:
-\begin{description}
-  \item [CFG cloning:]
-Given code $C$ of a data structure operation, we create a clone $C_u$ of $C$, and concatenate $C_u$ to the end of $C$.
-For example, Figure~\ref{figure:autoPartitioning:step2} shows the code produced from Figure~\ref{figure:autoPartitioning:step1}.
-Each location $\ell$ in $C$ has a matching location in its clone, denoted by $\ell'$
-(e.g, in Figure~\ref{figure:autoPartitioning:step2}, the matching location of line $5$ is line $5'$).
-  \item [Phase separation:]
-Next, we modify the original code $C$ to execute only the read-only phase, and branch to $C_u$ when the
-update phase begins. Our basic phase partitioning branches out to the update phase at the time of the first update in $C_r$.
-To this end, we replace every shared memory write instruction
-at location $l \in C$ with the instruction \emph{goto l'}.
-Likewise, every \emph{return instruction} (or any other instruction that exits from the operation)
-at location $l \in C$ is replaced with the instruction \emph{goto l'}.
-The transformed version of $C$ is denoted $C_r$.
-Figure~\ref{figure:autoPartitioning:step3} shows the code produced from Figure~\ref{figure:autoPartitioning:step2}.
-\end{description}
-
-
-For example, in Figure~\ref{figure:autoPartitioning:step3}, lines 1-6 are the read-only phase; and lines 1'-6' are the update phase.
-
-It is easy to see that this new code is equivalent to the original one (in terms of external behavior), and it satisfies the assumption from Section~\ref{ssec:transformation}. Note further that $C_u$ consists of the complete original code, including
-the read-only prefix, which is usually skipped. This allows us to branch  to
-%separate the phases differently by branching to
-the update phase earlier than the first write, and in particular, to fall back on executing the
-operation pessimistically, as we now explain.
-
-\paragraph{Early Phase Separation}
+%\paragraph{Early Phase Branching}
 Note that, using our transformation, the shared state at the end of the validation phase
 is identical to the state that would have been reached had the code been executed pessimistically from
 the outset. Hence, the three-phase version of the code is compatible with the instrumented
