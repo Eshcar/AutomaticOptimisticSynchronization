@@ -92,7 +92,7 @@ scalable parallelization of sequential code}.
 \subsection{Evaluation}
 In Section~\ref{sec:eval} we evaluate our transformation by generating three data structures-- an unbalanced search tree, a treap
 (randomized balanced search tree),
-and a skip list that supports range queries. We synthesize the first two from sequential implementations using the algorithm of~\cite{Gueta2011}, followed by our transformation.
+and a skip list that supports range queries. We synthesize the first two from sequential implementations using the algorithm of~\cite{Gueta2011} (\emph{domination locking}), followed by our transformation.
 For the skip list, we manually add fine-grained locks (in a straightforward manner), and then apply our transformation.
 All examples are implemented in Java. We evaluate the scalability of the resulting code
 in a range of workload scenarios on a $32$-core machine.
