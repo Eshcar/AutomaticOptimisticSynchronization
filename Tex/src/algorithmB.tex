@@ -6,6 +6,7 @@
 \algrenewcommand\algorithmicforall{\texttt{for all}}
 \algrenewcommand\algorithmicdo{\texttt{do}}
 \algrenewcommand\textproc{\textit}
+\newcommand{\codesize}{\footnotesize}
 
 
 
@@ -102,13 +103,13 @@ and (3) $C_r$ does not contain instructions that write to shared objects\footnot
 Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even though their implementation may write to shared memory), but $C_r$ cannot modify the objects protected by locks.}.
 
 \begin{figure*}
-\scriptsize
+\codesize
 	\begin{center}
-	\begin{subfigure}[t]{.3\textwidth}
+	\begin{subfigure}[b]{.3\textwidth}
 		\begin{algorithmic}[0]{}
 		{\ttfamily
 			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex --------------------
+            \Statex ---------------
             \State\hspace{-3mm}{1 :\ x.lock()}
             \State\hspace{-3mm}{2 :\ if i>7  then}
             \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
@@ -127,18 +128,18 @@ Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even tho
 		\end{algorithmic}
 		\caption{Original code.} \label{figure:autoPartitioning:step1}
 	\end{subfigure}
-	\begin{subfigure}[t]{.3\textwidth}
+	\begin{subfigure}[b]{.3\textwidth}
 		\begin{algorithmic}[0]{}
 		{\ttfamily
 			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex -------------------- \Comment{\textrm{original code $C$}}
+            \Statex --------------- \Comment{\textrm{original code $C$}}
             \State\hspace{-3mm}{1 :\ x.lock()}
             \State\hspace{-3mm}{2 :\ if i>7  then}
             \State\hspace{-3mm}{3 :\ \ \ x.f2 = i}
             \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
             \State\hspace{-3mm}{5 :\ x.unlock()}
             \State\hspace{-3mm}{6 :\ return temp}
-            \Statex -------------------- \Comment{\textrm{clone $C_u$}}
+            \Statex --------------- \Comment{\textrm{clone $C_u$}}
             \State\hspace{-3mm}{1':\ x.lock()}
             \State\hspace{-3mm}{2':\ if x.f1>i  then}
             \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
@@ -151,18 +152,18 @@ Note that $C_r$ may contain \emph{lock} and \emph{unlock} instructions (even tho
 		\caption{The code after \emph{CFG cloning}.}
  \label{figure:autoPartitioning:step2}
 	\end{subfigure}
-	\begin{subfigure}[t]{.35\textwidth}
+	\begin{subfigure}[b]{.35\textwidth}
 		\begin{algorithmic}[0]{}
 		{\ttfamily
 			\Function{foo}{X x, int i} \label{codeXXX:aaaaa}
-            \Statex -------------------- \Comment{\textrm{read-only phase $C_r$}}
+            \Statex --------------- \Comment{\textrm{read-only phase $C_r$}}
             \State\hspace{-3mm}{1 :\ x.lock()}
             \State\hspace{-3mm}{2 :\ if i>7  then}
             \State\hspace{-3mm}{3 :\ \ \ \underline{\textbf{goto 3'}}}
             \State\hspace{-3mm}{4 :\ temp = x.f1 + x.f2}
             \State\hspace{-3mm}{5 :\ x.unlock()}
             \State\hspace{-3mm}{6 :\ \underline{\textbf{goto 6'}}}
-            \Statex -------------------- \Comment{\textrm{update phase $C_u$}}
+            \Statex --------------- \Comment{\textrm{update phase $C_u$}}
             \State\hspace{-3mm}{1':\ x.lock()}
             \State\hspace{-3mm}{2':\ if x.f1>i  then}
             \State\hspace{-3mm}{3':\ \ \ x.f2 = i}
@@ -221,9 +222,9 @@ operation pessimistically.
 \newcommand{\spOne}{\hspace{-3mm}\ }
 \newcommand{\spZero}{\hspace{-3mm}}
 \begin{figure*}
-\scriptsize
+\codesize
 	\begin{center}
-	\begin{subfigure}[t]{.45\textwidth}
+	\begin{subfigure}[b]{.45\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
@@ -264,7 +265,7 @@ operation pessimistically.
 		\end{algorithmic}
 		\caption{Code with original locking} \label{figure:transformation:before}
 	\end{subfigure}
-	\begin{subfigure}[t]{.45\textwidth}
+	\begin{subfigure}[b]{.45\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
@@ -364,13 +365,13 @@ Similarly, it is also checked to be unlocked; if it is locked, the operation res
 
 
 \begin{table}
-\scriptsize
+\codesize
 \ttfamily
 {\tt
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-\textbf{Original Locking Instruction} & \textbf{Transformed Code}\\
+\textbf{Original Instruction} & \textbf{Transformed Code}\\
 \hline
 \textit{x.lock()}&
 \textit{if !track(x) then goto $S$}
@@ -391,7 +392,7 @@ each locking instruction (left side) is replaced with the corresponding code on 
 \end{table}
 
 \begin{figure}
-\scriptsize
+\codesize
 \begin{algorithmic}[1]{}
 		{\ttfamily
 		\Function{track}{obj}
@@ -399,9 +400,15 @@ each locking instruction (left side) is replaced with the corresponding code on 
 			\State long ver = obj.version \label{code:track:getVersion}
 			\State readSet.add(<obj,ver>)
 %\Statex	\hspace{-30mm} \Comment{\textrm{Eager validation}}
-			\State if {$\exists$<o,v>$\in$readSet such that o=obj and v!=ver} then return false \label{code:track:verifyVersion}
-			\State if {obj.isLockedByAnotherThread()} then return false \label{code:track:verifyUnlocked}
-			\State retrun true
+%			\State if {$\exists$<o,v>$\in$readSet such that o=obj and v!=ver} then
+			% return false \label{code:track:verifyVersion}			
+			\If{<obj,v>$\in$readSet and v!=ver} \label{code:track:verifyVersion}
+				\State return false
+			\EndIf
+			\If{obj.isLockedByAnotherThread()}  
+				\State return false \label{code:track:verifyUnlocked}
+			\EndIf
+			\State return true
 		\EndFunction
 		}
 \end{algorithmic}
@@ -441,16 +448,16 @@ Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the c
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
 \begin{figure}
-\scriptsize
+\codesize
 \begin{algorithmic}[1]{}
 		{\ttfamily
 		\Function{validateReadSet}{}()
 		\ForAll {<obj,ver> in readSet}
 			\If{obj.isLockedByAnotherThread()}
-			\State return false \Comment{\textrm{validation failed (due to a locked object)}}
+			\State return false \Comment{\textrm{validation failed (locked object)}}
 			\EndIf
 			\If{obj.version != ver}
-				\State return false \Comment{\textrm{validation failed (due to a different version)}}
+				\State return false \Comment{\textrm{validation failed (different version)}}
 			\EndIf
 		\EndFor
 		\State retrun true \Comment{\textrm{validation succeed}}
