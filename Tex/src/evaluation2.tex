@@ -80,6 +80,7 @@ workload comprising of insert and delete operations ($50\%$ each), and
 \emph{mixed workload} comprising of $50\%$ lookups, $25\%$ inserts and $25\%$
 deletes.
 
+\paragraph{Results}
 Figure~\ref{evaluation:results:unbalanced} 
 shows the throughput of unbalanced data structures and Figure~\ref{evaluation:results:balanced} shows
 the throughput of the balanced ones. We see that our semi-optimistic
@@ -230,8 +231,9 @@ and half the threads execute insert and delete operations}
 \label{evaluation:results:skiplist}
 \end{figure*}
 
-We measure the throughput of range queries and update operations separately,
-that is, the overall number of range queries executed per second - reported
+\paragraph{Results}
+We measure the throughput of range queries and update operations separately.
+That is, the overall number of range queries executed per second - reported
 in Figures~\ref{evaluation:results:range1000}
 and~\ref{evaluation:results:range}, and the overall number of update (insert 
 and delete) operations executed per second - reported in
@@ -239,7 +241,7 @@ Figures~\ref{evaluation:results:update1000} and~\ref{evaluation:results:update}.
 
 These results demonstrate again that our semi-optimistic
 solution is superior to fully-pessimistic fine-grain solution, with up-to two
-order of magnitude higher throughput (x75 for small range queries, x4 for small
+order of magnitude higher throughput (x75 for small range queries, x4 for big
 ranges, and x100 for update operations, regardless of the range size). As in the
 domination locking version of the tree data structures, holding a lock on the head sentinel of the skip list in
 \domSkiplist, even for short periods, imposes a performance penalty similar to
