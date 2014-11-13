@@ -355,7 +355,7 @@ thread-local variables \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figu
 An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
 An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
 
-In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlocked}), we use an eager validation scheme\footnote{
+In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlockedB}), we use an eager validation scheme\footnote{
 This validation scheme may be omitted, since it is not required for correctness.
 }.
 If the object already exists in \emph{readSet}, we check that its current version is equal
@@ -405,8 +405,8 @@ each locking instruction (left side) is replaced with the corresponding code on 
 			\If{<obj,v>$\in$readSet and v!=ver} \label{code:track:verifyVersion}
 				\State return false
 			\EndIf
-			\If{obj.isLockedByAnotherThread()}  
-				\State return false \label{code:track:verifyUnlocked}
+			\If{obj.isLockedByAnotherThread()} \label{code:track:verifyUnlocked}
+				\State return false \label{code:track:verifyUnlockedB}
 			\EndIf
 			\State return true
 		\EndFunction
