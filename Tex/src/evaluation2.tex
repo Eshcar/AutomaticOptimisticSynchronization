@@ -286,8 +286,8 @@ ranges are small (Figure~\ref{evaluation:results:range}), and the throughput of
 
 In addition, the lazy cloning required to support
 range queries imposes an overhead on  update operations. Copying each node
-during downward traversal prevents these operations from scaling when
-the ranges are small (Figure~\ref{evaluation:results:update}) as well as when
+during downward traversal might be the main impediment preventing these
+operations from scaling when the ranges are small (Figure~\ref{evaluation:results:update}) as well as when
 they are big (Figure~\ref{evaluation:results:update1000}). In contrast,
 the update operations in \autoSkiplist and \skiplist do not take any special
 measures for the benefit of concurrent queries (which validate themselves in
