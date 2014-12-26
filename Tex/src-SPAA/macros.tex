@@ -1,0 +1,59 @@
+\newcommand{\Xomit}[1]{}
+
+%-------------Theorem Definitions ---------------%
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+%\newenvironment{proof}[1][Proof]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\qedsymb\end{trivlist}}
+\newenvironment{definition}[1][Definition]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{example}[1][Example]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{remark}[1][Remark]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\Xomit{
+\newcommand{\qed}{\nobreak \ifvmode \relax \else
+      \ifdim\lastskip<1.5em \hskip-\lastskip
+      \hskip1.5em plus0em minus0.5em \fi \nobreak
+      \vrule height0.75em width0.5em depth0.25em\fi}
+\newcommand{\qedsymb}{\hfill{\rule{2mm}{2mm}}}
+}
+
+%--------------------------------------------------%
+
+\newcommand{\code}[1]{\textsf{#1}}
+\newcommand{\readV}{\code{read\_version}\xspace}
+\newcommand{\readSet}{\code{read\_set}\xspace}
+\newcommand{\writeV}{\code{write\_version}\xspace}
+
+\newcommand{\reqI}{\textbf{LPR1}\xspace}
+\newcommand{\reqII}{\textbf{LPR2}\xspace}
+
+%---------Evaluation Macros-----------------------%
+\newcommand{\autoTree}{Auto-Tree\xspace}
+\newcommand{\autoTreap}{Auto-Treap\xspace}
+\newcommand{\autoSkiplist}{Auto-Skiplist\xspace}
+\newcommand{\danaTree}{LO-Tree\xspace}
+\newcommand{\danaAVL}{LO-AVL\xspace}
+\newcommand{\bronson}{Snap-Tree\xspace}
+\newcommand{\skiplist}{Java-Skiplist\xspace}
+\newcommand{\globalTree}{Global-Tree\xspace}
+\newcommand{\globalTreap}{Global-Treap\xspace}
+\newcommand{\domTree}{Lock-Tree\xspace}
+\newcommand{\domTreap}{Lock-Treap\xspace}
+\newcommand{\domSkiplist}{Lock-Skiplist\xspace}
+\newcommand{\getOP}{\textsc{get}\xspace}
+
+
+%---------Comments -----------------------%
+\newcommand{\Idit}[1]{{\color{red}{[\textbf{Idit:} #1 ]}}}
+\newcommand{\guy}[1]{{\color{red}{[\textbf{guy:} #1 ]}}}
+\newcommand{\eshcar}[1]{{\textcolor{violet}{\{{\bf eshcar:} \em #1\}}}}
+\newcommand{\maya}[1]{{\textcolor{magenta}{\{{\bf maya:} \em #1\}}}}
+

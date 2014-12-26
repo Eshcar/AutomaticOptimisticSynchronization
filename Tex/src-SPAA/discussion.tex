@@ -1,0 +1,32 @@
+\section{Discussion}\label{sec:discussion}
+
+%We have made the case that automatic synchronization can be a viable approach for producing scalable concurrent algorithms from %legacy sequential code.
+The development of scalable concurrent programs today
+heavily relies on custom-tailored implementations, which require painstaking correctness proofs.
+In this paper, we have shown a relatively simple  transformation that can facilitate this labor-intensive process, and
+thus make scalable synchronization more readily available.
+The input for our transformation is a conventional lock-based concurrent program, which may be either constructed manually or
+synthesized from sequential code. Our source-to-source transformation then makes judicious use of optimism in order to
+eliminate principal concurrency bottlenecks in the given program and improve its scalability. 
+
+We have illustrated our method for a number of data structures -- unbalanced and balanced search trees,  as well as
+skip lists supporting range queries. 
+In all cases, the transformed code performed significantly better than the original
+lock-based one. It also scaled comparably  to hand-crafted
+implementations that took considerably more effort to produce.
+Moreover, extending the synthesized code with new functionalities
+such as range queries was immediate. 
+In these examples, we have manually applied our transformation (according to the algorithm presented in Section~\ref{sec:algorithm}). An interesting direction for future work would be to create a tool that automatically applies our transformation at compile time.
+
+Our approach makes use of a common pattern in data structures, where an operation typically begins with a long read-only traversal, followed by a handful of (usually local) modifications.
+A promising direction for future work  is to try and
+exploit similar patterns in order to parallelize or remove locks in other types of code (not data structures), for example, programs that rely on two-phase locking.
+Furthermore, for programs that follow different patterns, other combinations of optimism and pessimism may prove effective.
+
+Finally, there still remains a gap between the performance achievable by manually optimized solutions and what we could achieve automatically. Our algorithm induces inherent overhead for tracking all operations in the read-only phase for later verification.
+In specific data structures, these checks might be redundant, but it is difficult  to detect this automatically. We believe that
+it may well be possible to enhance  transformations such as ours with computer-assisted optimizations. For example, a programmer may provide hints regarding certain
+invariants that are always preserved in the code, in order to eliminate the need for tracking some values for later
+validation. Such optimizations have the potential to bridge the remaining performance gap, while requiring far less work
+for proving correctness -- instead of proving that the entire construction is correct, the developer would only need to
+prove that her program maintains the specific invariants used.

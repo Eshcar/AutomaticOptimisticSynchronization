@@ -1,0 +1,23 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: C:\Users\Idit Keidar\Desktop\AutomaticOptimisticSynchronization\Tex\src-SPAA\document.aux
+The style file: abbrv.bst
+Database file #1: myRef.bib
+A bad cross reference---entry "Gueta2011"
+refers to entry "DBLP:conf/oopsla/2011", which doesn't exist
+A bad cross reference---entry "FerroJKRY14"
+refers to entry "DBLP:conf/icde/2014", which doesn't exist
+A bad cross reference---entry "Emmi06POPL"
+refers to entry "DBLP:conf/popl/2007", which doesn't exist
+A bad cross reference---entry "GuerraouiK2008"
+refers to entry "DBLP:conf/ppopp/2008", which doesn't exist
+Warning--I didn't find a database entry for "DBLP:conf/ppopp/2008"
+Warning--I didn't find a database entry for "DBLP:conf/oopsla/2011"
+Warning--I didn't find a database entry for "DBLP:conf/popl/2007"
+Warning--I didn't find a database entry for "DBLP:conf/icde/2014"
+Warning--to sort, need author or key in levelDB
+Warning--to sort, need author or key in jmonkey
+Warning--to sort, need author or key in ConcurrentSkipList
+Warning--empty publisher in CGE:CC08
+Warning--empty journal in DuffyTM2010
+Warning--empty publisher in gudka2012lock
+Warning--can't use both volume and number fields in zyulkyarov2009atomic
+(There were 4 error messages)

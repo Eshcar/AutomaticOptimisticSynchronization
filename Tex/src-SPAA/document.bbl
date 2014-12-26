@@ -1,0 +1,255 @@
+\begin{thebibliography}{10}
+
+\bibitem{ConcurrentSkipList}
+Concurrentskiplistmap from java.util.concurrent.
+\newblock
+  \url{docs.oracle.com/javase/7/docs/api/java/util/concurrent/ConcurrentSkipListMap.html}.
+
+\bibitem{levelDB}
+A fast and lightweight key/value database library by google.
+\newblock \url{http://code.google.com/p/leveldb}.
+
+\bibitem{jmonkey}
+jmonkeyengine: a 3d game engine for java developers.
+\newblock \url{http://jmonkeyengine.org/}.
+
+\bibitem{Afek:1993:ASS:153724.153741}
+Y.~Afek, H.~Attiya, D.~Dolev, E.~Gafni, M.~Merritt, and N.~Shavit.
+\newblock Atomic snapshots of shared memory.
+\newblock {\em J. ACM}, 40(4):873--890, Sept. 1993.
+
+\bibitem{AfekKKMT2012}
+Y.~Afek, H.~Kaplan, B.~Korenfeld, A.~Morrison, and R.~E. Tarjan.
+\newblock {CBTree}: A practical concurrent self-adjusting search tree.
+\newblock In {\em DISC}, pages 1--15, 2012.
+
+\bibitem{Afek:2014:SHL:2611462.2611482}
+Y.~Afek, A.~Levy, and A.~Morrison.
+\newblock Software-improved hardware lock elision.
+\newblock In {\em PODC}, 2014.
+
+\bibitem{AragonS1989}
+C.~R. Aragon and R.~Seidel.
+\newblock Randomized search trees.
+\newblock In {\em 30th Annual Symposium on Foundations of Computer Science,
+  Research Triangle Park, North Carolina, USA, 30 October - 1 November 1989},
+  pages 540--545, 1989.
+
+\bibitem{ArbelA2014}
+M.~Arbel and H.~Attiya.
+\newblock Concurrent updates with {RCU:} search tree as an example.
+\newblock In {\em PODC}, pages 196--205, 2014.
+
+\bibitem{BraginskyP2012}
+A.~Braginsky and E.~Petrank.
+\newblock A lock-free {B}+tree.
+\newblock In {\em SPAA}, pages 58--67, 2012.
+
+\bibitem{NathanBronson11}
+N.~Bronson.
+\newblock {\em Composable Operations on High-Performance Concurrent
+  Collections}.
+\newblock PhD thesis, Stanford University, Dec. 2011.
+
+\bibitem{BronsonCCO2010}
+N.~G. Bronson, J.~Casper, H.~Chafi, and K.~Olukotun.
+\newblock A practical concurrent binary search tree.
+\newblock In {\em PPOPP}, pages 257--268, 2010.
+
+\bibitem{BrownER2014}
+T.~Brown, F.~Ellen, and E.~Ruppert.
+\newblock A general technique for non-blocking trees.
+\newblock In {\em 19th ACM Symposium on Principles and Practice of Parallel
+  Programming (PPoPP)}, pages 329--342, 2014.
+
+\bibitem{Cascaval:2008}
+C.~Cascaval, C.~Blundell, M.~Michael, H.~W. Cain, P.~Wu, S.~Chiras, and
+  S.~Chatterjee.
+\newblock Software transactional memory: Why is it only a research toy?
+\newblock {\em Queue}, 6(5):46--58, Sept. 2008.
+
+\bibitem{CCG:PLDI08}
+S.~Cherem, T.~Chilimbi, and S.~Gulwani.
+\newblock Inferring locks for atomic sections.
+\newblock In {\em PLDI}, 2008.
+
+\bibitem{CrainGR2013}
+T.~Crain, V.~Gramoli, and M.~Raynal.
+\newblock A contention-friendly binary search tree.
+\newblock In {\em 19th International Conference on Parallel Processing
+  (Euro-Par)}, pages 229--240, 2013.
+
+\bibitem{CGE:CC08}
+D.~Cunningham, K.~Gudka, and S.~Eisenbach.
+\newblock Keep off the grass: Locking the right path for atomicity.
+\newblock In {\em CC}, pages 276--290. 2008.
+
+\bibitem{Doh:SPAA04}
+S.~Doherty, D.~L. Detlefs, L.~Groves, C.~H. Flood, V.~Luchangco, P.~A. Martin,
+  M.~Moir, N.~Shavit, and G.~L. Steele, Jr.
+\newblock Dcas is not a silver bullet for nonblocking algorithm design.
+\newblock In {\em SPAA}, 2004.
+
+\bibitem{DrachslerVY2014}
+D.~Drachsler, M.~T. Vechev, and E.~Yahav.
+\newblock Practical concurrent binary search trees via logical ordering.
+\newblock In {\em PPoPP}, pages 343--356, 2014.
+
+\bibitem{DuffyTM2010}
+J.~Duffy.
+\newblock A (brief) retrospective on transactional memory.
+\newblock 2010.
+\newblock
+  \url{http://joeduffyblog.com/2010/01/03/\\a-brief-retrospective-on-transactional-memory/}.
+
+\bibitem{EllenFRB2010}
+F.~Ellen, P.~Fatourou, E.~Ruppert, and F.~van Breugel.
+\newblock Non-blocking binary search trees.
+\newblock In {\em 29th ACM Symposium on Principles of Distributed Computing
+  (PODC)}, pages 131--140, 2010.
+
+\bibitem{Emmi06POPL}
+M.~Emmi, J.~S. Fischer, R.~Jhala, and R.~Majumdar.
+\newblock Lock allocation.
+\newblock In {\em POPL}, pages 291--296, 2007.
+
+\bibitem{FerroJKRY14}
+D.~G. Ferro, F.~Junqueira, I.~Kelly, B.~Reed, and M.~Yabandeh.
+\newblock Omid: Lock-free transactional support for distributed data stores.
+\newblock In {\em {IEEE} 30th International Conference on Data Engineering,
+  Chicago, {ICDE} 2014, IL, USA, March 31 - April 4, 2014}, pages 676--687,
+  2014.
+
+\bibitem{fraser2004practical}
+K.~Fraser.
+\newblock {\em Practical lock-freedom}.
+\newblock PhD thesis, University of Cambridge, 2004.
+
+\bibitem{Gueta2011}
+G.~Golan-Gueta, N.~G. Bronson, A.~Aiken, G.~Ramalingam, M.~Sagiv, and E.~Yahav.
+\newblock Automatic fine-grain locking using shape properties.
+\newblock In {\em OOPSLA}, pages 225--242, 2011.
+
+\bibitem{gudka2012lock}
+K.~Gudka, T.~Harris, and S.~Eisenbach.
+\newblock Lock inference in the presence of large libraries.
+\newblock In {\em ECOOP}. 2012.
+
+\bibitem{GuerraouiK2008}
+R.~Guerraoui and M.~Kapalka.
+\newblock On the correctness of transactional memory.
+\newblock In {\em PPOPP}, pages 175--184, 2008.
+
+\bibitem{HLR:SLCA2010}
+T.~Harris, J.~Larus, and R.~Rajwar.
+\newblock Transactional memory, 2nd edition.
+\newblock {\em Synthesis Lectures on Computer Architecture}, 5(1), 2010.
+
+\bibitem{Herlihy:2008}
+M.~Herlihy and E.~Koskinen.
+\newblock Transactional boosting: a methodology for highly-concurrent
+  transactional objects.
+\newblock In {\em PPoPP}, pages 207--216, 2008.
+
+\bibitem{HerlihyLLS2007}
+M.~Herlihy, Y.~Lev, V.~Luchangco, and N.~Shavit.
+\newblock A simple optimistic skiplist algorithm.
+\newblock In {\em 14th International Conference on Structural Information and
+  Communication Complexity (SIROCCO)}, pages 124--138, 2007.
+
+\bibitem{HerlihyS2008}
+M.~Herlihy and N.~Shavit.
+\newblock {\em The Art of Multiprocessor Programming}.
+\newblock Morgan Kaufmann Publishers Inc., 2008.
+
+\bibitem{HFP:TRANSACT06}
+M.~Hicks, J.~S. Foster, and P.~Prattikakis.
+\newblock Lock inference for atomic sections.
+\newblock In {\em Proceedings of the First ACM SIGPLAN Workshop on Languages,
+  Compilers, and Hardware Support for Transactional Computing}, June 2006.
+
+\bibitem{Israeli:1994:DIS:197917.198079}
+A.~Israeli and L.~Rappoport.
+\newblock Disjoint-access-parallel implementations of strong shared memory
+  primitives.
+\newblock In {\em Proceedings of the Thirteenth Annual ACM Symposium on
+  Principles of Distributed Computing}, PODC '94, pages 151--160, New York, NY,
+  USA, 1994. ACM.
+
+\bibitem{Jin:2012}
+G.~Jin, W.~Zhang, D.~Deng, B.~Liblit, and S.~Lu.
+\newblock Automated concurrency-bug fixing.
+\newblock In {\em OSDI}, 2012.
+
+\bibitem{Koskinen:2010}
+E.~Koskinen, M.~Parkinson, and M.~Herlihy.
+\newblock Coarse-grained transactions.
+\newblock In {\em POPL}, pages 19--30, 2010.
+
+\bibitem{LevAriCK2014}
+K.~Lev-Ari, G.~Chockler, and I.~Keidar.
+\newblock On correctness of data structures under reads-write concurrency.
+\newblock In {\em DISC}, October 2014.
+
+\bibitem{MZGB:POPL06}
+B.~McCloskey, F.~Zhou, D.~Gay, and E.~Brewer.
+\newblock Autolocker: synchronization inference for atomic sections.
+\newblock In {\em POPL}, pages 346--358, 2006.
+
+\bibitem{mckenneyParallel}
+P.~E. McKenney.
+\newblock Is parallel programming hard, and, if so, what can you do about it?
+\newblock {\em Linux Technology Center, IBM Beaverton}, Aug. 2012.
+
+\bibitem{Michael:1996}
+M.~M. Michael and M.~L. Scott.
+\newblock Simple, fast, and practical non-blocking and blocking concurrent
+  queue algorithms.
+\newblock In {\em PODC}, 1996.
+
+\bibitem{Nakaike:2010}
+T.~Nakaike and M.~M. Michael.
+\newblock Lock elision for read-only critical sections in java.
+\newblock In {\em PLDI}, pages 269--278, 2010.
+
+\bibitem{NatarajanM2014}
+A.~Natarajan and N.~Mittal.
+\newblock Fast concurrent lock-free binary search trees.
+\newblock In {\em 19th ACM Symposium on Principles and Practice of Parallel
+  Programming (PPoPP)}, pages 317--328, 2014.
+
+\bibitem{Rajwar:2002:TLE:635508.605399}
+R.~Rajwar and J.~R. Goodman.
+\newblock Transactional lock-free execution of lock-based programs.
+\newblock {\em SIGOPS Oper. Syst. Rev.}, 36(5):5--17, Oct. 2002.
+
+\bibitem{Roy:2009:RSS:1519065.1519094}
+A.~Roy, S.~Hand, and T.~Harris.
+\newblock A runtime system for software lock elision.
+\newblock In {\em EuroSys}, 2009.
+
+\bibitem{OhadThesis}
+O.~Shacham.
+\newblock {\em Verifying Atomicity of Composed Concurrent Operations}.
+\newblock PhD thesis, Tel Aviv University, 2012.
+
+\bibitem{Ohad:OOPSLA11}
+O.~Shacham, N.~Bronson, A.~Aiken, M.~Sagiv, M.~Vechev, and E.~Yahav.
+\newblock Testing atomicity of composed concurrent operations.
+\newblock In {\em OOPSLA}, 2011.
+
+\bibitem{DBLP:conf/eurosys/ShalevS06}
+O.~Shalev and N.~Shavit.
+\newblock Predictive log-synchronization.
+\newblock In Y.~Berbers and W.~Zwaenepoel, editors, {\em Proceedings of the
+  2006 EuroSys Conference, Leuven, Belgium, April 18-21, 2006}, pages 305--315.
+  {ACM}, 2006.
+
+\bibitem{zyulkyarov2009atomic}
+F.~Zyulkyarov, V.~Gajinov, O.~S. Unsal, A.~Cristal, E.~Ayguad{\'e}, T.~Harris,
+  and M.~Valero.
+\newblock Atomic quake: using transactional memory in an interactive
+  multiplayer game server.
+\newblock In {\em ACM Sigplan Notices}, volume~44, pages 25--34. ACM, 2009.
+
+\end{thebibliography}

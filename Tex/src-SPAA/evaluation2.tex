@@ -1,0 +1,295 @@
+\section{Evaluation}
+\label{sec:eval}
+
+We evaluate the performance of our approach on two types of data
+structures. In Section~\ref{sec:readwrite} we consider search trees
+supporting insert, delete, and get operations, whereas Section~\ref{sec:range}
+focuses on data structures that, in addition, support range queries that retrieve all
+records within a given range. We compare the performance of our approach in terms of
+throughput to fully pessimistic solutions applying fine-grain locking. These
+algorithms also serve as the lock-based reference implementation at the base of
+our semi-optimistic implementations.
+We further
+compare our approach to hand-crafted state-of-the-art data structure
+implementations supporting the same functionality.
+
+We also measured the performance of global lock-based implementations.
+In all workloads, the results were identical or inferior to those
+achieved by pessimistic fine-grain locking. We hence
+omitted these results to avoid obscuring the presentation.
+
+We follow a standard evaluation methodology
+(\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). Each experiment
+consists of $5$ trials. A trial is a five second run in which each thread continuously executes
+randomly chosen operations drawn from the workload distribution, with keys
+selected uniformly at random from the range $[0,2\cdot10^6]$.
+Each trial begins by initiating a new data structure and applying an untimed pre-filling
+phase, which continues until the size of the data structure is within 5\% of
+$10^6$ records. The presented results are the average throughput over all trials
+(with the pre-filling phase excluded).
+We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
+contention levels; since the results showed similar trends, they are omitted here.
+
+All implementations are written in Java. We ran the experiments on a dedicated machine with
+four Intel Xeon E5-4650 processors, each with $8$ cores, for a total of $32$ threads
+(with hyper-threading disabled).
+We used Ubuntu 12.04.4 LTS and Java Runtime Environment (build
+1.7.0\_51-b13) using the 64-Bit Server VM (build 24.51-b03, mixed mode).
+
+\subsection{Insert-Delete-Get Operations}
+\label{sec:readwrite}
+
+We start by benchmarking a search-tree supporting the basic insert,
+delete, and get (lookup) operations. Our experiments evaluate unbalanced as well
+as balanced trees.
+
+We employ textbook sequential implementations of an unbalanced binary
+tree, and a treap~\cite{AragonS1989}. To
+generate pessimistic lock-based implementations, we synthesize
+concurrent code by applying the domination locking technique to the sequential
+data structures. The resulting algorithms are denoted \domTree and \domTreap.
+Finally, we apply our lock-removal transformation to the reference
+implementations to get our semi-optimistic versions of the code, which we call
+\autoTree and \autoTreap, respectively.
+
+We further compare our implementations to their hand-crafted state-of-the-art counterparts. We compare \autoTree to
+\begin{description}
+\item[\danaTree] The locked-based
+				unbalanced tree of Drachsler et
+				al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
+\end{description}
+\autoTreap is evaluated against three hand-crafted implementations
+\begin{description}
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
+\item[\danaAVL] The locked-based relaxed balanced AVL tree of
+				Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation available at \\
+				\texttt{https://github.com/logicalordering/trees}}.
+\item[\bronson] The locked based relaxed balanced AVL tree
+				of Bronson et al.~\cite{BronsonCCO2010}\footnote{Implementation available at \\
+				\texttt{https://github.com/nbronson/snaptree}}.
+\item[\skiplist] The non-blocking skip-list in the
+				the Java standard library; based on the work of
+				Fraser and Harris~\cite{fraser2004practical}.
+\end{description}
+
+
+We evaluate performance in three representative workloads distributions: a
+\emph{read-only} workload comprised of $100\%$ lookup operations, a \emph{write-dominated}
+workload consisting of insert and delete operations ($50\%$ each), and a
+\emph{mixed workload} with $50\%$ lookups, $25\%$ inserts, and $25\%$
+deletes.
+
+\paragraph{Results}
+Figure~\ref{evaluation:results:unbalanced}
+shows the throughput of unbalanced data structures and Figure~\ref{evaluation:results:balanced} shows
+the throughput of the balanced ones. We see that our semi-optimistic
+solution is far superior to previous, fully-pessimistic,
+automated approaches, with 50x to 70x
+%up-to two order of magnitude
+higher performance
+%(between x50 in write dominated workload to x70 in read-only workload).
+It successfully overcomes the bottlenecks associated with lock contention
+%, and
+%specifically the contention on the lock of the root, even if held only for short
+%periods
+in the \domTree and \domTreap implementations. In
+many scenarios, our solution comes close to custom-tailored implementations.
+
+\begin{figure*}
+\begin{center}
+\input{plots/unbalanced2}
+\end{center}
+\caption{Throughput of unbalanced data structures.}
+\label{evaluation:results:unbalanced}
+\end{figure*}
+
+
+\begin{figure*}
+\begin{center}
+\input{plots/balanced2}
+\end{center}
+\caption{Throughput of balanced data
+structures.}
+\label{evaluation:results:balanced}
+\end{figure*}
+
+The results for the read-only workload show the main overhead
+of our automatic approach. By profiling the code, we learned
+that the bulk of this overhead stems from the need to track all read objects,
+which is inherent to our transformation.
+This is in contrast with the hand-crafted implementations,
+which have small overhead on reads in this scenario, thanks to either
+wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \bronson).
+
+As the ratio of updates in the workload increases, our automatic implementation
+closes this gap.
+In other words, the transformed code deals well with update contention.
+This might be due to the fact that once
+an update phase begins, the operation is not delayed due to concurrent
+read-only operations.
+
+
+\subsection{Range Queries}
+\label{sec:range}
+
+Next we evaluate the performance of our approach when the data
+structure supports a more intricate functionality like range queries.
+\Xomit{
+Hand
+crafting an implementation of a data structure that supports atomic
+(linearizable) range queries is challenging.
+The implementations that do support iterating through records may impose an
+additional overhead on the regular read and write operations to ensure
+progress of range queries.
+The results in this section demonstrate that our method
+allows generating a correct and efficient code, which is otherwise difficult
+to obtain.
+}
+We use a skip list, which readily supports range queries by
+nature of its linked-structure. The core of the implementation is the key lookup
+method; once reaching the key, a record can be added or be removed in place, and
+an iteration of subsequent records can be executed by traversing
+the bottom-level linked-list.
+
+The domination locking scheme cannot be efficiently applied to the skip list
+structure since it is a DAG rather than a tree. Instead, we
+manually devise a pessimistic locking protocol. Our
+algorithm, (inspired by the one in~\cite{HerlihyS2008}), applies
+hand-over-hand locking at each level, so that at the end of the search, the
+operation holds locks on two records in each level, which define the minimal interval within this level
+containing the lookup key (or the first lookup key in the case of a range query). Upon
+reaching the bottom level, unnecessary locks are released, as follows: update operations only keep
+locks on nodes they intend to modify, whereas
+%that will be modified; while holding these locks any
+%modification can be executed in isolation from other update operations.
+range
+queries keep the locks in the level with the minimal interval spanning the
+range. Range queries then continue to use hand-over-hand locking to traverse through all records
+within the range. The use of hand-over-hand locking ensures that range queries are atomic
+(linearizable), i.e., return a consistent view of the data structure.
+
+This pessimistic lock-based algorithm is denoted \domSkiplist.
+As in previous data structures, we  apply the lock-removal transformation to the
+reference implementation to get a semi-optimistic algorithm, which we call
+\autoSkiplist.
+
+\autoSkiplist is compared to \domSkiplist as well as those of the aforementioned
+state-of-the-art data structures that support range queries. Specifically,
+we compare our results to (1)
+\bronson, which provides atomic range queries by traversing a clone of the
+original tree that is lazily generated, and (2)
+iterations in Java's concurrent skip list, which are \emph{not}
+guaranteed to be atomic. Like many data structure libraries, \danaTree and \danaAVL
+do not support atomic range queries, and
+there is no straightforward way to add them.
+
+The evaluation of range queries focuses on a mixed workload, where half the
+threads are dedicated to performing range queries, and the other half performs a
+mix of insert and delete operations (50\% each).
+This mix allows us to evaluate both the performance of the range queries themselves,
+and their impact on concurrent updates.
+%\eshcar{what about a workload that includes only 100\% range
+%queries?}
+We experiment with queries with big ranges varying between $1000$ to $2000$ keys
+(Figure~\ref{evaluation:results:skiplist1000}) and small ranges
+between $10$ to $20$
+keys (Figure~\ref{evaluation:results:skiplist}).
+
+
+% \begin{figure*}
+% \begin{center}
+% \input{plots/range}
+% \end{center}
+% \caption{Throughput of skip-list operations.}
+% \label{evaluation:results:range}
+% \end{figure*}
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/range1000}
+		\label{evaluation:results:range1000}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update1000}
+		\label{evaluation:results:update1000}
+	\end{subfigure}
+	\ref{skiplistLegened1000}
+	\end{center}
+\caption{Half the threads execute big range queries $[1000,2000]$
+and half the threads execute insert and delete operations.}
+\label{evaluation:results:skiplist1000}
+\end{figure*}
+
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/range}
+		\label{evaluation:results:range}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update}
+		\label{evaluation:results:update}
+	\end{subfigure}
+	\ref{skiplistLegened}
+	\end{center}
+\caption{Half the threads execute small range queries$[10,20]$
+and half the threads execute insert and delete operations.}
+\label{evaluation:results:skiplist}
+\end{figure*}
+
+\paragraph{Results}
+We measure the throughput of range queries and update operations separately.
+The overall number of range queries executed per second is reported
+in Figures~\ref{evaluation:results:range1000}
+and~\ref{evaluation:results:range}, and the overall number of update (insert
+and delete) operations executed per second is reported in
+Figures~\ref{evaluation:results:update1000} and~\ref{evaluation:results:update}.
+
+Again, we see that our transformed code
+ is superior to the fully-pessimistic fine-grain one, improving throughput by
+up to two orders of magnitude -- 75x for small range queries, 4x for big
+ranges, and 100x for update operations, regardless of the range size. We believe that,
+as in the
+domination locking versions of the tree data structures, holding a lock on the head sentinel of the skip list in
+\domSkiplist, even for short periods, imposes a major performance penalty,
+which is eliminated by our  semi-optimistic approach.
+\Xomit{
+Put in other words, our transformation generates a DAP
+implementation---only locking objects of nodes that are modified by the
+operations---from a non-DAP one. The great increase in throughput can
+be attributed to this property.
+}
+
+The performance of \autoSkiplist is almost
+identical to that of \skiplist, despite the fact that \skiplist performs inconsistent iterations.
+
+Figure~\ref{evaluation:results:range1000}
+shows that, for big ranges, \bronson scales well up to $8$ threads, outperforming
+all other implementations, but at $32$ threads its performance deteriorates.
+This might be because this implementation is
+optimized for full scans or very big range queries running sequentially.
+The overhead of initiating a clone of the data structure per range query, which
+involves waiting for all
+pending update operations to complete, hampers scalability when
+a number of queries are executed in parallel. This effect is even more pronounced when the
+ranges are small (Figure~\ref{evaluation:results:range}), and the throughput of
+\bronson flattens out.
+
+In addition, the lazy cloning required to support
+range queries imposes an overhead on  update operations. Copying each node
+during downward traversal might be the main impediment preventing these
+operations from scaling when the ranges are small (Figure~\ref{evaluation:results:update}) as well as when
+they are big (Figure~\ref{evaluation:results:update1000}). In contrast,
+the update operations in \autoSkiplist and \skiplist do not take any special
+measures for the benefit of concurrent queries (which validate themselves in
+\autoSkiplist, and are not atomic in \skiplist), and hence continue to perform well in
+their presence.
