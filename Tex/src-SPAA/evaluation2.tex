@@ -96,23 +96,6 @@ It successfully overcomes the bottlenecks associated with lock contention
 in the \domTree and \domTreap implementations. In
 many scenarios, our solution comes close to custom-tailored implementations.
 
-\begin{figure*}
-\begin{center}
-\input{plots/unbalanced2}
-\end{center}
-\caption{Throughput of unbalanced data structures.}
-\label{evaluation:results:unbalanced}
-\end{figure*}
-
-
-\begin{figure*}
-\begin{center}
-\input{plots/balanced2}
-\end{center}
-\caption{Throughput of balanced data
-structures.}
-\label{evaluation:results:balanced}
-\end{figure*}
 
 The results for the read-only workload show the main overhead
 of our automatic approach. By profiling the code, we learned
@@ -204,6 +187,25 @@ keys (Figure~\ref{evaluation:results:skiplist}).
 % \caption{Throughput of skip-list operations.}
 % \label{evaluation:results:range}
 % \end{figure*}
+
+
+\begin{figure*}
+\begin{center}
+\input{plots/unbalanced2}
+\end{center}
+\caption{Throughput of unbalanced data structures.}
+\label{evaluation:results:unbalanced}
+\end{figure*}
+
+
+\begin{figure*}
+\begin{center}
+\input{plots/balanced2}
+\end{center}
+\caption{Throughput of balanced data
+structures.}
+\label{evaluation:results:balanced}
+\end{figure*}
 
 \begin{figure*}
 	\begin{center}

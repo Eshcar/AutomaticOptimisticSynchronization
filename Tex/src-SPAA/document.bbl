@@ -31,9 +31,7 @@ Y.~Afek, A.~Levy, and A.~Morrison.
 \bibitem{AragonS1989}
 C.~R. Aragon and R.~Seidel.
 \newblock Randomized search trees.
-\newblock In {\em 30th Annual Symposium on Foundations of Computer Science,
-  Research Triangle Park, North Carolina, USA, 30 October - 1 November 1989},
-  pages 540--545, 1989.
+\newblock In {\em FOCS}, pages 540--545, 1989.
 
 \bibitem{ArbelA2014}
 M.~Arbel and H.~Attiya.
@@ -59,8 +57,7 @@ N.~G. Bronson, J.~Casper, H.~Chafi, and K.~Olukotun.
 \bibitem{BrownER2014}
 T.~Brown, F.~Ellen, and E.~Ruppert.
 \newblock A general technique for non-blocking trees.
-\newblock In {\em 19th ACM Symposium on Principles and Practice of Parallel
-  Programming (PPoPP)}, pages 329--342, 2014.
+\newblock In {\em PPoPP}, pages 329--342, 2014.
 
 \bibitem{Cascaval:2008}
 C.~Cascaval, C.~Blundell, M.~Michael, H.~W. Cain, P.~Wu, S.~Chiras, and
@@ -105,8 +102,7 @@ J.~Duffy.
 \bibitem{EllenFRB2010}
 F.~Ellen, P.~Fatourou, E.~Ruppert, and F.~van Breugel.
 \newblock Non-blocking binary search trees.
-\newblock In {\em 29th ACM Symposium on Principles of Distributed Computing
-  (PODC)}, pages 131--140, 2010.
+\newblock In {\em PODC}, pages 131--140, 2010.
 
 \bibitem{Emmi06POPL}
 M.~Emmi, J.~S. Fischer, R.~Jhala, and R.~Majumdar.
@@ -116,9 +112,7 @@ M.~Emmi, J.~S. Fischer, R.~Jhala, and R.~Majumdar.
 \bibitem{FerroJKRY14}
 D.~G. Ferro, F.~Junqueira, I.~Kelly, B.~Reed, and M.~Yabandeh.
 \newblock Omid: Lock-free transactional support for distributed data stores.
-\newblock In {\em {IEEE} 30th International Conference on Data Engineering,
-  Chicago, {ICDE} 2014, IL, USA, March 31 - April 4, 2014}, pages 676--687,
-  2014.
+\newblock In {\em ICDE}, pages 676--687, 2014.
 
 \bibitem{fraser2004practical}
 K.~Fraser.
@@ -172,9 +166,7 @@ M.~Hicks, J.~S. Foster, and P.~Prattikakis.
 A.~Israeli and L.~Rappoport.
 \newblock Disjoint-access-parallel implementations of strong shared memory
   primitives.
-\newblock In {\em Proceedings of the Thirteenth Annual ACM Symposium on
-  Principles of Distributed Computing}, PODC '94, pages 151--160, New York, NY,
-  USA, 1994. ACM.
+\newblock In {\em PODC}, pages 151--160, 1994.
 
 \bibitem{Jin:2012}
 G.~Jin, W.~Zhang, D.~Deng, B.~Liblit, and S.~Lu.
@@ -215,8 +207,7 @@ T.~Nakaike and M.~M. Michael.
 \bibitem{NatarajanM2014}
 A.~Natarajan and N.~Mittal.
 \newblock Fast concurrent lock-free binary search trees.
-\newblock In {\em 19th ACM Symposium on Principles and Practice of Parallel
-  Programming (PPoPP)}, pages 317--328, 2014.
+\newblock In {\em PPoPP}, pages 317--328, 2014.
 
 \bibitem{Rajwar:2002:TLE:635508.605399}
 R.~Rajwar and J.~R. Goodman.
@@ -241,9 +232,8 @@ O.~Shacham, N.~Bronson, A.~Aiken, M.~Sagiv, M.~Vechev, and E.~Yahav.
 \bibitem{DBLP:conf/eurosys/ShalevS06}
 O.~Shalev and N.~Shavit.
 \newblock Predictive log-synchronization.
-\newblock In Y.~Berbers and W.~Zwaenepoel, editors, {\em Proceedings of the
-  2006 EuroSys Conference, Leuven, Belgium, April 18-21, 2006}, pages 305--315.
-  {ACM}, 2006.
+\newblock In Y.~Berbers and W.~Zwaenepoel, editors, {\em EuroSys}, pages
+  305--315. {ACM}, 2006.
 
 \bibitem{zyulkyarov2009atomic}
 F.~Zyulkyarov, V.~Gajinov, O.~S. Unsal, A.~Cristal, E.~Ayguad{\'e}, T.~Harris,
