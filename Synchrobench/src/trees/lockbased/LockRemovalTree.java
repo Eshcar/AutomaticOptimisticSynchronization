@@ -7,9 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 
-
-
-import trees.lockbased.LogicalOrderingAVL.AVLMapNode;
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
