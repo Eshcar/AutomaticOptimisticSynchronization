@@ -679,6 +679,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	public void clear() {
 		acquire(root,self.get()); 
 		root.setChild(Node.Direction.LEFT,null,self.get());
+		release(root);
 	}
 
 	@Override
