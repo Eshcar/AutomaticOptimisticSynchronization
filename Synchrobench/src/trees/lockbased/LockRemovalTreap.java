@@ -6,11 +6,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.NonSharedFastSimpleRandom;
+import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 
-public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
+public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	
 	private static class KeyCmp<K> implements Comparable<K> {
         private final Comparator<K> cmp;
@@ -25,18 +27,20 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
             return cmp.compare(key, rhs);
         }
     }
-
-    final Comparator<K> cmp;
+	
+	private final long LIMIT = 2000;
+	final Comparator<K> cmp;
     final TreapNode<K,V> rootHolder = new TreapNode<K,V>(null, null, 0);
 
-    public DominationLockingTreap() {
+    public LockRemovalTreap() {
         this(null);
     }
 
-    public DominationLockingTreap(final Comparator<K> cmp) {
+    public LockRemovalTreap(final Comparator<K> cmp) {
         this.cmp = cmp;
     }
-	
+
+    
     @SuppressWarnings("unchecked")
     private Comparable<K> comparable(final Object key) {
         return (cmp == null) ? (Comparable<K>) key : new KeyCmp<K>(cmp, (K) key);
@@ -83,7 +87,7 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 	}
 	
 	/*Thread Locals*/
-	private final ThreadLocal<Thread> threadSelf = new ThreadLocal<Thread>(){
+	private final ThreadLocal<Thread> self = new ThreadLocal<Thread>(){
         @Override
         protected Thread initialValue()
         {
@@ -99,9 +103,31 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
         }
     };
     
-    /*Helper functions*/
+    private final ThreadLocal<Error> threadError = new ThreadLocal<Error>(){
+    	@Override
+        protected Error initialValue(){
+    		return new Error();
+    	}
+    };
     
-    private TreapNode<K,V> acquire(TreapNode<K,V> node, Thread self) {
+    private final ThreadLocal<ReadSet<K,V>> threadReadSet = new ThreadLocal<ReadSet<K,V>>(){
+        @Override
+        protected ReadSet<K,V> initialValue()
+        {
+            return new ReadSet<K,V>(); 
+        }
+    };
+	
+    /*Helper functions*/
+	
+    private TreapNode<K,V> assign(TreapNode<K,V> prevValue,
+    		TreapNode<K,V> newValue, Thread self) {
+		acquire(newValue, self);
+        release(prevValue);
+        return newValue;
+	}
+	
+	private TreapNode<K,V> acquire(TreapNode<K,V> node, Thread self) {
 		if (node != null) {
             node.acquire(self);
         }
@@ -114,15 +140,57 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 		}
 	}
 	
-	public TreapNode<K,V> assign(TreapNode<K,V> prevValue,
-			TreapNode<K,V> newValue, Thread self) {
-		acquire(newValue, self);
-        release(prevValue);
-        return newValue;
+	private boolean tryAcquire(final TreapNode<K,V>  node, ReadSet<K,V> readSet , final Thread self) {
+        if (node != null) {
+            if(node.tryAcquire(self)){
+            	readSet.incrementLocalVersion(node);
+            	return true;
+            }else{
+            	return false; 
+            }
+        }
+        return true;
+    }
+	
+	private TreapNode<K,V> readRef(TreapNode<K,V> newNode,ReadSet<K,V> readSet, Error err) {
+		
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			
+			readSet.add(newNode, version);
+		}
+		
+		return newNode;
 	}
 	
+	private boolean validateTwo(ReadSet<K,V> readSet, TreapNode<K,V> local1, TreapNode<K,V> local2, final Thread self) {
+		if(!tryAcquire(local1, readSet, self)){
+			return false; 
+		}
+		
+		if(!tryAcquire(local2, readSet, self)){
+			release(local1);
+			return false; 
+		}
+		
+		if(!readSet.validate(self)){
+			release(local1);
+			release(local2);
+			return false;
+		}
+		return true;
+	}
+
+	public boolean validateReadOnly(ReadSet<K,V> readSet, final Thread self) {
+		return readSet.validate(self); 
+	}
+    
 	/*Map functions*/
-	
+		
 	@Override
 	public boolean containsKey(Object key) {
 		if(get(key)!=null){
@@ -147,37 +215,62 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 
 	@Override
 	public V get(Object key) {
-		return getImpl(comparable(key));
+		final Comparable<K> k = comparable(key);
+		V value; 
+		Error err = threadError.get();
+		while(true){
+			err.clean();
+			value = getImpl(k, self.get(), err);
+			if(!err.isSet()) break;
+		}
+		return value; 
 	}
-
-	private V getImpl(final Comparable<K> key) {
-    	Thread self = threadSelf.get();
-    	
-    	TreapNode<K,V> parent;
-    	TreapNode<K,V> node;
-
-        parent = (TreapNode<K, V>) acquire(this.rootHolder,self);
-        node = (TreapNode<K, V>) acquire(parent.right,self);
+	
+	private V getImpl(final Comparable<K> key, final Thread self, Error err){
+    	ReadSet<K,V> readSet = threadReadSet.get();
+		readSet.clear();
+		
+		long count = 0;
+		
+        TreapNode<K,V> parent;
+        TreapNode<K,V> node;
+  
+        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,err);
+        if(err.isSet()) return null;
+        node = (TreapNode<K, V>) readRef(parent.right,readSet,err);
+    	if(err.isSet()) return null;
         
-        while (node != null) {
+    	while (node != null) {
             final int c = key.compareTo(node.key);
             if (c == 0) {
                 break;
             }
-            parent = (TreapNode<K, V>) assign(parent, node, self); 
+            parent = node;
             if (c < 0) {
-                node = (TreapNode<K, V>) assign(node, node.left, self);
+                node = (TreapNode<K, V>) readRef(node.left, readSet,err);
+                if(err.isSet()) return null;
             }
             else {
-                node = (TreapNode<K, V>) assign(node, node.right, self);
+                node = (TreapNode<K, V>) readRef(node.right, readSet,err);
+                if(err.isSet()) return null;
             }
+            if(count++ == LIMIT){
+				if (!validateReadOnly(readSet, self)){
+					err.set();
+					return null;
+				}
+			}
         }
-        final V v = (node == null) ? null : node.value;
-        release(parent);
-        release(node);
-        return v;
+		
+    	if(node!=null){
+			V value = node.value;
+			if (!validateReadOnly(readSet, self)) err.set();
+			return value;
+		}
+    	if (!validateReadOnly(readSet, self)) err.set();
+		return null;
     }
-	
+
 	@Override
 	public boolean isEmpty() {
 		return rootHolder.right == null;
@@ -201,41 +294,66 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 
 	@Override
 	public V put(K key, V value) {
-		return putImpl(comparable(key), key, value);
+		final Comparable<K> k = comparable(key);
+		V val; 
+		while(true){
+			Error err = threadError.get();
+			err.clean();
+			val = putImpl(key, k, value, self.get(), err);
+			if(!err.isSet()) break; 
+		}
+		return val;  
 	}
 	
-	private V putImpl(final Comparable<K> cmp, final K key, final V value) {
-    	Thread self = threadSelf.get();
-        V prevValue = null;
-        
+	private V putImpl(final K key, final Comparable<K> cmp, final V value,final Thread self, Error err){      
+    	ReadSet<K,V> readSet = threadReadSet.get();
+		readSet.clear(); 
+		long count = 0; 
+        V prevValue = null;      
         final int prio = fastRandom.get().nextInt();
         
-        TreapNode<K,V> parent;
-        TreapNode<K,V> node;
-        TreapNode.Direction dir = TreapNode.Direction.RIGHT;
-
-
-        parent = acquire(this.rootHolder,self);
-        node = acquire(parent.right,self);
-        
-        int cmpRes;
-        while (node != null && prio <= node.priority) {
-        	cmpRes = cmp.compareTo(node.key);
+        //Read-only phase//
+        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+        if(err.isSet()) return null;
+        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+    	if(err.isSet()) return null;
+    	
+    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+    	
+    	int cmpRes;
+    	
+        while (node != null && prio <= node.priority) { 
+            cmpRes = cmp.compareTo(node.key);
             if (cmpRes == 0) {
                 break;
-            }
-            parent = assign(parent, node, self); 
+            }        
+            parent = node;
             if (cmpRes < 0) {
-                node = assign(node, node.left, self);
+            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+                if(err.isSet()) return null;  
                 dir = TreapNode.Direction.LEFT;
             }
             else {
-                node = assign(node, node.right, self);
+            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+                if(err.isSet()) return null;              
                 dir = TreapNode.Direction.RIGHT;
             }
+            if(count++ == LIMIT){
+				if (!validateReadOnly(readSet, self)){
+					err.set();
+					return null;
+				}
+			}
+           
         }
-
-        TreapNode<K,V> x = acquire(new TreapNode<K,V>(key, value, prio), self);
+        
+        //Validation phase//
+		if(!validateTwo(readSet,parent,node,self)){
+			err.set();
+			return null; 
+		}
+        
+		TreapNode<K,V> x = (TreapNode<K, V>) acquire(new TreapNode<K,V>(key, value, prio), self);
 		TreapNode<K,V> lessParent = null;
 		TreapNode<K,V> moreParent = null;
 		TreapNode.Direction lessDir;
@@ -263,20 +381,20 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
                 parent.setChild(dir, x, self); // add the new node
                 if (c0 < 0) {
                     x.setChild(TreapNode.Direction.RIGHT, node, self);  
-                    moreParent = assign(moreParent,node,self);
+                    moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
                     moreDir = TreapNode.Direction.LEFT;
-                    lessParent = assign(lessParent,x,self);
+                    lessParent = (TreapNode<K, V>) assign(lessParent,x,self);
                     lessDir = TreapNode.Direction.LEFT;
-                    node = assign(node,node.left,self);
+                    node = (TreapNode<K, V>) assign(node,node.left,self);
                     
                     moreParent.setChild(TreapNode.Direction.LEFT, null, self);
                 } else {
                 	x.setChild(TreapNode.Direction.LEFT, node, self); 
-                    lessParent = assign(lessParent,node,self);
+                    lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
                     lessDir = TreapNode.Direction.RIGHT;
-                    moreParent =assign(moreParent,x,self);
+                    moreParent = (TreapNode<K, V>) assign(moreParent,x,self);
                     moreDir = TreapNode.Direction.RIGHT;
-                    node = assign(node,node.right,self);
+                    node = (TreapNode<K, V>) assign(node,node.right,self);
                    
                     lessParent.setChild(TreapNode.Direction.RIGHT,null,self);
                 }
@@ -293,16 +411,16 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
                     }
                     else if (cmpRes < 0) {
                         moreParent.setChild(moreDir, node, self);
-                        moreParent = assign(moreParent,node,self);
+                        moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
                         moreDir = TreapNode.Direction.LEFT;
-                        node = assign(node,moreParent.left,self);
+                        node = (TreapNode<K, V>) assign(node,moreParent.left,self);
                         moreParent.setChild(TreapNode.Direction.LEFT, null, self);
                     }
                     else {
                         lessParent.setChild(lessDir, node, self);
-                        lessParent = assign(lessParent,node,self);
+                        lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
                         lessDir = TreapNode.Direction.RIGHT;
-                        node = assign(node,lessParent.right,self);
+                        node = (TreapNode<K, V>) assign(node,lessParent.right,self);
                         lessParent.setChild(TreapNode.Direction.RIGHT, null, self);
                     }
                 }
@@ -323,45 +441,70 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 		for(K key : keysToAdd){
 			put(key, m.get(key));
 		}
-		
 	}
 
 	@Override
 	public V remove(Object key) {
-		 return removeImpl(comparable(key));
+		final Comparable<K> k = comparable(key);
+		V value; 
+		while(true){
+			Error err = threadError.get();
+			err.clean();
+			value = removeImpl(k, self.get(), err);
+			if(!err.isSet()) break; 
+		}
+		return value; 
 	}
-	
-	private V removeImpl(final Comparable<K> cmp) {
-    	Thread self = threadSelf.get();
-        V prevValue = null;
-       
-        TreapNode<K,V> parent;
-        TreapNode<K,V> node;
-        TreapNode<K,V> nL = null;
-        TreapNode<K,V> nR = null;
-        TreapNode.Direction dir = TreapNode.Direction.RIGHT;
 
-        parent = acquire(this.rootHolder,self);
-        node = acquire(parent.right,self);
+	private V removeImpl(final Comparable<K> cmp ,final Thread self,Error err){
+    	ReadSet<K,V> readSet = threadReadSet.get();
+		readSet.clear(); 
+		long count = 0;     
+
+        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+        if(err.isSet()) return null;
+        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+    	if(err.isSet()) return null;
+    	
+    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+         V prevValue = null; 
         
-        int cmpRes;
         while (node != null) {
-        	cmpRes = cmp.compareTo(node.key);
-            if (cmpRes == 0) {
+            final int c = cmp.compareTo(node.key);
+            if (c == 0) {
             	prevValue = node.value;
-            	break;
+    			if(err.isSet()) return null;
+                break;
             }
-            parent = assign(parent, node, self); 
-            if (cmpRes < 0) {
-                node = assign(node, node.left, self);
+            parent = node;
+            if (c < 0) {
+            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+                if(err.isSet()) return null;  
                 dir = TreapNode.Direction.LEFT;
             }
             else {
-                node = assign(node, node.right, self);
+            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+                if(err.isSet()) return null;  
                 dir = TreapNode.Direction.RIGHT;
             }
+            if(count++ == LIMIT){
+				if (!validateReadOnly(readSet, self)){
+					err.set();
+					return null;
+				}
+			}
         }
+        
 
+        //Validation phase//
+      	if(!validateTwo(readSet,parent,node,self)){
+      		err.set();
+      		return null; 
+      	}
+        
+		TreapNode<K,V> nL = null;
+        TreapNode<K,V> nR = null;
+		
         while (node != null) {
             if (node.left == null) {
                 parent.setChild(dir, node.right, self);
@@ -372,16 +515,16 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
                 break;
             }
             else {
-                nL = assign(nL,node.left,self);
-                nR = assign(nR,node.right,self);
+                nL = (TreapNode<K, V>) assign(nL,node.left,self);
+                nR = (TreapNode<K, V>) assign(nR,node.right,self);
             
                 if (nL.priority > nR.priority) {
-                	TreapNode<K, V> nLR = acquire(nL.right,self); // ???
+                	TreapNode<K, V> nLR =  (TreapNode<K, V>) acquire(nL.right,self); // ???
                     node.setChild(TreapNode.Direction.LEFT, nLR, self);
                     parent.setChild(dir, nL, self);
                     nL.setChild(TreapNode.Direction.RIGHT, node, self);
              
-                    parent = assign(parent,nL,self);
+                    parent = (TreapNode<K, V>) assign(parent,nL,self);
                     dir = TreapNode.Direction.RIGHT;
                     release(nLR); //???
                 }
@@ -390,7 +533,7 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
                     parent.setChild(dir, nR, self);
                     nR.setChild(TreapNode.Direction.LEFT, node, self);
                
-                    parent = assign(parent,nR,self);
+                    parent = (TreapNode<K, V>) assign(parent,nR,self);
                     dir = TreapNode.Direction.LEFT;
                 }
             }
@@ -408,7 +551,7 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
         release(nR);
         return prevValue;
     }
-
+	
 	@Override
 	public Collection<V> values() {
 		throw new RuntimeException("unimplemented method");
@@ -424,7 +567,7 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 
 	@Override
 	public void clear() {
-		 rootHolder.right = null;
+		rootHolder.right = null;
 	}
 
 	@Override
