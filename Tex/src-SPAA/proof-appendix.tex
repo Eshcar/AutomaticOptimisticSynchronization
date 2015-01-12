@@ -27,8 +27,8 @@ An execution is \emph{sequential} if steps of different operations are not inter
 In other words, a sequential execution is a sequence of operation executions.
 
 Two executions are \emph{indistinguishable} to a set of operations if each
-operation in the set executes the same steps on primitive shared objects, and
-receives the same value from those primitives, in both executions. A step $\tau$
+operation in the set executes the same steps on shared objects, and
+receives the same value from those objects, in both executions. A step $\tau$
 by operation $op$ is \emph{invisible} to all other operations 
 if the executions with and without $\tau$ are indistinguishable to
 $\op\setminus \{op\}$. For example, read steps are invisible.
@@ -55,21 +55,40 @@ This is because our code transformation uses timeouts and exception handlers to 
 
 \paragraph{Formal Proof}
 We consider a finite execution $\pi$ of the transformed
-algorithm, and find an equivalent execution of the original lock-based
-algorithm.
-Let \op\ be the set of operations in $\pi$.
-For each operation we consider its \emph{successful validation}, i.e.,
-the successful execution of a validation phase when switching from the read-only
-phase  to the update phase. Each operation executes at most one successful 
-validation. Denote by $e_1, e_2, \ldots, e_k$ the sequence of the first steps of
+code, and find an equivalent execution of the original lock-based
+code.
+Each operation in $\pi$ is an interleaved sequence of read-only phases and validation phases followed by a (single) update phase -- or a prefix of such pattern.
+For each operation in $\pi$ we consider its \emph{successful validation}, i.e.,
+the last (successful) execution of a validation phase when switching from the read-only
+phase to the update phase. Each operation executes at most one successful 
+validation. The (complete) read-only phase preceding the successful
+validation phase is called \emph{successful read-only
+phase} .
+Note that each operation executes at most one successful read-only
+phase.
+Towards proving equivalence to the original code execution, for each operation $op$, we remove the prefix of $op$ that precedes the successful read-only phase.
+This includes completely removing operations that have no successful read-only phase.
+We call the resulting execution $\hat{\pi}$.
+%Finally, we remove all validation phases executed during the successful
+%read-only phase that are not the unique successful  validation phase of
+%the operation.
+These prefixes include read steps as well as tryLock and
+unlock steps.
+Removing read steps is invisible to other processes. Since we remove all tryLock steps that have failed to acquire locks, 
+all remaining tryLock are successful also in $\hat{\pi}$. In addition, since the operation discards all local (private) state when restarting the read-only phase, $\pi$ and $\hat{\pi}$ are indistiguishable to all operations that have completed in $\pi$.
+\begin{claim}
+\label{claim:pipihat}
+$\pi$ and $\hat{\pi}$ are equivalent.
+\end{claim}
+
+Denote by $e_1, e_2, \ldots, e_k$ the sequence of the first steps of
 the read set validation in the execution of successful validation
-phases, by their order in $\pi$, where $e_i$ is a step of the operation $op_{i}$ executed by process $p_{i}$.
+phases, by their order in $\hat{\pi}$, where $e_i$ is a step of the operation $op_{i}$ executed by process $p_{i}$.
 (Possibly $p_i=p_j$ for $j \neq i$).
 
-
-For every operation $op_{i}$, consider the partition of $\pi$ to
-the following intervals $\pi=\alpha_i\beta_i\gamma_i$, such that
-$\alpha_i$ includes the execution interval of $op_{i}$'s read-only phase
+For every operation $op_{i}$, consider the partition of $\hat{\pi}$ to
+the following intervals $\hat{\pi}=\alpha_i\beta_i\gamma_i$, such that
+$\alpha_i$ includes the execution interval of $op_{i}$'s (successful) read-only phase
 (denote $op_{i}$'s read set $rs_{i}$); $\beta_i=\beta_{i_1}\beta_{i_2}$, is the
 minimal execution interval of $op_{i}$'s successful validation phase;
 in $\beta_{i_1}$, $op_{i}$ acquires 
@@ -77,6 +96,7 @@ locks on its lock set, denoted $ls_{i}$;
 $e_i$ is the first step of $\beta_{i_2}$, namely the read set validation
 interval.
 
+Let \op\ be the set of operations in $\hat{\pi}$.
 The next claim follows from the fact that the validation phase of $op_{i}$
 in $\beta_i$ is successful, and includes locks and versions
 re-validation: 
@@ -84,51 +104,34 @@ re-validation:
 
 \begin{claim}
 \label{claim:locks}
-No operation in $\op\setminus\{op_{i}\}$ holds or acquires a lock in
-$\alpha_i\beta_{i_1}$ on an object $obj$ in $rs_{i}$ after $op_{i}$'s last
+No operation in $\op\setminus\{op_{i}\}$ holds a lock in
+$\alpha_i\beta_{i_1}$ that is associated with an object $obj$ in $rs_{i}$ after $op_{i}$'s first
 read of $obj$ in $\alpha_i$.
 \end{claim}
 
 
-Towards proving equivalence to the original code execution we first project
-object versions out of $\pi$'s configurations, and remove all accesses (reads and writes) to object versions.
+We next project
+object versions out of $\hat{\pi}$'s configurations, and remove all accesses (reads and writes) to object versions.
 That is, we replace steps that access versions with local steps that modify the operation's local memory only.
-(Note that we get an execution with exactly the same invocations, responses, local states, and shared object states, but without 
-versions). 
-Second, note that each operation $op \in$ \op\ executes at most one successful read-only
-phase, namely a complete read-only phase followed by a successful
- validation phase.
-For each such $op$, we remove the prefix of $op$ that precedes the successful read-only phase.
-This includes completely removing operations that have no successful read-only phase.
-Finally, we remove all validation phases executed during the successful
-read-only phase that are not the unique successful  validation phase of
-the operation.
+Note that we get an execution with exactly the same invocations, responses, local states, and shared object states, but without 
+versions. 
 We call the resulting execution $\pi'$.
 
-Essentially, $\pi'$ is a projection of $\pi$
-excluding versions, all prefixes of the operations preceding their (single)
-successful read-only phase, and all failed validation attempts.
-These prefixes and validation phases include read steps as well as tryLock and
-unlock steps.
-Removing read steps is invisible to other processes. Since we remove all tryLock steps that have failed to acquire locks, 
-all remaining tryLock are successful also in $\pi'$. 
-Therefore, in $\pi'$ 
-%% Idit: removed below, I don't know what valid is, but it's not an execution of the same protocol without versions
-%is a valid execution such that 
-all operations in \op\ return the same values as in $\pi$:
+%Essentially, $\pi'$ is a projection of $\pi$
+%excluding versions and all prefixes of the operations preceding their (single)
+%successful read-only phase. 
+%%, and all failed validation attempts.
+%Therefore, all operations that returned a value in $\pi'$ return the same values as in $\pi$:
 \begin{claim}
-\label{claim:pipitag}
-$\pi$ and $\pi'$ are equivalent.
+\label{claim:pihatpitag}
+$\pi'$ and $\hat{\pi}$ are equivalent.
 \end{claim}
-
-Note that by construction, in $\pi'$ every step accessing a lock object, either
-for locking it or for validating it is not locked, finds the object not locked.
 
 Our main lemma constructs the execution of a fully-pessimistic locking code. 
 The core idea is to replace the optimistic read-only phase
 and validation phase of each operation with a solo execution of the
 pessimistic lock-based read phase taking
-place at the point where the tryLockAll completes.
+place at the point where all objects in the lock set are locked.
 \begin{lemma}
 \label{lemma:pitagtag}
 There is an execution of lock-based algorithm that is equivalent to $\pi'$.
@@ -150,11 +153,11 @@ satisfied:
   semi-optimistic algorithm.
   \item \label{cond:locks} 
   For $j\geq i+1$, no operation in $\op\setminus\{op_{j}\}$ holds a lock in
-  $C_{j}$ on an object $obj$ in $rs_{j}$.
+  $C_{j}$ that is associated with an object $obj$ in $rs_{j}$.
   \item \label{cond:writes} 
   For $j\geq i+1$, no operation in
   $\op\setminus\{op_{j}\}$ writes to an object $obj$ in $rs_{j}$ after
-  $op_{j}$ last read $obj$ before $C_{j}$.
+  $op_{j}$ first read $obj$ before $C_{j}$.
   \item \label{cond:trylocks} 
   For $j\geq i+1$, all try-lock steps by $op_j$ are invisible to
   $\op\setminus\{op_{j}\}$.
@@ -170,9 +173,11 @@ The proof is by induction on $i$. For the base case we consider
 the execution $\pi'=\pi_0$. Condition~\ref{cond:lp} holds since none of
 the operations in this execution follow the full locking algorithm.
 Conditions~\ref{cond:locks} and~\ref{cond:writes} hold by
-Claim~\ref{claim:locks}, and since in $\pi'$ we only remove read and lock steps,
-and since accesses to objects (other than versions) are similar in $\pi$ and
-$\pi'$. Condition~\ref{cond:trylocks} holds by the observation above.
+Claim~\ref{claim:locks}, 
+and since accesses to objects (other than versions) are similar in $\hat{\pi}$ and
+$\pi'$. Condition~\ref{cond:trylocks} holds since by construction, in $\pi'$ every step accessing an object, either
+for locking it or for validating it is not locked, finds the object not locked.
+.
 Condition~\ref{cond:equiv} vacuously holds since $\pi'$ and $\pi_0$ are the
 same execution.
 
@@ -189,16 +194,16 @@ interval in which $p_{i}$ follows the locking algorithm while
 reading $rs_{i}$; after $\delta_{i}$, $p_{i}$ holds the locks on all
 objects in $ls_{i}$, and holds no lock on other objects. 
 In other words, we replace the optimistic read-only phase and validation phase
-of $op_{i}$ with an execution of a read phase instrumented with the
+of $op_{i}$ with an execution of the original
 locking algorithm, taking place at $C_{j}$.
 %at the point just before the read set validation starts.
 
 By Condition~\ref{cond:locks} of the induction hypothesis no operation holds 
-locks on objects in the read set of $op_{i}$ in $C_{i}$, therefore,
+locks associated with objects in the read set of $op_{i}$ in $C_{i}$, therefore,
 $p_{i}$ can acquire the locks on these objects while executing $\delta_{i}$.
 By Condition~\ref{cond:writes} of the induction hypothesis no
 operation writes to an object $obj$ in $rs_{i}$ after
-$op_{i}$ last read $obj$ before $C_{i}$, hence $op_{i}$ reads the same
+$op_{i}$ first read $obj$ before $C_{i}$, hence $op_{i}$ reads the same
 values in its read set in $\pi_i$ and $\pi_{i+1}$. After $\delta_{i}$,
 $op_{i}$ holds the locks on all objects in $ls_i$, hence it can continue with
 the execution of the locking algorithm.
@@ -215,23 +220,23 @@ hence the executions $\alpha_i^{'}\beta_{i_1}^{'}\beta_{i_2}^{'}\gamma_i^{'}$
 and $\alpha_i^{''}\beta_{i_1}^{''}\delta_i\beta_{i_2}^{''}\gamma_i^{'}$ are
 indistinguishable to all operations in $\op\setminus\{op_{i}\}$. 
 
-This implies that (1)~the projection of the execution $\pi_{i+1}$ on $op_{i}$
-follows the full locking algorithm satisfying Condition~\ref{cond:lp}, and
+The indistinguishability and the induction hypothesis imply that Conditions~\ref{cond:locks},~\ref{cond:writes},~\ref{cond:trylocks} hold.
+In addition, this implies that (1)~the projection of the execution $\pi_{i+1}$ on $op_{i}$
+follows the full pessimistic locking algorithm satisfying Condition~\ref{cond:lp}, and
 (2)~all operations return the same value in $\pi_{i+1}$ as in $\pi'$, which
 means Condition~\ref{cond:equiv} holds.
 
-It is left to show that $\pi_{i+1}$ satisfies
-Conditions~\ref{cond:locks},~\ref{cond:writes},~\ref{cond:trylocks}.
-This is straightforward from the induction hypothesis and the fact that only
-$op_{i}$ changed its locking pattern in the last iteration, and specifically
-removed all its try-lock steps, and since $\delta_i$ precedes $C_{j}$ for all
-$j\geq i+1$ in $\pi_{i+1}$.
- 
+%It is left to show that $\pi_{i+1}$ satisfies
+%Conditions~\ref{cond:locks},~\ref{cond:writes},~\ref{cond:trylocks}.
+%This is straightforward from the induction hypothesis and the fact that only
+%$op_{i}$ changed its excution in the last iteration, and specifically
+%removed all its try-lock steps, and since $\delta_i$ precedes $C_{j}$ for all
+%$j\geq i+1$ in $\pi_{i+1}$.
 \end{proof}
 
-By Lemma~\ref{lemma:pitagtag} and Claim~\ref{claim:pipitag} we conclude the following
+By Lemma~\ref{lemma:pitagtag}, Claim~\ref{claim:pipihat} and Claim~\ref{claim:pihatpitag} we conclude the following
 theorem:
 \begin{theorem}
-Every execution of the automatic transformation is equivalent to an
-execution of the locking algorithm.
+Every execution of the transformed code is equivalent to an
+execution of the original locking code.
 \end{theorem}
