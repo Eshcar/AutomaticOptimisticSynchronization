@@ -2,7 +2,7 @@ package trees.lockbased.lockremovalutils;
 
 public class ReadSet<K,V>{
 	
-	private final static int READ_SET_SIZE = 192; 
+	private final static int READ_SET_SIZE = 256; 
 	
 	private SpinHeapReentrant readSetObjects[];
 	private int readSetVersions[]; 
