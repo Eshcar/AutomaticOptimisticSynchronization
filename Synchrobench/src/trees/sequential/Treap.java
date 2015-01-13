@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 
+
 import trees.lockbased.lockremovalutils.NonSharedFastSimpleRandom;
 import contention.abstractions.CompositionalMap;
 
@@ -380,6 +381,11 @@ public class Treap<K,V> implements CompositionalMap<K, V>{
 	public int size() {
 		//NOT LINEARIZABLE
 		return keySet().size();
+	}
+
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
 	}
 
 }

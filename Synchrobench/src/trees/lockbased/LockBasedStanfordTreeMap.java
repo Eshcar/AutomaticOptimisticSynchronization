@@ -1810,4 +1810,9 @@ public class LockBasedStanfordTreeMap<K, V> extends AbstractMap<K, V> implements
 			LockBasedStanfordTreeMap.this.remove(mostRecentNode.key);
 		}
 	}
+
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
+	}
 }

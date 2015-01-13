@@ -480,14 +480,11 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 	@Override
 	public int size() {
 		//use this for ranges! 
-		final int minRange = 10; //For larger values use larger readSet!
-		final int maxRange = 20;
-		Random random = new Random();
-		
-		int rangeSize = random.nextInt(1+maxRange-minRange)+minRange;
-		int min = random.nextInt(maxKey-rangeSize); 
-		int max = min + rangeSize; 
-		
+		return keySet().size();
+	}
+	
+	@Override
+	public int getRange(K min, K max) {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
@@ -634,4 +631,6 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 			}
 			return rangeCount;
 	}
+
+	
 }

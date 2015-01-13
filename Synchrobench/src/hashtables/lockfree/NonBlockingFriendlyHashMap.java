@@ -441,4 +441,9 @@ public class NonBlockingFriendlyHashMap<K, V> implements
 		return 0;
 	}
 
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
+	}
+
 }

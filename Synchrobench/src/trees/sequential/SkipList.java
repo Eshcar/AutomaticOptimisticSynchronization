@@ -350,21 +350,14 @@ public class SkipList<K,V> implements CompositionalMap<K, V> {
 
 	@Override
 	public int size() {
-		//use this for ranges! 
-		final int minRange = 10; //For larger values use larger readSet!
-		final int maxRange = 20;
-		Random random = new Random();
-		
-		int rangeSize = random.nextInt(1+maxRange-minRange)+minRange;
-		int min = random.nextInt(maxKey-rangeSize); 
-		int max = min + rangeSize; 			
-		return getRange(min,max);
+		return keySet().size();
 	}
 
-	private int getRange(int min, int max) {
+	@Override
+	public int getRange(K min, K max) {
 		return getRangeImpl(comparable(min), comparable(max));
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	private int getRangeImpl(Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax) {
@@ -396,5 +389,7 @@ public class SkipList<K,V> implements CompositionalMap<K, V> {
 		
 		return rangeCount;
 	}
+
+	
 
 }

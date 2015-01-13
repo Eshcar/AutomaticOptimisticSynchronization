@@ -681,4 +681,9 @@ public class TransactionalFriendlyOptimizedSkipListSet<K,V> implements
 		return null;
 	}
 
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
+	}
+
 }

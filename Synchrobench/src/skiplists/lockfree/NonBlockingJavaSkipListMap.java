@@ -3376,4 +3376,9 @@ public class NonBlockingJavaSkipListMap<K, V> extends AbstractMap<K, V>
 			}
 		}
 	}
+
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
+	}
 }

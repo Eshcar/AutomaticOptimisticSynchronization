@@ -1784,4 +1784,9 @@ public class NonBlockingCliffHashMap<TypeK, TypeV> extends
 		}
 	}
 
+	@Override
+	public int getRange(TypeK min, TypeK max) {
+		throw new RuntimeException("unimplemented method");
+	}
+
 } // End NonBlockingHashMap class

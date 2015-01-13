@@ -147,4 +147,9 @@ public class NonBlockingLinkedListSet extends AbstractCompositionalIntSet {
 	public void clear() {
 		head.next = new AtomicMarkableReference<Node>(tail, false);
 	}
+
+	@Override
+	public int getRange(Integer min, Integer max) {
+		throw new RuntimeException("unimplemented method");
+	}
 }

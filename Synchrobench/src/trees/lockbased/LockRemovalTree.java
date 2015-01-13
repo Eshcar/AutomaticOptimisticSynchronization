@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 
+
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -686,6 +687,11 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	public int size() {
 		//NOT LINEARIZABLE
 		return keySet().size();
+	}
+
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
 	}
 
 }

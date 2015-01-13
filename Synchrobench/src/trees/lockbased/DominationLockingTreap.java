@@ -433,4 +433,9 @@ public class DominationLockingTreap<K,V> implements CompositionalMap<K, V>{
 		return keySet().size();
 	}
 
+	@Override
+	public int getRange(K min, K max) {
+		throw new RuntimeException("unimplemented method");
+	}
+
 }
