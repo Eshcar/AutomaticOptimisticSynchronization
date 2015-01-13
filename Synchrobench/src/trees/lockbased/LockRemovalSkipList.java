@@ -90,7 +90,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	    }
 	}
 	
-	 /*Thread Locals*/
+	/*Thread Locals*/
 	private final ThreadLocal<SkipListRandom> skipListRandom = new ThreadLocal<SkipListRandom>(){
         @Override
         protected SkipListRandom initialValue()
@@ -655,18 +655,11 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 
 	@Override
 	public int size() {
-		//use this for ranges! 
-		final int minRange = 10; //For larger values use larger readSet!
-		final int maxRange = 20;
-		Random random = new Random();
-		
-		int rangeSize = random.nextInt(1+maxRange-minRange)+minRange;
-		int min = random.nextInt(maxKey-rangeSize); 
-		int max = min + rangeSize; 			
-		return getRange(min,max);
+		return keySet().size();
 	}
 	
-	public int getRange(int min, int max){
+	
+	public int getRange(K min, K max){
 		int value; 
 		int count = 0; 
 		Error err = threadError.get();
@@ -680,11 +673,11 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break; 
 				count++;
-			}else if(count <6 ){
+			}/*else if(count <6 ){
 				value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break;
 				count++;
-			}else{
+			}*/else{
 				return value = dominationRangeImpl(comparable(min), comparable(max),self.get());
 			}
 		}
@@ -1020,5 +1013,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		releaseLevel(preds,lockLayer,-1);
 		return rangeCount;
 	}
+
+	
 
 }
