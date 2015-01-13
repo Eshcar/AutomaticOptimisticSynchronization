@@ -114,8 +114,14 @@ public class ThreadLoop implements Runnable {
 				}
 
 			} else if (coin < cdf[2]) { // 3. should we run a readAll operation?
+				
+				final int minRange = 10; //For larger values use larger readSet!
+				final int maxRange = 20;
 
-				bench.size();
+				int rangeSize = rand.nextInt(1+maxRange-minRange)+minRange;
+				Integer min = rand.nextInt(Parameters.range-rangeSize); 
+				Integer max = min + rangeSize; 			
+				bench.getRange(min,max);
 				numSize++;
 
 			} else { // 4. then we should run a readSome operation
