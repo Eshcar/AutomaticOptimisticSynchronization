@@ -80,7 +80,7 @@ public class ThreadLoop implements Runnable {
 
 		while (!stop) {
 			Integer newInt = rand.nextInt(Parameters.range);
-			Integer a, b;
+			
 			int coin = rand.nextInt(1000);
 			if (coin < cdf[0]) { // 1. should we run a writeAll operation?
 
@@ -101,13 +101,13 @@ public class ThreadLoop implements Runnable {
 										// operation?
 
 				if (2 * (coin - cdf[0]) < cdf[1] - cdf[0]) { // add
-					if ((a = bench.putIfAbsent((int) newInt, (int) newInt)) == null) {
+					if ((bench.putIfAbsent((int) newInt, (int) newInt)) == null) {
 						numAdd++;
 					} else {
 						failures++;
 					}
 				} else { // remove
-					if ((a = bench.remove((int) newInt)) != null) {
+					if ((bench.remove((int) newInt)) != null) {
 						numRemove++;
 					} else
 						failures++;
@@ -119,8 +119,8 @@ public class ThreadLoop implements Runnable {
 				final int maxRange = 20;
 
 				int rangeSize = rand.nextInt(1+maxRange-minRange)+minRange;
-				Integer min = rand.nextInt(Parameters.range-rangeSize); 
-				Integer max = min + rangeSize; 			
+				int min = rand.nextInt(Parameters.range-rangeSize); 
+				int max = min + rangeSize; 			
 				bench.getRange(min,max);
 				numSize++;
 
