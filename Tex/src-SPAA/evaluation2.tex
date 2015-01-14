@@ -10,7 +10,7 @@ throughput to fully pessimistic solutions applying fine-grain locking. These
 algorithms also serve as the lock-based reference implementation at the base of
 our semi-optimistic implementations.
 We further
-compare our approach to hand-crafted state-of-the-art data structure
+compare our approach to software transactional memory and hand-crafted state-of-the-art data structure
 implementations supporting the same functionality.
 
 We also measured the performance of global lock-based implementations.
@@ -18,15 +18,17 @@ In all workloads, the results were identical or inferior to those
 achieved by pessimistic fine-grain locking. We hence
 omitted these results to avoid obscuring the presentation.
 
-We follow a standard evaluation methodology
-(\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). Each experiment
+We use the micro-benchmark suite \textit{Synchrobench}~\cite{Gramoli2015}, configured as described below. 
+%We follow a standard evaluation methodology
+%(\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). 
+Each experiment
 consists of $5$ trials. A trial is a five second run in which each thread continuously executes
 randomly chosen operations drawn from the workload distribution, with keys
 selected uniformly at random from the range $[0,2\cdot10^6]$.
-Each trial begins by initiating a new data structure and applying an untimed pre-filling
-phase, which continues until the size of the data structure is within 5\% of
-$10^6$ records. The presented results are the average throughput over all trials
-(with the pre-filling phase excluded).
+Each trial begins by initiating a new data structure with
+%and applying an untimed pre-filling phase, which continues until the size of the data structure is within 5\% of
+$10^6$ records. The presented results are the average throughput over all trials.
+%(with the pre-filling phase excluded).
 We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
 contention levels; since the results showed similar trends, they are omitted here.
 
@@ -48,31 +50,27 @@ tree, and a treap~\cite{AragonS1989}. To
 generate pessimistic lock-based implementations, we synthesize
 concurrent code by applying the domination locking technique to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
-Finally, we apply our lock-removal transformation to the reference
+Finally, we apply our lock-removal transformation manually to the reference
 implementations to get our semi-optimistic versions of the code, which we call
 \autoTree and \autoTreap, respectively.
+We also applied Transactional Locking II~\cite{DiceSS2006} to the sequential implementations. The resulting algorithms are denoted \stmTree and \stmTreap.
 
-We further compare our implementations to their hand-crafted state-of-the-art counterparts. We compare \autoTree to
+We further compare our implementations to their hand-crafted state-of-the-art counterparts\footnote{All implementation are provided by Synchrobench}. We compare \autoTree to
 \begin{description}
-\item[\danaTree] The locked-based
-				unbalanced tree of Drachsler et
-				al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
+%\item[\danaTree] The locked-based unbalanced tree of Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
+\item [\lockfreeTree] The lock-free unbalanced tree of Ellen et al.~\cite{EllenFRB2010}.
 \end{description}
 \autoTreap is evaluated against three hand-crafted implementations
 \begin{description}
 \setlength{\itemsep}{0pt}
 \setlength{\parskip}{0pt}
 \item[\danaAVL] The locked-based relaxed balanced AVL tree of
-				Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation available at \\
-				\texttt{https://github.com/logicalordering/trees}}.
+				Drachsler et al.~\cite{DrachslerVY2014}.%\footnote{Implementation available at \\\texttt{https://github.com/logicalordering/trees}}.
 \item[\bronson] The locked based relaxed balanced AVL tree
-				of Bronson et al.~\cite{BronsonCCO2010}\footnote{Implementation available at \\
-				\texttt{https://github.com/nbronson/snaptree}}.
-\item[\skiplist] The non-blocking skip-list in the
-				the Java standard library; based on the work of
-				Fraser and Harris~\cite{fraser2004practical}.
+				of Bronson et al.~\cite{BronsonCCO2010}.%\footnote{Implementation available at \\texttt{https://github.com/nbronson/snaptree}}.
+\item[\friendly] The Contention-Friendly Tree of Crain et al.~\cite{CrainGR2013}.
+%\item[\skiplist] The non-blocking skip-list in the the Java standard library; based on the work of Fraser and Harris~\cite{fraser2004practical}.
 \end{description}
-
 
 We evaluate performance in three representative workloads distributions: a
 \emph{read-only} workload comprised of $100\%$ lookup operations, a \emph{write-dominated}
@@ -103,7 +101,7 @@ that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations,
 which have small overhead on reads in this scenario, thanks to either
-wait-free reads (in \danaTree and \danaAVL), or optimistic validation (in \bronson).
+wait-free reads (in \danaAVL,\friendly and \lockfreeTree ), or optimistic validation (in \bronson).
 
 As the ratio of updates in the workload increases, our automatic implementation
 closes this gap.
@@ -163,7 +161,7 @@ we compare our results to (1)
 \bronson, which provides atomic range queries by traversing a clone of the
 original tree that is lazily generated, and (2)
 iterations in Java's concurrent skip list, which are \emph{not}
-guaranteed to be atomic. Like many data structure libraries, \danaTree and \danaAVL
+guaranteed to be atomic. Like many data structure libraries, \friendly and \danaAVL
 do not support atomic range queries, and
 there is no straightforward way to add them.
 
@@ -191,7 +189,7 @@ keys (Figure~\ref{evaluation:results:skiplist}).
 
 \begin{figure*}
 \begin{center}
-\input{plots/unbalanced2}
+\input{plots/unbalanced3}
 \end{center}
 \caption{Throughput of unbalanced data structures.}
 \label{evaluation:results:unbalanced}
@@ -200,7 +198,7 @@ keys (Figure~\ref{evaluation:results:skiplist}).
 
 \begin{figure*}
 \begin{center}
-\input{plots/balanced2}
+\input{plots/balanced3}
 \end{center}
 \caption{Throughput of balanced data
 structures.}

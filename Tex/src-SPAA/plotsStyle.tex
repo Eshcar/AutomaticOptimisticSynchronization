@@ -32,7 +32,7 @@
 \pgfplotsset{unbalanced/.style={%
 	   width=0.35\textwidth,
        legend columns=-1,
-	   legend entries={\autoTree, \danaTree, \domTree, \globalTree},
+	   legend entries={\autoTree, \lockfreeTree, \stmTree, \domTree, },
 	   legend to name=unbalancedLegened,
 }}
 
@@ -40,7 +40,7 @@
 \pgfplotsset{balanced/.style={%
 	   width=0.35\textwidth,
        legend columns=-1,
-	   legend entries={\autoTreap, \danaAVL,\bronson, \skiplist,
+	   legend entries={\autoTreap, \danaAVL,\bronson, \friendly,  \stmTreap,
 	   \domTreap, \globalTreap}, legend to name=balancedLegened,
 }}
 
