@@ -46,6 +46,8 @@ public class ThreadLoop implements Runnable {
 	public long getCount;
 	public long nodesTraversed;
 	public long structMods;
+	
+	public boolean effective; 
 
 	/**
 	 * The distribution of methods as an array of percentiles
@@ -66,6 +68,7 @@ public class ThreadLoop implements Runnable {
 		cdf[0] = 10 * Parameters.numWriteAlls;
 		cdf[1] = 10 * Parameters.numWrites;
 		cdf[2] = cdf[1] + 10 * Parameters.numSnapshots;
+		effective = Parameters.effective;
 	}
 
 	public void stopThread() {
@@ -104,13 +107,30 @@ public class ThreadLoop implements Runnable {
 					if ((bench.putIfAbsent((int) newInt, (int) newInt)) == null) {
 						numAdd++;
 					} else {
+						if(effective){
+							if(bench.remove((int) newInt)!=null){
+								numRemove++;
+							}else{
+								failures++;
+							}
+							total++;
+						}
 						failures++;
 					}
 				} else { // remove
 					if ((bench.remove((int) newInt)) != null) {
 						numRemove++;
-					} else
+					} else{
+						if(effective){
+							if(bench.putIfAbsent((int) newInt, (int) newInt) == null){
+								numAdd++;
+							}else{
+								failures++;
+							}
+							total++;
+						}
 						failures++;
+					}
 				}
 
 			} else if (coin < cdf[2]) { // 3. should we run a readAll operation?

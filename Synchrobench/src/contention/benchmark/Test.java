@@ -353,6 +353,9 @@ public class Test {
 					else if (currentArg.equals("--iterations")
 							|| currentArg.equals("-n"))
 						Parameters.iterations = Integer.parseInt(optionValue);
+					else if (currentArg.equals("--effective")
+							|| currentArg.equals("-f"))
+						Parameters.effective = Boolean.parseBoolean(optionValue);
 				}
 			} catch (IndexOutOfBoundsException e) {
 				System.err.println("Missing value after option: " + currentArg
