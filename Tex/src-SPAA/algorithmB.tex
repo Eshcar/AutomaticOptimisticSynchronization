@@ -15,23 +15,26 @@
 We present an algorithm for a source-to-source transformation, whose
 goal is to optimize the code of a given data structure implemented using lock-based concurrency control.
 In Section~\ref{ssec:locks}, we detail our assumptions about the given code and the locks it uses.
-
+\Xomit{
+%% Idit: omitted to save space
 The transformation produces a combination of pessimistic and optimistic synchronization
 by replacing part of the locking (in the given code) with optimistic concurrency control.
-Section~\ref{ssec:overview} overviews our general approach to combining optimism and pessimism.
-
-The synthesized code consists of three phases - an optimistic read-only phase, a validation phase,
-and a pessimistic update phase. 
+}
+Section~\ref{ssec:overview} overviews our general approach to combining optimism and pessimism,
+while
+%The synthesized code consists of three phases - an optimistic read-only phase, a validation phase,
+%and a pessimistic update phase. 
 %The transformation first partitions the given code into a read-only phase and
 %an update phase as described in Section~\ref{ssec:extendedTran}, and
 %then instruments each of these phases separately and adds the validation phase between the two;
-Section~\ref{ssec:transformation} details how the code of each of the three phases is produced.
+Section~\ref{ssec:transformation} details how the code is instrumented. 
+%of each of the three phases is produced.
 
 \subsection{Lock-based Data Structures}\label{ssec:locks}
 
 A \emph{data structure} defines a set of \emph{operations} that may be invoked by
 clients of the data structure, potentially concurrently.
-
+%
 Operations have parameters and local (private) variables. %, which are private to the invocation, and are thus thread-local.
 %
 The operations interact via \emph{shared memory variables}, which are also called \emph{shared objects}.
@@ -55,10 +58,10 @@ executing thread holds the lock associated with that object.
 
 The locking in the given code only uses the \emph{lock} and \emph{unlock} instructions, while the transformed code can apply in addition atomic
 %(i.e., the other locking instructions are not used).
-\emph{tryLock}  and \emph{isLockedByAnotherThread} instructions.
+\emph{tryLock}  and \emph{isLockedByAnother} instructions.
 The latter instructions never block.
 The \emph{tryLock} instruction returns \emph{false} if the lock is currently held by another thread, otherwise it acquires the lock and returns \emph{true}.
-The \emph{isLockedByAnotherThread} instruction returns \emph{true}, if and only if, the lock is currently held by another thread.
+The \emph{isLockedByAnother} instruction returns \emph{true}, if and only if, the lock is currently held by another thread.
 
 
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
@@ -137,6 +140,7 @@ Every shared memory update operation is instrumented with code that checks \text
 			\State
 			\State
 			\State
+			\State
             \State                               \label{code:endValidation}
 			\Statex ----------------------------
 							\Comment{\textrm{update phase}}
@@ -173,6 +177,7 @@ Every shared memory update operation is instrumented with code that checks \text
 			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
 			\Statex ----------------------------
 			\Comment{\textrm{validation phase}}
+			\State{\spZero}\textbf{read fence} \label{code:fence}
 			\State{\spZero}\textbf{for all obj in lockedSet do} \label{code:validateLockedSet}	
             \State{\spZero}\ \ \textbf{if !obj.tryLock() then}
             \State{\spZero}\ \ \ \ \ \textbf{unlockAll()}
@@ -271,10 +276,8 @@ each locking instruction (left side) is replaced with the corresponding code on 
 
 In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlockedB}), we use an eager validation scheme\footnote{This validation scheme may be omitted, since it is not required for correctness.}: 
 If the object already exists in \emph{readSet}, we check that the current version of its lock is equal
-to the version in \emph{readSet}; and if the versions are different  the operation restarts from the beginning (line~\ref{code:track:verifyVersion}).
-Similarly, it is also checked to be unlocked; if it is locked, the operation restarts from the beginning (line~\ref{code:track:verifyUnlocked}).
-
-\Idit{Need to add discussion of fences and fences in the code.}
+to the version in \emph{readSet}; and if the versions are different  the operation restarts (line~\ref{code:track:verifyVersion}).
+Similarly, it is  checked to be unlocked, and the operation restarts if it is locked (line~\ref{code:track:verifyUnlocked}).
 
 
 \begin{figure}
@@ -291,7 +294,7 @@ Similarly, it is also checked to be unlocked; if it is locked, the operation res
 			\If{$\langle$obj,v$\rangle\in$readSet and v!=ver} \label{code:track:verifyVersion}
 				\State return false
 			\EndIf
-			\If{obj.isLockedByAnotherThread()} \label{code:track:verifyUnlocked}
+			\If{obj.isLockedByAnother()} \label{code:track:verifyUnlocked}
 				\State return false \label{code:track:verifyUnlockedB}
 			\EndIf
 			\State return true
@@ -328,6 +331,16 @@ of all objects accessed by the read-only phase.
 %
 The operation is restarted if the validation fails (lines \ref{code:validateReadSet}-\ref{code:validateGoto2}).
 
+% Fences
+We assume that, following standard practice in lock implementations, 
+the function \textit{isLockedByAnother} imposes a \emph{memory fence} (barrier). 
+This ensures that the lock and version are read during \textit{track} before the object's value is read optimistically
+during the read-only phase. 
+To ensure that the second read of the lock and version, during the validation phase, succeeds the 
+optimistic read of the object's value, we precede the validation phase with a memory fence as well (line~\ref{code:fence}).  
+Note that it suffices to impose a \emph{read fence} (sometimes called acquire or load fence) 
+prior to the validation as well as during \textit{isLockedByAnother}, because only read instructions are ordered.
+
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
 Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
@@ -339,7 +352,7 @@ An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figu
 		{\ttfamily
 		\Function{validateReadSet}{}()
 		\ForAll {$\langle$obj,ver$\rangle$ in readSet}
-			\If{obj.isLockedByAnotherThread()}
+			\If{obj.isLockedByAnother()}
 			\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyUnlocked}
 			\State \Comment{\textrm{(locked object)}}
 			\EndIf
