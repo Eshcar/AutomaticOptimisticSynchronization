@@ -48,6 +48,9 @@ public class ThreadLoop implements Runnable {
 	public long structMods;
 	
 	public boolean effective; 
+	public int minRangeSize;
+	public int maxRangeSize;
+	 
 
 	/**
 	 * The distribution of methods as an array of percentiles
@@ -63,6 +66,8 @@ public class ThreadLoop implements Runnable {
 		this.myThreadNum = myThreadNum;
 		this.bench = bench;
 		this.methods = methods;
+		this.minRangeSize = Parameters.minRangeSize;
+		this.maxRangeSize = Parameters.maxRangeSize;
 		/* initialize the method boundaries */
 		assert (Parameters.numWrites >= Parameters.numWriteAlls);
 		cdf[0] = 10 * Parameters.numWriteAlls;
@@ -152,10 +157,7 @@ public class ThreadLoop implements Runnable {
 
 			} else if (coin < cdf[2]) { // 3. should we run a readAll operation?
 				
-				final int minRange = 10; //For larger values use larger readSet!
-				final int maxRange = 20;
-
-				int rangeSize = rand.nextInt(1+maxRange-minRange)+minRange;
+				int rangeSize = rand.nextInt(1+maxRangeSize-minRangeSize)+minRangeSize;
 				int min = rand.nextInt(Parameters.range-rangeSize); 
 				int max = min + rangeSize; 			
 				bench.getRange(min,max);

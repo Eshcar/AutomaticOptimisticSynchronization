@@ -23,5 +23,7 @@ public class Parameters {
     public static String benchClassName = new String("skiplists.lockfree.NonBlockingFriendlySkipListMap");
 
 	public static boolean effective = false;
-	public static boolean rangeQueries = false; 
+	public static boolean rangeQueries = false;
+	public static int minRangeSize = 10;
+	public static int maxRangeSize = 20;
 }

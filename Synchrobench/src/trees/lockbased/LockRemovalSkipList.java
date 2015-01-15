@@ -12,6 +12,8 @@ import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 
+import contention.benchmark.Parameters;
+
 public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	
 	private final Comparator<? super K> comparator;
@@ -118,6 +120,9 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
         @Override
         protected ReadSet<K,V> initialValue()
         {
+        	if (Parameters.maxRangeSize == 2000){
+        		return new ReadSet<K,V>(2256); 
+        	}
             return new ReadSet<K,V>(); 
         }
     };
