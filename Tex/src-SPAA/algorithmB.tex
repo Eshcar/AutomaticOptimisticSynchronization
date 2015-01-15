@@ -340,11 +340,11 @@ An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figu
 		\Function{validateReadSet}{}()
 		\ForAll {$\langle$obj,ver$\rangle$ in readSet}
 			\If{obj.isLockedByAnotherThread()}
-			\State return false \Comment{\textrm{validation failed}}
+			\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyUnlocked}
 			\State \Comment{\textrm{(locked object)}}
 			\EndIf
-			\If{obj.getVersion() != ver}
-				\State return false \Comment{\textrm{validation failed}}
+			\If{obj.getVersion() != ver} 
+				\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyVersion}
 				\State \Comment{\textrm{(different version)}}
 			\EndIf
 		\EndFor
