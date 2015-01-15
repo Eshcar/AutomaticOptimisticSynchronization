@@ -79,7 +79,7 @@ public class ThreadLoop implements Runnable {
 			if (numThreads == 1){
 				return; 
 			}
-			if(myThreadNum <= (numThreads/2) ){
+			if(myThreadNum < (numThreads/2) ){
 				//do snapshot
 				cdf[0]= 0;
 				cdf[1]= 0;
