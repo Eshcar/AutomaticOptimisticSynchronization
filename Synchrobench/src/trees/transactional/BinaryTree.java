@@ -304,4 +304,13 @@ public class BinaryTree<K,V> implements CompositionalMap<K, V>{
 		return keySet().size();
 	}
 
+	@Override
+	@Atomic
+	public int getRange(K min, K max) {
+throw new RuntimeException("unimplemented method");
+
+	}
+
+
+
 }
