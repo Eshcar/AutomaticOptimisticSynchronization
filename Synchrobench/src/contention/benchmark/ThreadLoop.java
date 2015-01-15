@@ -69,6 +69,23 @@ public class ThreadLoop implements Runnable {
 		cdf[1] = 10 * Parameters.numWrites;
 		cdf[2] = cdf[1] + 10 * Parameters.numSnapshots;
 		effective = Parameters.effective;
+		if(Parameters.rangeQueries){
+			int numThreads = Parameters.numThreads; 
+			if (numThreads == 1){
+				return; 
+			}
+			if(myThreadNum <= (numThreads/2) ){
+				//do snapshot
+				cdf[0]= 0;
+				cdf[1]= 0;
+				cdf[2]= 1000;
+			}else{
+				//do update
+				cdf[0]= 0;
+				cdf[1]= 1000;
+				cdf[2]= 0;
+			}
+		}
 	}
 
 	public void stopThread() {

@@ -356,6 +356,9 @@ public class Test {
 					else if (currentArg.equals("--effective")
 							|| currentArg.equals("-f"))
 						Parameters.effective = Boolean.parseBoolean(optionValue);
+					else if (currentArg.equals("--range")
+							|| currentArg.equals("-R"))
+						Parameters.rangeQueries = Boolean.parseBoolean(optionValue);
 				}
 			} catch (IndexOutOfBoundsException e) {
 				System.err.println("Missing value after option: " + currentArg

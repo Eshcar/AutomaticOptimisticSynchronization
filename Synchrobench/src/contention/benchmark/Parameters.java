@@ -23,4 +23,5 @@ public class Parameters {
     public static String benchClassName = new String("skiplists.lockfree.NonBlockingFriendlySkipListMap");
 
 	public static boolean effective = false;
+	public static boolean rangeQueries = false; 
 }
