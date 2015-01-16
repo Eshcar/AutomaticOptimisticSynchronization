@@ -495,7 +495,7 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 	
 	@SuppressWarnings("unchecked")
 	private int dominationRangeImpl(Comparable<? super K> cmpMin,
-			Comparable<? super K> cmpMax, Thread self) {
+		Comparable<? super K> cmpMax, Thread self) {
 		//Object[] result = rangeSet.get();
 		int rangeCount = 0; 
 		
@@ -533,102 +533,52 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 			}
 		}
 		
+		int lockLayer;
+		Node<K,V> next;
 		if( layerFound!= -1 ){ 	
-			int lockLayer = layerFound; 
-			pred = (Node<K, V>) succs[lockLayer]; 
-			Node<K,V> next = (Node<K, V>) pred.next[lockLayer];
-			while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
-				lockLayer++;
-				pred = (Node<K, V>) preds[lockLayer]; 
-				next = (Node<K, V>) pred.next[lockLayer];
-				assert(next.equals(succs[lockLayer]));
-			}
-			
-			//unlock uneeded locks in preds and succs... 
-			for(int i = maxLevel ; i > lockLayer ; i--){
-				Node<K,V> curr = (Node<K,V>)succs[i];
-				pred = ((Node<K,V>) preds[i]);
-				pred.release();
-				curr.release();
-			}
-			/*
-			for(int i = lockLayer ; i > layerFound ; i--){
-				Node<K,V> curr = (Node<K,V>)succs[i];
-				curr.release();
-			}*/
-			
-			//travel the linked list 
-			pred = (Node<K, V>) preds[0];
-			Node<K, V> curr = (Node<K, V>) succs[0]; 
-			curr.acquire(self);
-			while(cmpMax.compareTo(curr.key) >= 0){		
-				//result[rangeCount] = curr.key;
-				rangeCount++;
-				if ( !pred.equals(preds[0])){ 
-					pred.release();
-				}
-				pred = curr; 
-				curr = (Node<K, V>) curr.next[0]; 
-				curr.acquire(self);	
-			}
-			curr.release();
-			if ( !pred.equals(preds[0])){ //succs[layer] equals what should be succs[0]
-				pred.release();
-			}
-			/*
-			for(int i = lockLayer ; i > layerFound ; i--){
-				pred = (Node<K,V>)preds[i];
-				pred.release();
-			}*/
-			
-			for(int i = lockLayer ; i > -1 ; i--){
-				curr = (Node<K,V>)succs[i];
-				pred = ((Node<K,V>) preds[i]);
-				pred.release();
-				curr.release();
-			}
-			return rangeCount; 
+			//key was found
+			lockLayer = layerFound; 
+			next = (Node<K, V>) succs[lockLayer]; 
+			next = (Node<K, V>) next.next[lockLayer];
+		}else{	
+			//key was not found
+			lockLayer = 0; 
+			next = (Node<K, V>) succs[lockLayer];
 		}
 		
-		//key was not found
-			int lockLayer = 0; 
-			Node<K,V> next = (Node<K, V>) succs[lockLayer];
-			while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
-				lockLayer++;
-				next = (Node<K, V>) succs[lockLayer];
-			}
-			
-			for(int i = maxLevel ; i > lockLayer ; i--){
-				Node<K,V> curr = (Node<K,V>)succs[i];
-				pred = ((Node<K,V>) preds[i]);
-				pred.release();
-				curr.release();
-			}
-			
-			pred = (Node<K, V>) preds[0];
-			Node<K, V> curr = (Node<K, V>) succs[0]; 
-			curr.acquire(self);
-			while(cmpMax.compareTo(curr.key) >= 0){		
-				//result[rangeCount] = curr.key;
-				rangeCount++;
-				if ( !pred.equals(preds[0])){ 
-					pred.release();
-				}
-				pred = curr; 
-				curr = (Node<K, V>) curr.next[0]; 
-				curr.acquire(self);	
-			}
+		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+			lockLayer++;
+			next = (Node<K, V>) succs[lockLayer];
+		}
+		
+		for(int i = maxLevel ; i > lockLayer ; i--){
+			Node<K,V> curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
 			curr.release();
-			if ( !pred.equals(preds[0])){ //succs[layer] equals what should be succs[0]
-				pred.release();
-			}
-			
-			for(int i = lockLayer ; i > -1 ; i--){
-				curr = (Node<K,V>)succs[i];
-				pred = ((Node<K,V>) preds[i]);
-				pred.release();
-				curr.release();
-			}
-			return rangeCount;
+		}
+		
+		pred = (Node<K, V>) preds[0];
+		pred.acquire(self);
+		Node<K, V> curr = (Node<K, V>) succs[0]; 
+		curr.acquire(self);
+		while(cmpMax.compareTo(curr.key) >= 0){		
+			//result[rangeCount] = curr.key;
+			rangeCount++;
+			pred.release();
+			pred = curr; 
+			curr = (Node<K, V>) curr.next[0]; 
+			curr.acquire(self);	
+		}
+		curr.release();
+		pred.release();
+		
+		for(int i = lockLayer ; i > -1 ; i--){
+			curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		return rangeCount;
 	}
 }
