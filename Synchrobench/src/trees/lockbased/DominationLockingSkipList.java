@@ -9,6 +9,7 @@ import java.util.Set;
 
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
+import contention.benchmark.Parameters;
 
 public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 
@@ -23,7 +24,7 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 	
 	/*Constructor*/
 	public DominationLockingSkipList(){
-		this.maxKey = 2000000;
+		this.maxKey = Parameters.range;
 		this.maxHeight = (int) Math.ceil(Math.log(maxKey) / Math.log(2));
 		this.maxLevel = maxHeight-1; 
 		this.max = Integer.MAX_VALUE; 
@@ -540,6 +541,7 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 				lockLayer++;
 				pred = (Node<K, V>) preds[lockLayer]; 
 				next = (Node<K, V>) pred.next[lockLayer];
+				assert(next.equals(succs[lockLayer]));
 			}
 			
 			//unlock uneeded locks in preds and succs... 
@@ -549,23 +551,20 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 				pred.release();
 				curr.release();
 			}
+			/*
 			for(int i = lockLayer ; i > layerFound ; i--){
 				Node<K,V> curr = (Node<K,V>)succs[i];
 				curr.release();
-			}
+			}*/
 			
 			//travel the linked list 
 			pred = (Node<K, V>) preds[0];
 			Node<K, V> curr = (Node<K, V>) succs[0]; 
-			//result[rangeCount] = curr.key;
-			rangeCount++;
-			pred = curr;
-			curr = (Node<K, V>) curr.next[0]; 
 			curr.acquire(self);
 			while(cmpMax.compareTo(curr.key) >= 0){		
 				//result[rangeCount] = curr.key;
 				rangeCount++;
-				if ( !pred.equals(succs[0])){ 
+				if ( !pred.equals(preds[0])){ 
 					pred.release();
 				}
 				pred = curr; 
@@ -573,15 +572,16 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 				curr.acquire(self);	
 			}
 			curr.release();
-			if ( !pred.equals(succs[0])){ //succs[layer] equals what should be succs[0]
+			if ( !pred.equals(preds[0])){ //succs[layer] equals what should be succs[0]
 				pred.release();
 			}
+			/*
 			for(int i = lockLayer ; i > layerFound ; i--){
 				pred = (Node<K,V>)preds[i];
 				pred.release();
-			}
+			}*/
 			
-			for(int i = layerFound ; i > -1 ; i--){
+			for(int i = lockLayer ; i > -1 ; i--){
 				curr = (Node<K,V>)succs[i];
 				pred = ((Node<K,V>) preds[i]);
 				pred.release();
@@ -631,6 +631,4 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 			}
 			return rangeCount;
 	}
-
-	
 }
