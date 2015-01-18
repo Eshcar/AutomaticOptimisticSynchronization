@@ -359,12 +359,13 @@ public class Test {
 					else if (currentArg.equals("--range")
 							|| currentArg.equals("-R"))
 						Parameters.rangeQueries = Boolean.parseBoolean(optionValue);
-					else if (currentArg.equals("--large-range"))
+					else if (currentArg.equals("--large-range")){
 						Parameters.rangeQueries = Boolean.parseBoolean(optionValue);
 						if (Boolean.parseBoolean(optionValue)){
 							Parameters.minRangeSize = 1000;
 							Parameters.maxRangeSize = 2000;
 						}
+					}
 				}
 			} catch (IndexOutOfBoundsException e) {
 				System.err.println("Missing value after option: " + currentArg
