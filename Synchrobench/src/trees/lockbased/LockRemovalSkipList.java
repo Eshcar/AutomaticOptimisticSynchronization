@@ -639,25 +639,24 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	
 	public int getRange(K min, K max){
 		int value; 
-		int count = 0; 
+		//int count = 0; 
 		Error err = threadError.get();
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
 		}
 		while(true){
-			err.clean();
-//			if(count< 3){
+			//if(count< 3){
 				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break; 
-//				count++;
-		//	}else if(count <6 ){
-		//		value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
-		//		if(!err.isSet()) break;
-		//		count++;
-//			}else{
-//				return value = dominationRangeImpl(comparable(min), comparable(max),self.get());
-//			}
+				//count++;
+			//}else if(count <6 ){
+				//value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
+				//if(!err.isSet()) break;
+				//count++;
+			//}else{
+				//return value = dominationRangeImpl(comparable(min), comparable(max),self.get());
+			//}
 		}
 		return value;  
 	}
