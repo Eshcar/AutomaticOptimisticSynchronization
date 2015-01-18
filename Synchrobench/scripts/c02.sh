@@ -97,9 +97,12 @@ ds="rangeQueries_numOfUpdates"
 		for bench in ${benchs}; do                     
 					in=${output}/log/${bench}-small_ranges-i${i}-u${write}-t${t}.log
                     #thavg=`grep "Throughput" ${in} | awk '{ s += $3; nb++ } END { printf "%f", s/nb }'`
-					allupdates=`grep "updates:" ${in} | awk '{ s += $3;  } END { printf "%f", s }'`
+					alloper=`grep "Operations:" ${in} | awk '{ s += $2;  } END { printf "%f", s }'`
+					allrange=`grep "size successful" ${in} | awk '{ s += $3; } END { printf "%f", s }'`
+				#	allupdates=`grep "updates:" ${in} | awk '{ s += $3;  } END { printf "%f", s }'`
 					alltime=`grep "Elapsed time" ${in} | awk '{ s += $4;  } END { printf "%f", s }'`
 					printf '\t' >> ${out}
+					allupdates=`echo "${alloper}-${allrange}" | bc`
 					mtmp=`echo "${allupdates}/${alltime}" | bc` 
                     printf " ${mtmp}" >> ${out}					
 
