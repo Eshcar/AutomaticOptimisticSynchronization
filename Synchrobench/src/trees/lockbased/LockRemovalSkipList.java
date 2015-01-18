@@ -229,32 +229,6 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private boolean mixedValidatePhase(Object[] preds, Object[] succs,
-			int firstLayer, int secondLayer, ReadSet<K, V> readSet, Thread self){
-		for(int i=firstLayer; i>secondLayer ; i--){
-			Node<K,V> pred = (Node<K, V>) preds[i];
-			if(!tryAcquire(pred, readSet, self)){
-				releaseLevel(preds,firstLayer,i);
-				return false;
-			}
-		}
-		for(int i=secondLayer; i>-1 ; i--){
-			Node<K,V> succ = (Node<K, V>) succs[i];
-			if(!tryAcquire(succ, readSet, self)){
-				releaseLevel(preds,firstLayer,secondLayer);
-				releaseLevel(succs,secondLayer,i);
-				return false;
-			}
-		}
-		if(!readSet.validate(self)){
-			releaseLevel(preds,firstLayer,secondLayer);
-			releaseLevel(succs,secondLayer,-1);
-			return false;
-		}
-		return true;
-	}
-	
-	@SuppressWarnings("unchecked")
 	private void releaseLevels(Object[] preds, Object[] succs, int top, int bottom) {
 			for(int i=top; i>bottom;i--){
 				release((Node<K, V>) preds[i]);
@@ -677,11 +651,11 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break; 
 				count++;
-			}/*else if(count <6 ){
+			}else if(count <6 ){
 				value = lockedRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break;
 				count++;
-			}*/else{
+			}else{
 				return value = dominationRangeImpl(comparable(min), comparable(max),self.get());
 			}
 		}
@@ -777,6 +751,103 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		return rangeCount;
 	}
 
+	
+
+	@SuppressWarnings("unchecked")
+	private int lockedRangeImpl(Comparable<? super K> cmpMin,
+		Comparable<? super K> cmpMax, Thread self, Error err) {
+		ReadSet<K,V> readSet = threadReadSet.get();
+		readSet.clear(); 
+		long count = 0; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		int layerFound = -1; 
+		int rangeCount = 0; 
+		
+		Node<K,V> pred = readRef(root,readSet,err); 
+		if(err.isSet()) return -1;
+		
+		for(int layer = maxLevel ; layer > -1 ; layer-- ){
+			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
+			if(err.isSet()) return -1;			
+			while (true) {
+				int res = cmpMin.compareTo(curr.key);
+				if(res == 0) {
+					//key found...
+					if(layerFound==-1){
+						layerFound = layer; 				
+					}				
+					break; 
+				}
+				if(res < 0){ 
+					break;
+				}							
+				pred = curr;
+				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
+				if(err.isSet()) return -1;
+				
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return -1;
+					}
+				}
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			
+		}
+		
+		
+		int lockLayer;
+		Node<K,V> next;
+		if( layerFound!= -1 ){ 	
+			//key was found
+			lockLayer = layerFound; 
+			next = (Node<K, V>) succs[lockLayer]; 
+			next = (Node<K, V>) next.next[lockLayer];
+		}else{	
+			//key was not found
+			lockLayer = 0; 
+			next = (Node<K, V>) succs[lockLayer];
+		}
+		
+		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
+			lockLayer++;
+			next = (Node<K, V>) succs[lockLayer];
+		}
+		
+		//VALIDATION lock preds and succs from lockLayer
+		if(!fullValidatePhase(preds,succs, lockLayer,readSet,self)){
+			err.set();
+			return 0; 
+		}		
+		
+		pred = (Node<K, V>) preds[0];
+		pred.acquire(self);
+		Node<K, V> curr = (Node<K, V>) succs[0]; 
+		curr.acquire(self);
+		while(cmpMax.compareTo(curr.key) >= 0){		
+			//result[rangeCount] = curr.key;
+			rangeCount++;
+			pred.release();
+			pred = curr; 
+			curr = (Node<K, V>) curr.next[0]; 
+			curr.acquire(self);	
+		}
+		curr.release();
+		pred.release();
+		
+		for(int i = lockLayer ; i > -1 ; i--){
+			curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		return rangeCount;
+	
+	}
+	
 	@SuppressWarnings("unchecked")
 	private int optRangeImpl(Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self, Error err) {
@@ -841,132 +912,4 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		if (!validateReadOnly(readSet, self)) err.set();
 		return rangeCount;
 	}
-
-	@SuppressWarnings("unchecked")
-	private int lockedRangeImpl(Comparable<? super K> cmpMin,
-			Comparable<? super K> cmpMax, Thread self, Error err) {
-		ReadSet<K,V> readSet = threadReadSet.get();
-		readSet.clear(); 
-		long count = 0; 
-		Object[] preds = threadPreds.get();
-		Object[] succs = threadSuccs.get();
-		
-		Node<K,V> pred = readRef(root,readSet,err); 
-		if(err.isSet()) return -1;
-		
-		for(int layer = maxLevel ; layer > -1 ; layer-- ){
-			Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
-			if(err.isSet()) return -1;			
-			while (true) {
-				int res = cmpMin.compareTo(curr.key);
-				if(res == 0) {
-					//key found...
-					//Layer is the first level such that curr.key = min
-					//if this layer does not cover the range, lockLayer is used
-					//In lockLayer preds needs to be used 
-					for(int j =layer; j>-1; j--){
-						succs[j] = curr;			
-					}
-					int lockLayer = layer; 
-					Node<K,V> next = readRef( (Node<K, V>) curr.next[lockLayer],readSet,err);
-					if(err.isSet()) return -1;
-					while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
-						lockLayer++;
-						pred = (Node<K, V>) preds[lockLayer]; 
-						next = readRef( (Node<K, V>) pred.next[lockLayer],readSet,err);
-						if(err.isSet()) return -1;
-
-					}
-					
-					//VALIDATION lock only succs from lockedLayer
-					if(!mixedValidatePhase(preds,succs,lockLayer,layer,readSet,self)){
-						err.set();
-						return -1; 
-					}
-					
-					//Object[] result = rangeSet.get();
-					int rangeCount = 0; 
-					pred = curr;
-					//result[rangeCount] = curr.key;
-					rangeCount++;
-					curr = (Node<K, V>) curr.next[0]; 
-					acquire(curr,self);
-					while(cmpMax.compareTo(curr.key) >= 0){		
-						//result[rangeCount] = curr.key;
-						rangeCount++;
-						if ( !pred.equals(succs[layer])){ //succs[layer] equals what should be succs[0]
-							release(pred);
-						}
-						pred = curr; 
-						curr = (Node<K, V>) curr.next[0]; 
-						acquire(curr,self);	
-					}
-					release(curr);
-					if ( !pred.equals(succs[layer])){ //succs[layer] equals what should be succs[0]
-						release(pred);
-					}
-					releaseLevel(preds,lockLayer,layer);
-					releaseLevel(succs,layer,-1);
-					return rangeCount;
-					
-				}
-				if(res < 0){ 
-					break;
-				}							
-				pred = curr;
-				curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
-				if(err.isSet()) return -1;
-				
-				if(count++ == LIMIT){
-					if (!validateReadOnly(readSet, self)){
-						err.set();
-						return -1;
-					}
-				}
-			}
-			preds[layer] = pred;
-			succs[layer] = curr;
-			
-		}
-		
-		int lockLayer = 0; 
-		Node<K,V> next = (Node<K, V>) succs[lockLayer];
-		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
-			lockLayer++;
-			next = (Node<K, V>) succs[lockLayer];
-		}
-
-		//VALIDATION lock preds from lockLayer
-		if(!smallValidatePhase(preds,lockLayer,readSet,self)){
-			err.set();
-			return -1; 
-		}
-		
-		//Object[] result = rangeSet.get();
-		int rangeCount = 0; 
-		pred = (Node<K, V>) preds[0];
-		Node<K,V> curr = (Node<K, V>) pred.next[0]; 
-		acquire(curr,self);
-		while(cmpMax.compareTo(curr.key) >= 0){		
-			if(cmpMin.compareTo(curr.key) < 0){
-				//result[rangeCount] = curr.key;
-				rangeCount++;
-			}
-			if ( !pred.equals(preds[0])){
-				release(pred);
-			}
-			pred = curr; 
-			curr = (Node<K, V>) curr.next[0]; 
-			acquire(curr,self);	
-		}
-		release(curr);
-		if ( !pred.equals(preds[0])){
-			release(pred);
-		}
-		releaseLevel(preds,lockLayer,-1);
-		return rangeCount;
-	}
-
-	
-
 }
