@@ -17,6 +17,7 @@
                 <javac srcdir="${src}" destdir="${bin}" classpath="${deuce}:lib/junit.jar">
                         <exclude name="" />
 			<compilerarg value="-XDignore.symbol.file"/>
+			<compilerarg value="-g:none"/>
                 </javac>
         </target>
 
