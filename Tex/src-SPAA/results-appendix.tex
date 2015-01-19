@@ -1,0 +1,38 @@
+\section{Additional Results}
+
+\begin{figure*}
+\begin{center}
+\input{plots/unbalanced3small}
+\end{center}
+\caption{Throughput of unbalanced data structures. Small Tree. }
+\label{evaluation:results:unbalanced}
+\end{figure*}
+
+\begin{figure*}
+\begin{center}
+\input{plots/balanced3small}
+\end{center}
+\caption{Throughput of balanced data
+structures. Small Tree.}
+\label{evaluation:results:balanced}
+\end{figure*}
+
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/range1000}
+		\label{evaluation:results:range1000}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update1000}
+		\label{evaluation:results:update1000}
+	\end{subfigure}
+	\ref{skiplistLegened1000}
+	\end{center}
+\caption{Half the threads execute large range queries $[1000,2000]$
+and half the threads execute insert and delete operations.}
+\label{evaluation:results:skiplist1000}
+\end{figure*}
