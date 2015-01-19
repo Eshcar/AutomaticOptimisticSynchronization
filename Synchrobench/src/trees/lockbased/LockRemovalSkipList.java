@@ -647,6 +647,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		}
 		while(true){
 			//if(count< 3){
+				err.clean();
 				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break; 
 				//count++;
