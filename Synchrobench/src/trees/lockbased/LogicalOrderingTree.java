@@ -360,7 +360,7 @@ public class LogicalOrderingTree<K, V> implements CompositionalMap<K, V> {
 	}
 
 	@Override
-	public int getRange(K min, K max) {
+	public int getRange(K[] result, K min, K max) {
 		throw new RuntimeException("unimplemented method");
 		// TODO Auto-generated method stub
 		//return false;

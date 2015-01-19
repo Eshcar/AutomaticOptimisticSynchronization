@@ -353,9 +353,6 @@ public class Test {
 					else if (currentArg.equals("--iterations")
 							|| currentArg.equals("-n"))
 						Parameters.iterations = Integer.parseInt(optionValue);
-					else if (currentArg.equals("--effective")
-							|| currentArg.equals("-f"))
-						Parameters.effective = Boolean.parseBoolean(optionValue);
 					else if (currentArg.equals("--range")
 							|| currentArg.equals("-R"))
 						Parameters.rangeQueries = Boolean.parseBoolean(optionValue);
