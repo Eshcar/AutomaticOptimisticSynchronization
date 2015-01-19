@@ -91,7 +91,7 @@ public class LockFreeJavaSkipList<K,V> implements CompositionalMap<K,V>{
 			result[count]=key;
 			count++;
 		}
-		return map.size();
+		return count;
 	}
 
 }
