@@ -112,7 +112,7 @@ read-only operations.
 
 %% Eshcar: discuss small trees? the results are not the same
 We also experimented with a smaller trees ($[0,2\cdot10^4]$) to test different
-contention levels (the results appear in Appendix~\ref{appendix:results}).
+contention levels (the results appear in Appendix~\ref{sec:appendix:results}).
 The results show that our transformation works better on larger data structures. 
 Indeed, in large data structures, update operations are more likely to operate on disjoint parts
 of the data, allowing high concurrency. 
@@ -333,7 +333,7 @@ This mix allows us to evaluate both the performance of the range queries,
 and their impact on concurrent updates and vice versa.
 Indeed, the results show that \kary's throughput for range query is comarable to that of \skiplist, and at 32 thread have througput similar to \autoSkiplist.
 
-We also experimented with mixed workloads for large queries with large ranges varying between $1000$ to $2000$ keys (the results appear in Appendix~\ref{}). Here the impact of concurrent update operations on range queries is most pronounced in the results of \kary.
+We also experimented with mixed workloads for large queries with large ranges varying between $1000$ to $2000$ keys (the results appear in Appendix~\ref{sec:appendix:results}). Here the impact of concurrent update operations on range queries is most pronounced in the results of \kary.
 
 \Xomit{
 The evaluation of range queries focuses on a mixed workload, where half the
