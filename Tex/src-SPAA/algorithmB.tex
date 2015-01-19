@@ -234,8 +234,7 @@ Note that each lock has its own version --- i.e., version numbers of different l
 
 \paragraph{Read-only Phase}
 In this phase, we replace all the lock and unlock instructions with local tracking.
-(When  \textbf{opt} is used to track the execution phase, \emph{track} is executed instead of locking whenever  \textbf{opt} is true).
- In this phase the executing thread is invisible to other thread, i.e., 
+In this phase the executing thread is invisible to other thread, i.e., 
  avoids any contention on shared memory both in terms of writing and in terms of locking.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} tracks the objects that were supposed to be locked by the original synchronization.
@@ -244,6 +243,7 @@ The \emph{readSet} tracks versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
 At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
+In the read-only phase, (i.e., when \textbf{opt} is true with dynamic phase transitions), 
 We replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
 A lock instruction on object $o$ is replaced with code that tracks the object and the version of its lock in
  \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figure::track}).
@@ -342,11 +342,12 @@ during the read-only phase.
 To ensure that the second read of the lock and version, during the validation phase, succeeds the 
 optimistic read of the object's value, we precede the validation phase with a memory fence as well (line~\ref{code:fence}).  
 Note that it suffices to impose a \emph{read fence} (sometimes called acquire or load fence) 
-prior to the validation as well as during \textit{isLockedByAnother}, because only read instructions are ordered.
+prior to the validation as well as during \textit{isLockedByAnother}, because this part of the code does not include
+writes to shared memory.
 
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
-Here, (i.e., in case  \textbf{opt} is false), 
+Here, (i.e., in case  \textbf{opt} is false with dynamic phase transitions), 
 before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
