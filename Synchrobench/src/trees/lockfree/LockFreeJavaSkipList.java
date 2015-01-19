@@ -86,7 +86,7 @@ public class LockFreeJavaSkipList<K,V> implements CompositionalMap<K,V>{
 	@Override
 	public int getRange(K min, K max) {
 		ConcurrentNavigableMap<K, V> map = skiplist.subMap(min, max);
-		return 0;
+		return map.size();
 	}
 
 }
