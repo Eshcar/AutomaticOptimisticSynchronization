@@ -30,10 +30,6 @@ Each trial begins by initiating a new data structure with
 $10^6$ records. The presented results are the average throughput over all trials.
 %(with the pre-filling phase excluded).
 
-%% Eshcar: discuss small trees? the results are not the same
-%We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
-%contention levels; since the results showed similar trends, they are omitted here.
-
 All implementations are written in Java. We ran the experiments on a dedicated machine with
 four Intel Xeon E5-4650 processors, each with $8$ cores, for a total of $32$ threads
 (with hyper-threading disabled).
@@ -114,6 +110,14 @@ This might be due to the fact that once
 an update phase begins, the operation is not delayed due to concurrent
 read-only operations.
 
+%% Eshcar: discuss small trees? the results are not the same
+We also experimented with a smaller trees ($[0,2\cdot10^4]$) to test different
+contention levels (the results appear in Appendix~\ref{appendix:results}).
+The results show that our transformation works better on larger data structures. 
+Indeed, in large data structures, update operations are more likely to operate on disjoint parts
+of the data, allowing high concurrency. 
+%This is especially important for the automatic transformation as updates with overlapping lock sets might invalidate each other.
+%; since the results showed similar trends, they are omitted here.
 
 \subsection{Range Queries}
 \label{sec:range}
@@ -175,23 +179,12 @@ that supports range queries~\cite{BrownA12}\footnote{\url{http://www.cs.toronto.
 \end{description}
 To ensure a fair comparison (following~\cite{BrownA12}) the range query operation in all implementations return an array of keys.
 For \skiplist this means projecting a subset of the keys, iterating over them, and then copying each of these keys into an array. This does not include a snapshot, so range queries are
-not always linearizable.
+not always linearizable. \kary is similar to a b-tree, where the degree of the nodes is at most $k$. In our experiments we set $k$ to 64.
 
 Like many data structure libraries, \friendly and \danaAVL
 do not support atomic range queries, and
 there is no straightforward way to add them.
 
-The evaluation of range queries focuses on a mixed workload, where half the
-threads are dedicated to performing range queries, and the other half perform a
-mix of insert and delete operations (50\% each).
-This mix allows us to evaluate both the performance of the range queries,
-and their impact on concurrent updates.
-%\eshcar{what about a workload that includes only 100\% range
-%queries?}
-We experiment with queries with large ranges varying between $1000$ to $2000$ keys
-(Figure~\ref{evaluation:results:skiplist1000}) and small ranges
-between $10$ to $20$
-keys (Figure~\ref{evaluation:results:skiplist}).
 
 
 % \begin{figure*}
@@ -241,6 +234,59 @@ structures. Small Tree.}
 \end{figure*}
 }
 
+\Xomit{
+\begin{figure*}
+	\begin{center}
+	\begin{{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/skiplists}
+		\label{evaluation:results:skiplist:scans}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/skiplists}
+		\label{evaluation:results:skiplist:updates}
+	\end{subfigure}
+	\ref{skiplistLegened}
+	\end{center}
+\caption{Small range: all threads execute either small range queries $[10,20]$
+or a mix of insert and delete operations.}
+\label{evaluation:results:skiplist}
+\end{figure*}
+}
+}
+
+\begin{figure*}
+\begin{center}
+\input{plots/smallrangeAll}
+\end{center}
+\caption{Small range: all threads execute either small range queries $[10,20]$
+or a mix of insert and delete operations.}
+\label{evaluation:results:skiplist:update}
+\end{figure*}
+
+\Xomit{
+\begin{figure*}
+	\begin{center}
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Range queries}
+		\input{plots/range}
+		\label{evaluation:results:range}
+	\end{subfigure}
+	\quad\quad
+	\begin{subfigure}[t]{.35\textwidth}
+		\caption{Insert and delete operations}
+		\input{plots/update}
+		\label{evaluation:results:update}
+	\end{subfigure}
+	\ref{skiplistLegened}
+	\end{center}
+\caption{Small range: half the threads execute small range queries $[10,20]$
+and half the threads execute insert and delete operations.}
+\label{evaluation:results:skiplist10}
+\end{figure*}
+
 \begin{figure*}
 	\begin{center}
 	\begin{subfigure}[t]{.35\textwidth}
@@ -260,29 +306,30 @@ structures. Small Tree.}
 and half the threads execute insert and delete operations.}
 \label{evaluation:results:skiplist1000}
 \end{figure*}
+}
 
 
-\begin{figure*}
-	\begin{center}
-	\begin{subfigure}[t]{.35\textwidth}
-		\caption{Range queries}
-		\input{plots/range}
-		\label{evaluation:results:range}
-	\end{subfigure}
-	\quad\quad
-	\begin{subfigure}[t]{.35\textwidth}
-		\caption{Insert and delete operations}
-		\input{plots/update}
-		\label{evaluation:results:update}
-	\end{subfigure}
-	\ref{skiplistLegened}
-	\end{center}
-\caption{Half the threads execute small range queries$[10,20]$
-and half the threads execute insert and delete operations.}
-\label{evaluation:results:skiplist}
-\end{figure*}
 
 \paragraph{Results}
+
+\eshcar{small ranges: (1) all scans: results reflect expected order of the implementations ``best for queries''
+(2) on the other extrem all updates
+(3) in the middle mixed workload
+(4) also tested range queries}
+
+\Xomit{
+The evaluation of range queries focuses on a mixed workload, where half the
+threads are dedicated to performing range queries, and the other half perform a
+mix of insert and delete operations (50\% each).
+This mix allows us to evaluate both the performance of the range queries,
+and their impact on concurrent updates.
+%\eshcar{what about a workload that includes only 100\% range
+%queries?}
+We experiment with queries with large ranges varying between $1000$ to $2000$ keys
+(Figure~\ref{evaluation:results:skiplist1000}) and small ranges
+between $10$ to $20$
+keys (Figure~\ref{evaluation:results:skiplist10}).
+
 We measure the throughput of range queries and update operations separately.
 The overall number of range queries executed per second is reported
 in Figures~\ref{evaluation:results:range1000}
@@ -306,7 +353,7 @@ ranges, and 10x for update operations, regardless of the range size. The improve
 The simplicity of the non-linearizable implementation of \skiplist allows it to perform better than \autoSkiplist on range queries.  However, the performance of
 \autoSkiplist is almost identical to that of \skiplist --and even better in some cases, when comparing the update operations.
 %despite the fact that \skiplist performs inconsistent iterations.
-
+}
 \Xomit{
 Figure~\ref{evaluation:results:range1000}
 shows that, for large ranges, \bronson scales well up to $8$ threads, outperforming
