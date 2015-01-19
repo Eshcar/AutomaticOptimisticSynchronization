@@ -116,7 +116,8 @@ many applications (e.g.,~\cite{levelDB,FerroJKRY14}). To this end we implement a
 While range queries implemented using the iterators available in the Java concurrency library's skip list~\cite{ConcurrentSkipList} perform
 somewhat better than ones in our synthesized code, it is important to note that these iterators are \emph{not}
 linearizable (atomic), and only support so-called weak consistency, whereas range queries in our implementation are linearizable.
-Of the hand-crafted implementations in Synchrobench, only one, (\cite{BrownA12}), supports linearizable range queries; while it outperforms our synthesized code in range queries, for which it is optimized, it does not scale as well in 
+None of the hand-crafted implementations in Synchrobench supports linearizable range queries. We instead compare our 
+approach to a recent library geared towards such queries~\cite{BrownA12}; while it outperforms our synthesized code in range queries, for which it is optimized, it does not scale as well in 
 write-dominated workloads. 
 %
 
@@ -125,7 +126,7 @@ performance comparable to the state-of-the-art illustrates the benefit of
 %the broad applicability of 
 our \emph{generic} approach compared to specific custom-tailored implementations.
 %
-Other generic approaches we are familiar with are domination locking~\cite{Gueta2011} and STM~\cite{DiceSS2006}, both of which perform much worse than our transformed code in our experiments. 
+Other generic approaches we are familiar with are domination locking~\cite{Gueta2011} and STM~\cite{DiceSS2006}, both of which perform worse than our transformed code in our experiments. 
 %Software transactional memory is another general-purpose approach for parallelization,
 %%yet due to the significant overhead associated with this approach~\cite{Cascaval:2008,DuffyTM2010}, it is often complemented
 %by custom-tailored data structure implementations whose operations
