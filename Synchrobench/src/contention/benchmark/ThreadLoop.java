@@ -46,8 +46,7 @@ public class ThreadLoop implements Runnable {
 	public long getCount;
 	public long nodesTraversed;
 	public long structMods;
-	
-	public boolean effective; 
+
 	public int minRangeSize;
 	public int maxRangeSize;
 	 
@@ -73,7 +72,6 @@ public class ThreadLoop implements Runnable {
 		cdf[0] = 10 * Parameters.numWriteAlls;
 		cdf[1] = 10 * Parameters.numWrites;
 		cdf[2] = cdf[1] + 10 * Parameters.numSnapshots;
-		effective = Parameters.effective;
 		if(Parameters.rangeQueries){
 			int numThreads = Parameters.numThreads; 
 			if (numThreads == 1){
@@ -129,28 +127,12 @@ public class ThreadLoop implements Runnable {
 					if ((bench.putIfAbsent((int) newInt, (int) newInt)) == null) {
 						numAdd++;
 					} else {
-						if(effective){
-							if(bench.remove((int) newInt)!=null){
-								numRemove++;
-							}else{
-								failures++;
-							}
-							total++;
-						}
 						failures++;
 					}
 				} else { // remove
 					if ((bench.remove((int) newInt)) != null) {
 						numRemove++;
 					} else{
-						if(effective){
-							if(bench.putIfAbsent((int) newInt, (int) newInt) == null){
-								numAdd++;
-							}else{
-								failures++;
-							}
-							total++;
-						}
 						failures++;
 					}
 				}

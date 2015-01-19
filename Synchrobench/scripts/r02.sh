@@ -42,7 +42,7 @@ mkdir ${output}/log ${output}/data ${output}/plot ${output}/ps
        r=`echo "2*${i}" | bc`
        out=${output}/log/${bench}-small_ranges-i${i}-u${write}-t${t}.log
        for (( j=1; j<=${iterations}; j++ )); do
-	   ${java} ${javaopt} -cp ${CP} ${MAINCLASS} -W ${warmup} -u ${write} -s ${snapshot} -d ${l} -t ${t} -i ${i} -r ${r} -f true -R true -b ${bench} 2>&1 >> ${out}
+	   ${java} ${javaopt} -cp ${CP} ${MAINCLASS} -W ${warmup} -u ${write} -s ${snapshot} -d ${l} -t ${t} -i ${i} -r ${r} -R true -b ${bench} 2>&1 >> ${out}
        done
      done
     done
@@ -67,7 +67,7 @@ CP=${dir}/lib/compositional-deucestm-0.1.jar:${dir}/lib/mydeuce.jar:${dir}/bin
 	       out=${output}/log/${bench}-small_ranges-stm${stm}-i${i}-u${write}-t${t}.log
          for (( j=1; j<=${iterations}; j++ )); do
 	     echo "${java} ${javaopt} ${JVMARGS} -Dorg.deuce.transaction.contextClass=org.deuce.transaction.${stm}.Context -javaagent:${agent} -cp ${CP} ${BOOTARGS} ${MAINCLASS} -W ${warmup} -u ${write} -a ${writeall} -s ${snapshot} -l ${l} -t ${t} -i ${i} -r ${r} -b ${BENCHPATH}.${bench} -v"
-	     ${java} ${javaopt} ${JVMARGS} -Dorg.deuce.transaction.contextClass=org.deuce.transaction.${stm}.Context -javaagent:${agent} -cp ${CP} ${BOOTARGS} ${MAINCLASS} -W ${warmup} -u ${write} -a ${writeall} -s ${snapshot} -d ${l} -t ${t} -i ${i} -r ${r} -f true -R true -b ${bench} -v 2>&1 >> ${out}
+	     ${java} ${javaopt} ${JVMARGS} -Dorg.deuce.transaction.contextClass=org.deuce.transaction.${stm}.Context -javaagent:${agent} -cp ${CP} ${BOOTARGS} ${MAINCLASS} -W ${warmup} -u ${write} -a ${writeall} -s ${snapshot} -d ${l} -t ${t} -i ${i} -r ${r} -R true -b ${bench} -v 2>&1 >> ${out}
 	 done
        done
      done
