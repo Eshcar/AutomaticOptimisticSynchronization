@@ -107,7 +107,8 @@ In many cases, the transition from the read-only phase to the update phase in th
 More generally, it is possible to switch from the optimistic read-only phase (via the validation phase) to pessimistic execution at any point before the first update. Moreover, the phase transition point can be determined dynamically at run time.
 
 One possible way to dynamically track the execution mode is using a flag \textbf{opt}, initialized to true, indicating the optimistic phase. 
-Every shared memory update operation is instrumented with code that checks \textbf{opt}, and if it is true, executes the validation phase followed by setting \textbf{opt} to false and continuing the execution from the same location. Every shared memory read operation is instrumented with a check of \textbf{opt} to determine whether it is to be executed optimistically or pessimistically. 
+Every shared memory update operation is instrumented with code that checks \textbf{opt}, and if it is true, executes the validation phase followed by setting \textbf{opt} to false and continuing the execution from the same location. 
+%Every lock operation is instrumented with a check of \textbf{opt} to determine whether it is to be executed optimistically or pessimistically. 
 
 \subsection{Transforming the Code Phases}\label{ssec:transformation}
 
@@ -232,7 +233,9 @@ Our transformation instruments each lock with an additional field \emph{version}
 Note that each lock has its own version --- i.e., version numbers of different locks are independent of each other.
 
 \paragraph{Read-only Phase}
-In this phase, we replace all the lock and unlock instructions with local tracking. In this phase the executing thread is invisible to other thread, i.e., 
+In this phase, we replace all the lock and unlock instructions with local tracking.
+(When  \textbf{opt} is used to track the execution phase, \emph{track} is executed instead of locking whenever  \textbf{opt} is true).
+ In this phase the executing thread is invisible to other thread, i.e., 
  avoids any contention on shared memory both in terms of writing and in terms of locking.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} tracks the objects that were supposed to be locked by the original synchronization.
@@ -343,7 +346,8 @@ prior to the validation as well as during \textit{isLockedByAnother}, because on
 
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
-Here, before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
+Here, (i.e., in case  \textbf{opt} is false), 
+before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
 \begin{figure}
