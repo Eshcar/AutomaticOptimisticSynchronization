@@ -5,7 +5,7 @@ We evaluate the performance of our approach on two types of data
 structures. In Section~\ref{sec:readwrite} we consider search trees
 supporting insert, delete, and get operations, whereas Section~\ref{sec:range}
 focuses on data structures that, in addition, support range queries that retrieve all
-records within a given range. We compare the performance of our approach in terms of
+keys within a given range. We compare the performance of our approach in terms of
 throughput to fully pessimistic solutions applying fine-grain locking. These
 algorithms also serve as the lock-based reference implementation at the base of
 our semi-optimistic implementations.
@@ -29,8 +29,10 @@ Each trial begins by initiating a new data structure with
 %and applying an untimed pre-filling phase, which continues until the size of the data structure is within 5\% of
 $10^6$ records. The presented results are the average throughput over all trials.
 %(with the pre-filling phase excluded).
-We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
-contention levels; since the results showed similar trends, they are omitted here.
+
+%% Eshcar: discuss small trees? the results are not the same
+%We also experimented with a smaller range ($[0,2\cdot10^4]$) to test different
+%contention levels; since the results showed similar trends, they are omitted here.
 
 All implementations are written in Java. We ran the experiments on a dedicated machine with
 four Intel Xeon E5-4650 processors, each with $8$ cores, for a total of $32$ threads
@@ -50,14 +52,16 @@ tree, and a treap~\cite{AragonS1989}. To
 generate pessimistic lock-based implementations, we synthesize
 concurrent code by applying the domination locking technique to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
-Finally, we apply our lock-removal transformation manually to the reference
+Finally, we manually apply our lock-removal transformation to the reference
 implementations to get our semi-optimistic versions of the code, which we call
 \autoTree and \autoTreap, respectively.
-We also applied Transactional Locking II~\cite{DiceSS2006} to the sequential implementations. The resulting algorithms are denoted \stmTree and \stmTreap.
+We also applied Deuce~\cite{Deuce2010}, which is a Java implementation of the TL2 algorithm~\cite{DiceSS2006} to the sequential implementations. The resulting algorithms are denoted \stmTree and \stmTreap.
 
-We further compare our implementations to their hand-crafted state-of-the-art counterparts\footnote{All implementation are provided by Synchrobench}. We compare \autoTree to
+We further compare our implementations to their hand-crafted state-of-the-art counterparts\footnote{Unless described otherwise implementations are provided by Synchrobench}. We compare \autoTree to
 \begin{description}
-%\item[\danaTree] The locked-based unbalanced tree of Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
+\item[\danaTree] The locked-based unbalanced tree of Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
 \item [\lockfreeTree] The lock-free unbalanced tree of Ellen et al.~\cite{EllenFRB2010}.
 \end{description}
 \autoTreap is evaluated against three hand-crafted implementations
@@ -82,26 +86,26 @@ deletes.
 Figure~\ref{evaluation:results:unbalanced}
 shows the throughput of unbalanced data structures and Figure~\ref{evaluation:results:balanced} shows
 the throughput of the balanced ones. We see that our semi-optimistic
-solution is far superior to previous, fully-pessimistic,
-automated approaches, with 50x to 70x
-%up-to two order of magnitude
-higher performance
-%(between x50 in write dominated workload to x70 in read-only workload).
-It successfully overcomes the bottlenecks associated with lock contention
-%, and
-%specifically the contention on the lock of the root, even if held only for short
-%periods
-in the \domTree and \domTreap implementations. In
-many scenarios, our solution comes close to custom-tailored implementations.
+solution is far superior to the previous, fully-pessimistic,
+automated approach; it successfully overcomes the bottlenecks associated with lock contention
+in the \domTree and \domTreap implementations. 
+
+For both balanced and unbalanced trees, our approach outperforms STM with 2x to 3x throughput.
+This might be due to the tradeoff between validation overhead vs not concerning with internal consistency.
+To ensure opacity~\cite{GuerraouiK2008}, each time an object is read in STM, the transaction checks that the version of the lock protecting the object is valid. 
+Our algorithms read the version instead of locking the object which happens less frequently, typically once during the operation.
+This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 
+%In many scenarios, 
+Our solution comes close to custom-tailored implementations.
 The results for the read-only workload show the main overhead
 of our automatic approach. By profiling the code, we learned
 that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations,
 which have small overhead on reads in this scenario, thanks to either
-wait-free reads (in \danaAVL,\friendly and \lockfreeTree ), or optimistic validation (in \bronson).
+wait-free reads (in \danaAVL, \danaTree, \friendly and \lockfreeTree ), or optimistic validation (in \bronson).
 
 As the ratio of updates in the workload increases, our automatic implementation
 closes this gap.
@@ -155,24 +159,36 @@ As in previous data structures, we  apply the lock-removal transformation to the
 reference implementation to get a semi-optimistic algorithm, which we call
 \autoSkiplist.
 
-\autoSkiplist is compared to \domSkiplist as well as those of the aforementioned
+We also applied Deuce to the skip-list sequential implementation. The resulting algorithm is denoted \stmSkiplist.
+
+Our approach is also compared to the aforementioned
 state-of-the-art data structures that support range queries. Specifically,
-we compare our results to (1)
-\bronson, which provides atomic range queries by traversing a clone of the
-original tree that is lazily generated, and (2)
-iterations in Java's concurrent skip list, which are \emph{not}
-guaranteed to be atomic. Like many data structure libraries, \friendly and \danaAVL
+we compare \autoSkiplist to 
+\begin{description}
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
+\item[\skiplist] The non-blocking Java skip-list which supports \emph{non}-linarizable range queries through iterators.
+\item[\kary] A linearizable, non-blocking $k$-ary search tree
+that supports range queries~\cite{BrownA12}\footnote{\url{http://www.cs.toronto.edu/~tabrown/kstrq}}.
+%\item[\bronson] provides atomic range queries by traversing a clone of the
+%original tree that is lazily generated
+\end{description}
+To ensure a fair comparison (following~\cite{BrownA12}) the range query operation in all implementations return an array of keys.
+For \skiplist this means projecting a subset of the keys, iterating over them, and then copying each of these keys into an array. This does not include a snapshot, so range queries are
+not always linearizable.
+
+Like many data structure libraries, \friendly and \danaAVL
 do not support atomic range queries, and
 there is no straightforward way to add them.
 
 The evaluation of range queries focuses on a mixed workload, where half the
-threads are dedicated to performing range queries, and the other half performs a
+threads are dedicated to performing range queries, and the other half perform a
 mix of insert and delete operations (50\% each).
-This mix allows us to evaluate both the performance of the range queries themselves,
+This mix allows us to evaluate both the performance of the range queries,
 and their impact on concurrent updates.
 %\eshcar{what about a workload that includes only 100\% range
 %queries?}
-We experiment with queries with big ranges varying between $1000$ to $2000$ keys
+We experiment with queries with large ranges varying between $1000$ to $2000$ keys
 (Figure~\ref{evaluation:results:skiplist1000}) and small ranges
 between $10$ to $20$
 keys (Figure~\ref{evaluation:results:skiplist}).
@@ -195,6 +211,7 @@ keys (Figure~\ref{evaluation:results:skiplist}).
 \label{evaluation:results:unbalanced}
 \end{figure*}
 
+\Xomit{
 \begin{figure*}
 \begin{center}
 \input{plots/unbalanced3small}
@@ -202,7 +219,7 @@ keys (Figure~\ref{evaluation:results:skiplist}).
 \caption{Throughput of unbalanced data structures. Small Tree. }
 \label{evaluation:results:unbalanced}
 \end{figure*}
-
+}
 
 \begin{figure*}
 \begin{center}
@@ -213,6 +230,7 @@ structures.}
 \label{evaluation:results:balanced}
 \end{figure*}
 
+\Xomit{
 \begin{figure*}
 \begin{center}
 \input{plots/balanced3small}
@@ -221,7 +239,7 @@ structures.}
 structures. Small Tree.}
 \label{evaluation:results:balanced}
 \end{figure*}
-
+}
 
 \begin{figure*}
 	\begin{center}
@@ -238,7 +256,7 @@ structures. Small Tree.}
 	\end{subfigure}
 	\ref{skiplistLegened1000}
 	\end{center}
-\caption{Half the threads execute big range queries $[1000,2000]$
+\caption{Half the threads execute large range queries $[1000,2000]$
 and half the threads execute insert and delete operations.}
 \label{evaluation:results:skiplist1000}
 \end{figure*}
@@ -272,29 +290,29 @@ and~\ref{evaluation:results:range}, and the overall number of update (insert
 and delete) operations executed per second is reported in
 Figures~\ref{evaluation:results:update1000} and~\ref{evaluation:results:update}.
 
-Again, we see that our transformed code
- is superior to the fully-pessimistic fine-grain one, improving throughput by
-up to two orders of magnitude -- 75x for small range queries, 4x for big
-ranges, and 100x for update operations, regardless of the range size. We believe that,
+Again, we see that our transformed code outperforms
+  to the fully-pessimistic fine-grain one. We believe that,
 as in the
 domination locking versions of the tree data structures, holding a lock on the head sentinel of the skip list in
 \domSkiplist, even for short periods, imposes a major performance penalty,
 which is eliminated by our  semi-optimistic approach.
+
+It is superior also to the STM implementation
+improving throughput by
+up to three orders of magnitude -- 500x for large range queries, 2x for small
+ranges, and 10x for update operations, regardless of the range size. The improvement in update operations can be attributed to lack of contention on a centralized object like the global version in \stmSkiplist. \eshcar{explain difference in range queries}
+
+
+The simplicity of the non-linearizable implementation of \skiplist allows it to perform better than \autoSkiplist on range queries.  However, the performance of
+\autoSkiplist is almost identical to that of \skiplist --and even better in some cases, when comparing the update operations.
+%despite the fact that \skiplist performs inconsistent iterations.
+
 \Xomit{
-Put in other words, our transformation generates a DAP
-implementation---only locking objects of nodes that are modified by the
-operations---from a non-DAP one. The great increase in throughput can
-be attributed to this property.
-}
-
-The performance of \autoSkiplist is almost
-identical to that of \skiplist, despite the fact that \skiplist performs inconsistent iterations.
-
 Figure~\ref{evaluation:results:range1000}
-shows that, for big ranges, \bronson scales well up to $8$ threads, outperforming
+shows that, for large ranges, \bronson scales well up to $8$ threads, outperforming
 all other implementations, but at $32$ threads its performance deteriorates.
 This might be because this implementation is
-optimized for full scans or very big range queries running sequentially.
+optimized for full scans or very large range queries running sequentially.
 The overhead of initiating a clone of the data structure per range query, which
 involves waiting for all
 pending update operations to complete, hampers scalability when
@@ -306,8 +324,9 @@ In addition, the lazy cloning required to support
 range queries imposes an overhead on  update operations. Copying each node
 during downward traversal might be the main impediment preventing these
 operations from scaling when the ranges are small (Figure~\ref{evaluation:results:update}) as well as when
-they are big (Figure~\ref{evaluation:results:update1000}). In contrast,
+they are large (Figure~\ref{evaluation:results:update1000}). In contrast,
 the update operations in \autoSkiplist and \skiplist do not take any special
 measures for the benefit of concurrent queries (which validate themselves in
 \autoSkiplist, and are not atomic in \skiplist), and hence continue to perform well in
 their presence.
+}
