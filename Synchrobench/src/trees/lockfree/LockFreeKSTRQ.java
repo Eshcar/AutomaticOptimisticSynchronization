@@ -31,7 +31,7 @@ public class LockFreeKSTRQ<E extends Comparable<? super E>,V> implements Composi
     */
 
    public LockFreeKSTRQ() {
-       this(64, new Node<E,V>(64, true));
+       this(64, new Node<E,V>(16, true));
    }
    
    public LockFreeKSTRQ(final int K) {
