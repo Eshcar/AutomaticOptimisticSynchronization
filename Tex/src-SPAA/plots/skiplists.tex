@@ -15,10 +15,10 @@
 {results/trees-i1000000-u100.log};
 \end{axis}
 \end{tikzpicture}
-\Xomit{
 \begin{tikzpicture}
 \begin{axis}[mystyle,skiplistUpdate, 
-				 title={\textbf{read-only}},]
+				 title={\textbf{read-only}},
+				 ymax=15000000,]
 \addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
 {results/trees-i1000000-u0.log}; 
 \addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
@@ -31,7 +31,6 @@
 {results/trees-i1000000-u0.log};
 \end{axis}
 \end{tikzpicture}
-}
 
 \ref{skiplistLegenedUpdate}
 
