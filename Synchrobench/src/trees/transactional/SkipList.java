@@ -364,12 +364,12 @@ public class SkipList<K,V> implements CompositionalMap<K, V> {
 
 	@Override
 	@Atomic
-	public int getRange(K min, K max) {
-		return getRangeImpl(comparable(min), comparable(max));
+	public int getRange(K[] result , K min, K max) {
+		return getRangeImpl(result, comparable(min), comparable(max));
 	}
 	
 	@SuppressWarnings("unchecked")
-	private int getRangeImpl(Comparable<? super K> cmpMin,
+	private int getRangeImpl(K[] result, Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax) {
 		int rangeCount = 0; 
 		int res;
@@ -392,6 +392,7 @@ public class SkipList<K,V> implements CompositionalMap<K, V> {
 		}
 		
 		while(cmpMax.compareTo(curr.key) >= 0){		
+			result[rangeCount] = curr.key; 
 			rangeCount++;
 			pred = curr; 
 			curr = (Node<K, V>) curr.next[0]; 

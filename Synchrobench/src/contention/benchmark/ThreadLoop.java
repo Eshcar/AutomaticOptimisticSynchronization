@@ -100,7 +100,7 @@ public class ThreadLoop implements Runnable {
 	}
 
 	public void run() {
-
+		Integer [] rangeResult = new Integer[maxRangeSize];
 		while (!stop) {
 			Integer newInt = rand.nextInt(Parameters.range);
 			
@@ -142,7 +142,7 @@ public class ThreadLoop implements Runnable {
 				int rangeSize = rand.nextInt(1+maxRangeSize-minRangeSize)+minRangeSize;
 				int min = rand.nextInt(Parameters.range-rangeSize); 
 				int max = min + rangeSize; 			
-				bench.getRange(min,max);
+				bench.getRange(rangeResult,min,max);
 				numSize++;
 
 			} else { // 4. then we should run a readSome operation

@@ -354,8 +354,8 @@ public class LockFreeKSTRQ<E extends Comparable<? super E>,V> implements Composi
    }
    
    @Override
-   public int getRange(E min, E max) {
-	   return subSet((E)min,(E)max);
+   public int getRange(E[] result, E min, E max) {
+	   return subSet(result,(E)min,(E)max);
    }
    
    public static final class Stack {
@@ -379,7 +379,7 @@ public class LockFreeKSTRQ<E extends Comparable<? super E>,V> implements Composi
        }
    }
    
-   public int subSet(final E lo, final E hi) {
+   public int subSet(E[] result, final E lo, final E hi) {
        if (less(hi, lo)) {
            throw new IllegalArgumentException("inconsistent range");
        }
@@ -459,17 +459,17 @@ public class LockFreeKSTRQ<E extends Comparable<? super E>,V> implements Composi
                numKeys += snap.s[i].kcount;
            }
            //final Object[] result = new Object[numKeys];
-           // save keys for first node
-           //int k = snap.s[si].kcount-sj;
-           //System.arraycopy(snap.s[si].k, sj, result, 0, k);
-           //++si;
-           // save keys for all but the last node
-           /*for (;si<ei;si++) {
+           //save keys for first node
+           int k = snap.s[si].kcount-sj;
+           System.arraycopy(snap.s[si].k, sj, result, 0, k);
+           ++si;
+           //save keys for all but the last node
+           for (;si<ei;si++) {
                System.arraycopy(snap.s[si].k, 0, result, k, snap.s[si].kcount);
                k += snap.s[si].kcount;
-           }*/
-           // save keys for the last node
-           //System.arraycopy(snap.s[ei].k, 0, result, k, ej+1);
+           }
+           //save keys for the last node
+           System.arraycopy(snap.s[ei].k, 0, result, k, ej+1);
            return numKeys;
        }
    }

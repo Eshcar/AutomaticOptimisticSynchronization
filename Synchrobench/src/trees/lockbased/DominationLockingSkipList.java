@@ -485,16 +485,16 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	@Override
-	public int getRange(K min, K max) {
+	public int getRange(K[] result, K min, K max) {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
 		}
-		return dominationRangeImpl(comparable(min), comparable(max),self.get());
+		return dominationRangeImpl(result, comparable(min), comparable(max),self.get());
 	}
 	
 	@SuppressWarnings("unchecked")
-	private int dominationRangeImpl(Comparable<? super K> cmpMin,
+	private int dominationRangeImpl(K[] result, Comparable<? super K> cmpMin,
 		Comparable<? super K> cmpMax, Thread self) {
 		//Object[] result = rangeSet.get();
 		int rangeCount = 0; 
@@ -563,7 +563,7 @@ public class DominationLockingSkipList<K,V> implements CompositionalMap<K, V> {
 		Node<K, V> curr = (Node<K, V>) succs[0]; 
 		curr.acquire(self);
 		while(cmpMax.compareTo(curr.key) >= 0){		
-			//result[rangeCount] = curr.key;
+			result[rangeCount] = curr.key;
 			rangeCount++;
 			pred.release();
 			pred = curr; 

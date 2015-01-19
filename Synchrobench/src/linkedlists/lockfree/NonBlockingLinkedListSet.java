@@ -149,7 +149,7 @@ public class NonBlockingLinkedListSet extends AbstractCompositionalIntSet {
 	}
 
 	@Override
-	public int getRange(Integer min, Integer max) {
+	public int getRange(Integer[] result, Integer min, Integer max) {
 		throw new RuntimeException("unimplemented method");
 	}
 }

@@ -947,7 +947,7 @@ public class TransactionalRBTreeSet<K, V> implements CompositionalIntSet,
 	}
 
 	@Override
-	public int getRange(K min, K max) {
+	public int getRange(K[] result, K min, K max) {
 		throw new RuntimeException("unimplemented method");
 	}
 

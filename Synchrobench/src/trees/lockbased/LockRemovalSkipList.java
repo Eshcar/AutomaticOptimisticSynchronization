@@ -637,7 +637,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	
-	public int getRange(K min, K max){
+	public int getRange(K[] result, K min, K max){
 		int value; 
 		//int count = 0; 
 		Error err = threadError.get();
@@ -648,7 +648,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		while(true){
 			//if(count< 3){
 				err.clean();
-				value = optRangeImpl(comparable(min), comparable(max), self.get(),err);
+				value = optRangeImpl(result, comparable(min), comparable(max), self.get(),err);
 				if(!err.isSet()) break; 
 				//count++;
 			//}else if(count <6 ){
@@ -849,7 +849,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private int optRangeImpl(Comparable<? super K> cmpMin,
+	private int optRangeImpl(K[] result, Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
@@ -869,7 +869,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 					//Object[] result = rangeSet.get();
 					int rangeCount = 0; 
 					while(cmpMax.compareTo(curr.key) >= 0){
-						//result[rangeCount] = curr.key;
+						result[rangeCount] = curr.key;
 						rangeCount++;
 						curr = readRef((Node<K, V>)curr.next[0],readSet,err);
 						if(err.isSet()) return -1;			
@@ -904,7 +904,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			if(err.isSet()) return -1;		
 		}
 		while(cmpMax.compareTo(curr.key) >= 0){
-			//result[rangeCount] = curr.key;
+			result[rangeCount] = curr.key;
 			rangeCount++;
 			curr = readRef((Node<K, V>)curr.next[0],readSet,err);
 			if(err.isSet()) return -1;			
