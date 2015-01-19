@@ -263,7 +263,7 @@ or a mix of insert and delete operations.}
 \end{center}
 \caption{Small range: all threads execute either small range queries $[10,20]$
 or a mix of insert and delete operations.}
-\label{evaluation:results:skiplist:update}
+\label{evaluation:results:skiplist}
 \end{figure*}
 
 \Xomit{
@@ -311,18 +311,36 @@ and half the threads execute insert and delete operations.}
 
 
 \paragraph{Results}
+We start the evaluation of data structures supporting range queries (Figure~\ref{evaluation:results:skiplist}) with the read-only workload, where all threads execute small range queries between $10$ to $20$ keys. 
+%The results reflect the correlation of the implementation to scan-only workload. 
+As expected, \kary has the best performance as it is optimal for batch scans. The simplicity of the non-linearizable implementation of \skiplist allows it to perform well. Our semi-optimistic transformed code, outperforms both the STM and the fully-pessimistic fine-grain transformations.
 
-\eshcar{small ranges: (1) all scans: results reflect expected order of the implementations ``best for queries''
-(2) on the other extrem all updates
-(3) in the middle mixed workload
-(4) also tested range queries}
+On the other extrem, we evaluated all updates (write-dominated) workloads, where the operations are a mix of insert and delete operations (50\% each). Here, splitting and merging nodes affect the performance of \kary which flattens out at 32 threads. The throughput of \autoSkiplist and \stmSkiplist are comparable, both scale nicely with the number of threads.
+Again, we see that \autoSkiplist outperforms
+  to the fully-pessimistic fine-grain one. We believe that,
+as in the
+domination locking versions of the tree data structures, holding a lock on the head sentinel of the skip list in
+\domSkiplist, even for short periods, imposes a major performance penalty,
+which is eliminated by our semi-optimistic approach. 
+Finally, \autoSkiplist is also superior to the STM implementation
+improving throughput by
+10x. The improvement in update operations can be attributed to lack of contention on a centralized object like the global version in \stmSkiplist.
+
+Next, we focus on a mixed workload, where half the
+threads are dedicated to performing range queries, and the other half perform a
+mix of insert and delete operations (50\% each).
+This mix allows us to evaluate both the performance of the range queries,
+and their impact on concurrent updates and vice versa.
+Indeed, the results show that \kary's throughput for range query is comarable to that of \skiplist, and at 32 thread have througput similar to \autoSkiplist.
+
+We also experimented with mixed workloads for large queries with large ranges varying between $1000$ to $2000$ keys (the results appear in Appendix~\ref{}). Here the impact of concurrent update operations on range queries is most pronounced in the results of \kary.
 
 \Xomit{
 The evaluation of range queries focuses on a mixed workload, where half the
 threads are dedicated to performing range queries, and the other half perform a
 mix of insert and delete operations (50\% each).
 This mix allows us to evaluate both the performance of the range queries,
-and their impact on concurrent updates.
+and their impact on concurrent updates and vice versa.
 %\eshcar{what about a workload that includes only 100\% range
 %queries?}
 We experiment with queries with large ranges varying between $1000$ to $2000$ keys
