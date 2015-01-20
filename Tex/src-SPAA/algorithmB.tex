@@ -348,7 +348,7 @@ writes to shared memory.
 \paragraph{Update Phase}
 In this phase our transformation preserves the original locking while maintaining the versions of the objects, i.e., the version of an object $o$ is incremented every time $o$ is unlocked.
 Here, (i.e., in case  \textbf{opt} is false with dynamic phase transitions), 
-before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.version++} .
+before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.incVersion()} .
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
 
 \begin{figure}
