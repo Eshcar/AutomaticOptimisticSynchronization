@@ -27,7 +27,7 @@ randomly chosen operations drawn from the workload distribution, with keys
 selected uniformly at random from the range $[0,2\cdot10^6]$.
 Each trial begins by initiating a new data structure with
 %and applying an untimed pre-filling phase, which continues until the size of the data structure is within 5\% of
-$10^6$ records. The presented results are the average throughput over all trials.
+$10^6$ keys. The presented results are the average throughput over all trials.
 %(with the pre-filling phase excluded).
 
 All implementations are written in Java. We ran the experiments on a dedicated machine with
@@ -87,23 +87,23 @@ automated approach; it successfully overcomes the bottlenecks associated with lo
 in the \domTree and \domTreap implementations. 
 
 For both balanced and unbalanced trees, our approach outperforms STM with 2x to 3x throughput.
-This might be due to the tradeoff between validation overhead vs not concerning with internal consistency.
+This might be due to the tradeoff between validation overhead and no internal consistency.
 To ensure opacity~\cite{GuerraouiK2008}, each time an object is read in STM, the transaction checks that the version of the lock protecting the object is valid. 
-Our algorithms read the version instead of locking the object which happens less frequently, typically once during the operation.
+Our algorithms read the version instead of locking the object which happens typically once during the operation.
 This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 
 %In many scenarios, 
 Our solution comes close to custom-tailored implementations.
 The results for the read-only workload show the main overhead
-of our automatic approach. By profiling the code, we learned
+of our approach. By profiling the code, we learned
 that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations,
 which have small overhead on reads in this scenario, thanks to either
 wait-free reads (in \danaAVL, \danaTree, \friendly and \lockfreeTree ), or optimistic validation (in \bronson).
 
-As the ratio of updates in the workload increases, our automatic implementation
+As the ratio of updates in the workload increases, our implementation
 closes this gap.
 In other words, the transformed code deals well with update contention.
 This might be due to the fact that once
@@ -111,7 +111,7 @@ an update phase begins, the operation is not delayed due to concurrent
 read-only operations.
 
 %% Eshcar: discuss small trees? the results are not the same
-We also experimented with a smaller trees ($[0,2\cdot10^4]$) to test different
+We also experimented with smaller trees ($[0,2\cdot10^4]$) to test different
 contention levels (the results appear in Appendix~\ref{sec:appendix:results}).
 The results show that our transformation works better on larger data structures. 
 Indeed, in large data structures, update operations are more likely to operate on disjoint parts
@@ -137,8 +137,8 @@ to obtain.
 }
 We use a skip list, which readily supports range queries by
 nature of its linked-structure. The core of the implementation is the key lookup
-method; once reaching the key, a record can be added or be removed in place, and
-an iteration of subsequent records can be executed by traversing
+method; once reaching the key, a key can be added or be removed in place, and
+an iteration of subsequent keys can be executed by traversing
 the bottom-level linked-list.
 
 The domination locking scheme cannot be efficiently applied to the skip list
@@ -146,7 +146,7 @@ structure since it is a DAG rather than a tree. Instead, we
 manually devise a pessimistic locking protocol. Our
 algorithm, (inspired by the one in~\cite{HerlihyS2008}), applies
 hand-over-hand locking at each level, so that at the end of the search, the
-operation holds locks on two records in each level, which define the minimal interval within this level
+operation holds locks on two keys in each level, which define the minimal interval within this level
 containing the lookup key (or the first lookup key in the case of a range query). Upon
 reaching the bottom level, unnecessary locks are released, as follows: update operations only keep
 locks on nodes they intend to modify, whereas
@@ -154,7 +154,7 @@ locks on nodes they intend to modify, whereas
 %modification can be executed in isolation from other update operations.
 range
 queries keep the locks in the level with the minimal interval spanning the
-range. Range queries then continue to use hand-over-hand locking to traverse through all records
+range. Range queries then continue to use hand-over-hand locking to traverse through all keys
 within the range. The use of hand-over-hand locking ensures that range queries are atomic
 (linearizable), i.e., return a consistent view of the data structure.
 
@@ -311,13 +311,15 @@ and half the threads execute insert and delete operations.}
 
 
 \paragraph{Results}
-We start the evaluation of data structures supporting range queries (Figure~\ref{evaluation:results:skiplist}) with the read-only workload, where all threads execute small range queries between $10$ to $20$ keys. 
+We start the evaluation 
+%of data structures supporting range queries 
+(Figure~\ref{evaluation:results:skiplist}) with the read-only workload, where all threads execute small range queries between $10$ to $20$ keys. 
 %The results reflect the correlation of the implementation to scan-only workload. 
 As expected, \kary has the best performance as it is optimal for batch scans. The simplicity of the non-linearizable implementation of \skiplist allows it to perform well. Our semi-optimistic transformed code, outperforms both the STM and the fully-pessimistic fine-grain transformations.
 
 On the other extrem, we evaluated all updates (write-dominated) workloads, where the operations are a mix of insert and delete operations (50\% each). Here, splitting and merging nodes affect the performance of \kary which flattens out at 32 threads. The throughput of \autoSkiplist and \stmSkiplist are comparable, both scale nicely with the number of threads.
 Again, we see that \autoSkiplist outperforms
-  to the fully-pessimistic fine-grain one. We believe that,
+the fully-pessimistic fine-grain one. We believe that,
 as in the
 domination locking versions of the tree data structures, holding a lock on the head sentinel of the skip list in
 \domSkiplist, even for short periods, imposes a major performance penalty,
