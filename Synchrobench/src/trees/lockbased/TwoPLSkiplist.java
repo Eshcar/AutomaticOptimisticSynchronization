@@ -9,6 +9,7 @@ import java.util.Set;
 
 
 
+
 import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
@@ -427,14 +428,14 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			((Node<K,V>)succs[i]).release();
 		}
 		
-		for(int i = layerFound ; i > -1 ; i--){
-			
+		for(int i = layerFound ; i > -1 ; i--){	
 			pred = (Node<K,V>)firsts[i];
 			while (!pred.equals((Node<K,V>)preds[i])){
 				pred.release();
 				pred = (Node<K, V>) pred.next[i];
 			}
-			
+		}
+		for(int i = layerFound ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
 			Node<K,V> succ = ((Node<K,V>) succs[i]);
 			pred.next[i] = succ.next[i];
@@ -462,6 +463,7 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		return putIfAbsentImpl(comparable(key),key,value,self.get());
 	}
 
+	@SuppressWarnings("unchecked")
 	private V putIfAbsentImpl(Comparable<? super K> cmp, K key, V value,
 			Thread self) {
 		V oldValue = null;
@@ -521,15 +523,18 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			((Node<K,V>)succs[i]).release();
 		}
 		
-		Node<K,V> node = new Node<K,V>(key,value,height);
-		node.acquire(self);
 		for(int i = height-1 ; i > -1 ; i--){
 			pred = (Node<K,V>)firsts[i];
 			while (!pred.equals((Node<K,V>)preds[i])){
 				pred.release();
 				pred = (Node<K, V>) pred.next[i];
 			}
-			
+		}
+		
+		Node<K,V> node = new Node<K,V>(key,value,height);
+		node.acquire(self);
+		
+		for(int i = height-1 ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
 			Node<K,V> succ = ((Node<K,V>) succs[i]);
 			node.next[i] = succ;	
@@ -607,52 +612,15 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			}
 		}
 		
-		/*
-		int lockLayer;
-		Node<K,V> next;
-		if( layerFound!= -1 ){ 	
-			//key was found
-			lockLayer = layerFound; 
-			next = (Node<K, V>) succs[lockLayer]; 
-			next = (Node<K, V>) next.next[lockLayer];
-		}else{	
-			//key was not found
-			lockLayer = 0; 
-			next = (Node<K, V>) succs[lockLayer];
-		}
-		
-		while(cmpMax.compareTo(next.key) >= 0 ){ // curr.next is inside the range, go up
-			lockLayer++;
-			next = (Node<K, V>) succs[lockLayer];
-		}
-		
-		for(int i = maxLevel ; i > lockLayer ; i--){
-			Node<K,V> curr = (Node<K,V>)succs[i];
-			pred = ((Node<K,V>) preds[i]);
-			pred.release();
-			curr.release();
-		}
-		*/
 		pred = (Node<K, V>) preds[0];
-		//pred.acquire(self);
 		Node<K, V> curr = (Node<K, V>) succs[0]; 
-		//curr.acquire(self);
 		while(cmpMax.compareTo(curr.key) >= 0){		
 			result[rangeCount] = curr.key;
 			rangeCount++;
-			//pred.release();
 			pred = curr; 
 			curr = (Node<K, V>) curr.next[0]; 
 			curr.acquire(self);	
 		}
-		
-		/*
-		for(int i = lockLayer ; i > -1 ; i--){
-			curr = (Node<K,V>)succs[i];
-			pred = ((Node<K,V>) preds[i]);
-			pred.release();
-			curr.release();
-		}*/
 		
 		for(int i= maxLevel; i > 0 ; i--){
 			pred = (Node<K,V>)firsts[i];
