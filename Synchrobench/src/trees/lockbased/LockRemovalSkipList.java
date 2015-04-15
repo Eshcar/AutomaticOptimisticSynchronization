@@ -165,7 +165,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	private boolean tryAcquire(final Node<K,V>  node, ReadSet<K,V> readSet , final Thread self) {
         if (node != null) {
             if(node.tryAcquire(self)){
-            	readSet.incrementLocalVersion(node);
+            	//readSet.incrementLocalVersion(node);
             	return true;
             }else{
             	return false; 

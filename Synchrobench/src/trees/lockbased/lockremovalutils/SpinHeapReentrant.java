@@ -26,13 +26,13 @@ public class SpinHeapReentrant extends AtomicReference<Object>
     public void acquire(final Thread self) {
         lock(self);
         depth++;
-        if (depth == 1) version++;
+        //if (depth == 1) version++;
     }
     
     public boolean tryAcquire(final Thread self){
     	if ((this.get() == null && this.compareAndSet(null, self)) || this.get() == self ) {
     		 depth++;
-    		 version++;
+    		 //version++;
     		 return true;
         }
     	return false; 
@@ -88,6 +88,7 @@ public class SpinHeapReentrant extends AtomicReference<Object>
 
     private void maybeUnlock() {
         if (depth == 0 && incoming < 2) {
+        	version++;
             this.lazySet(null);
         }
     }
