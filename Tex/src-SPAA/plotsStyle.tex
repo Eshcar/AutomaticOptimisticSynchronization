@@ -46,19 +46,28 @@
 
 \pgfplotsset{skiplist/.style={%
 	   width=\textwidth,
-       ymin=0,ymax=3500000,
+       ymin=0,ymax=2800000,
        xtick={2,4,8,16,32}, 
        legend columns=-1,
-	   legend entries={\autoSkiplist,\bronson, \skiplist,
+	   legend entries={\autoSkiplist, \kary , \skiplist (not atomic), \stmSkiplist,
 	   \domSkiplist}, legend to name=skiplistLegened,
 }}
 
 \pgfplotsset{skiplist1000/.style={%
 	   width=\textwidth,
-       ymin=0,ymax=100000,
+       ymin=0,ymax=150000,
        scaled y ticks=base 10:-3,
        xtick={2,4,8,16,32}, 
        legend columns=-1,
-	   legend entries={\autoSkiplist,\bronson, \skiplist,
+	   legend entries={\autoSkiplist, \kary, \skiplist (not atomic), \stmSkiplist,
 	   \domSkiplist}, legend to name=skiplistLegened1000,
+}}
+
+\pgfplotsset{skiplistUpdate/.style={%
+	   width=0.35\textwidth,
+       ymin=0,ymax=5500000,
+       xtick={1,2,4,8,16,32}, 
+       legend columns=-1,
+	   legend entries={\autoSkiplist, \kary , \skiplist (not atomic), \stmSkiplist,
+	   \domSkiplist}, legend to name=skiplistLegenedUpdate,
 }}

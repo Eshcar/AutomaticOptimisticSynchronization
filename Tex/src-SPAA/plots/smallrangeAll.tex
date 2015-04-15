@@ -1,0 +1,72 @@
+\begin{tikzpicture}
+\begin{axis}[mystyle,skiplistUpdate,
+ %ylabel = { million ops/sec},
+  ylabel = { million ops/sec},
+ title={\textbf{write-dominated}},
+ width=0.28\textwidth,]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
+{results/trees-i1000000-u100.log}; 
+\addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
+{results/trees-i1000000-u100.log}; 
+\addplot [teal,mark=pentagon] table [x={threads}, y={LockFreeJavaSkipList}]
+{results/trees-i1000000-u100.log};
+\addplot [magenta,mark=+] table [x={threads}, y={STMSkipList}]
+{results/trees-i1000000-u100.log};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkipList}]
+{results/trees-i1000000-u100.log};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,skiplist,
+ title={\textbf{range-queries}},
+ width=0.28\textwidth,]
+ ]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
+{results/range1.txt}; 
+\addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
+{results/range1.txt}; 
+\addplot [teal,mark=pentagon] table [x={threads}, y={LockFreeJavaSkipList}]
+{results/range1.txt};
+\addplot [magenta,mark=+] table [x={threads}, y={STMSkipList}]
+{results/range1.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkipList}]
+{results/range1.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,skiplist,
+% ylabel = { million ops/sec},
+ title={\textbf{insert and delete}},
+ width=0.28\textwidth,]
+ ]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
+{results/update1.txt}; 
+\addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
+{results/update1.txt}; 
+\addplot [teal,mark=pentagon] table [x={threads}, y={LockFreeJavaSkipList}]
+{results/update1.txt};
+\addplot [magenta,mark=+] table [x={threads}, y={STMSkipList}]
+{results/update1.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkipList}]
+{results/update1.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,skiplistUpdate, 
+				 title={\textbf{read-only}},
+				 ymax=15000000,
+				 width=0.28\textwidth,]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
+{results/trees-i1000000-u0.log}; 
+\addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
+{results/trees-i1000000-u0.log}; 
+\addplot [teal,mark=pentagon] table [x={threads}, y={LockFreeJavaSkipList}]
+{results/trees-i1000000-u0.log};
+\addplot [magenta,mark=+] table [x={threads}, y={STMSkipList}]
+{results/trees-i1000000-u0.log};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkipList}]
+{results/trees-i1000000-u0.log};
+\end{axis}
+\end{tikzpicture}
+
+\ref{skiplistLegenedUpdate}

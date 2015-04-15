@@ -4,14 +4,16 @@
 % ylabel = { million ops/sec},
  %title={\textbf{0\% read-only}}]
  ]
-\addplot [black,mark=square*] table [x={threads}, y={TimeoutSkiplist}]
-{results/update.txt}; 
-\addplot [darkspringgreen,mark=triangle] table [x={threads}, y={Bronson}]
-{results/update.txt}; 
-\addplot [coralred,mark=asterisk] table [x={threads}, y={JavaSkipList}]
-{results/update.txt};
-\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkiplist}]
-{results/update.txt};
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalSkipList}]
+{results/update1.txt}; 
+\addplot [violet,mark=o] table [x={threads}, y={LockFreeKSTRQ}]
+{results/update1.txt}; 
+\addplot [teal,mark=pentagon] table [x={threads}, y={LockFreeJavaSkipList}]
+{results/update1.txt};
+\addplot [magenta,mark=+] table [x={threads}, y={STMSkipList}]
+{results/update1.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingSkipList}]
+{results/update1.txt};
 \end{axis}
 \end{tikzpicture}
 
