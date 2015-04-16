@@ -30,6 +30,7 @@ public class ReadSet<K,V>{
 	
 	public void clear(){
 		count = 0;
+		if (!readSetHash.isEmpty()){
 			readSetHash.clear();
 		}
 	}
