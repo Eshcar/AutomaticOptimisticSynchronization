@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -281,10 +282,15 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		final Comparable<? super K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0; 
 		while(true){
 			err.clean();
 			value = getImp(k,self.get(),err);
 			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return getDomImp(comparable(key),(K) key,self.get());
+			}
 		}
 		return value; 
 	}
@@ -347,6 +353,48 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		}
 	}
 	
+	private V getDomImp(Comparable<? super K> cmp, K key, Thread self) {
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		V value = null;
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){
+			Node<K,V> curr = (Node<K, V>) pred.next[layer];
+			curr.acquire(self);
+			while (true) {
+				int res = cmp.compareTo(curr.key);
+				if(res == 0) {
+					value = curr.value;
+					for(int i= maxLevel; i > layer; i--){
+						((Node<K,V>)preds[i]).release();
+						((Node<K,V>)succs[i]).release();
+					}
+					pred.release();
+					curr.release();
+					return value;
+				}
+				if(res < 0){ //key < curr.key
+					break;
+				}
+				pred.release();
+				pred = curr;
+				curr = (Node<K, V>) pred.next[layer];
+				curr.acquire(self);
+			}			
+			preds[layer] = pred;
+			succs[layer] = curr;		
+			if(layer != 0){
+				pred.acquire(self);
+			}
+		}
+		for(int i= maxLevel; i > -1 ; i--){
+			((Node<K,V>)preds[i]).release();
+			((Node<K,V>)succs[i]).release();
+		}
+		return value;
+	}
+	
 	@Override
 	public boolean isEmpty() {
 		return root.next[0]==sentenial;
@@ -373,10 +421,15 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
 		}
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = putImpl(comparable(key), key, val, self.get(), err);
 			if(!err.isSet()) break; 
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return putDomImpl(comparable(key), key, val, self.get());
+			}
 		}
 		return value;  
 	}
@@ -470,6 +523,90 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private V putDomImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self) {
+		V oldValue = null;
+		int height = skipListRandom.get().randomHeight(maxHeight-1);
+		int layerFound = -1; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){
+			Node<K,V> curr = (Node<K, V>) pred.next[layer];
+			curr.acquire(self);
+			while (true) {
+				int res = cmp.compareTo(curr.key);
+				if(res == 0) {
+					if(layerFound==-1){
+						layerFound = layer; 				
+						oldValue = curr.value;
+					}				
+					break; 
+				}
+				if(res < 0){ //key < x.key
+					break;
+				}			
+				pred.release();
+				pred = curr;
+				curr = (Node<K, V>) pred.next[layer];
+				curr.acquire(self);
+	
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			if(layer != 0){
+				pred.acquire(self);
+			}
+		}
+		
+		if( layerFound!= -1 ){ 	//key was found change value only... 
+			
+			//No early unlocking... 
+			for(int i = maxLevel ; i > layerFound ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				pred.release();
+				curr.release();
+			}
+			
+			for(int i = layerFound ; i > -1 ; i--){
+				Node<K,V> curr = (Node<K,V>)succs[i];
+				pred = ((Node<K,V>) preds[i]);
+				if( cmp.compareTo(curr.key )!= 0 ){
+					assert(false);
+				};
+				curr.value = value;
+				pred.release();
+				curr.release();
+			}
+			return oldValue;
+		}
+		
+		
+		//no early unlocking 
+		for(int i = maxLevel ; i > height-1 ; i--){
+			Node<K,V> curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		
+		Node<K,V> node = new Node<K,V>(key,value,height);
+		node.acquire(self);
+		for(int i = height-1 ; i > -1 ; i--){
+			pred = ((Node<K,V>) preds[i]);
+			Node<K,V> succ = ((Node<K,V>) succs[i]);
+			node.next[i] = succ;	
+			pred.next[i] = node;
+			pred.release();
+			succ.release();
+		}
+		node.release();
+		return oldValue;	
+	}
+	
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		//NOT LINEARIZABLE
@@ -487,10 +624,15 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
 		}
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = removeImpl(comparable(key),self.get(),err);
 			if(!err.isSet()) break; 
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return removeDomImpl(comparable(key),(K) key,self.get());
+			}
 		}
 		return value;  
 	}
@@ -565,6 +707,58 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	private V removeDomImpl(Comparable<? super K> cmp, K key, Thread self) {
+		V oldValue = null;
+		int layerFound = -1; 
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer > -1 ; layer-- ){
+			Node<K,V> curr = (Node<K, V>) pred.next[layer];
+			curr.acquire(self);
+			while (true) {
+				int res = cmp.compareTo(curr.key);
+				if(res == 0) {
+					oldValue = curr.value;
+					if(layerFound == -1){ layerFound = layer; }
+					break; 
+				}
+				if(res < 0){ //key < x.key
+					break;
+				}			
+				pred.release();
+				pred = curr;
+				curr = (Node<K, V>) pred.next[layer];
+				curr.acquire(self);
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			if(layer != 0){
+				pred.acquire(self);
+			}
+		}
+		
+		for(int i = maxLevel ; i > layerFound ; i--){
+			Node<K,V> curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		
+		for(int i = layerFound ; i > -1 ; i--){
+			pred = ((Node<K,V>) preds[i]);
+			Node<K,V> succ = ((Node<K,V>) succs[i]);
+			pred.next[i] = succ.next[i];
+			pred.release();
+			succ.release();
+		}
+		
+		return oldValue;
+	}
+	
 	@Override
 	public Collection<V> values() {
 		throw new RuntimeException("unimplemented method");
@@ -580,10 +774,15 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
 		}
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = putIfAbsentImpl(comparable(k), k, v, self.get(), err);
-			if(!err.isSet()) break; 
+			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return putIfAbsentDomImpl(comparable(k), k, v, self.get());
+			}
 		}
 		return value;  
 	}
@@ -653,6 +852,69 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			err.set();
 			return null;			
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private V putIfAbsentDomImpl(Comparable<? super K> cmp, K key, V value,
+			Thread self) {
+		V oldValue = null;
+		int height = skipListRandom.get().randomHeight(maxHeight-1);
+		Object[] preds = threadPreds.get();
+		Object[] succs = threadSuccs.get();
+		
+		Node<K,V> pred = root; 
+		pred.acquire(self);
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){
+			Node<K,V> curr = (Node<K, V>) pred.next[layer];
+			curr.acquire(self);
+			while (true) {
+				int res = cmp.compareTo(curr.key);
+				if(res == 0) {	
+					oldValue = curr.value;
+					for(int i= maxLevel; i > layer; i--){
+						((Node<K,V>)preds[i]).release();
+						((Node<K,V>)succs[i]).release();
+					}
+					pred.release();
+					curr.release();
+					return oldValue;
+				}
+				if(res < 0){ //key < x.key
+					break;
+				}			
+				pred.release();
+				pred = curr;
+				curr = (Node<K, V>) pred.next[layer];
+				curr.acquire(self);
+	
+			}
+			preds[layer] = pred;
+			succs[layer] = curr;
+			if(layer != 0){
+				pred.acquire(self);
+			}
+		}
+		
+		//no early unlocking 
+		for(int i = maxLevel ; i > height-1 ; i--){
+			Node<K,V> curr = (Node<K,V>)succs[i];
+			pred = ((Node<K,V>) preds[i]);
+			pred.release();
+			curr.release();
+		}
+		
+		Node<K,V> node = new Node<K,V>(key,value,height);
+		node.acquire(self);
+		for(int i = height-1 ; i > -1 ; i--){
+			pred = ((Node<K,V>) preds[i]);
+			Node<K,V> succ = ((Node<K,V>) succs[i]);
+			node.next[i] = succ;	
+			pred.next[i] = node;
+			pred.release();
+			succ.release();
+		}
+		node.release();
+		return oldValue;	
 	}
 
 	@Override

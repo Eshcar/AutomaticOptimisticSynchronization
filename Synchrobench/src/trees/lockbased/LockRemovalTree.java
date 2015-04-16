@@ -6,12 +6,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-
-
-
-
-
-
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -123,6 +117,13 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	}
     
     /*Helper functions*/
+    
+    public Node<K,V> assign(Node<K,V> prevValue,
+			Node<K,V> newValue, Thread self) {
+		acquire(newValue, self);
+        release(prevValue);
+        return newValue;
+	}
     
     private Node<K,V> acquire(Node<K,V> node, Thread self) {
 		if (node != null) {
@@ -303,10 +304,15 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		final Comparable<K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = getImpl(k, self.get(), err);
 			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return getDomImpl((K) key,self.get());
+			}
 		}
 		return value; 
 	}
@@ -352,6 +358,26 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			return null;			
 		}
 	}
+	
+	public V getDomImpl(Object key, Thread self) {
+		final Comparable<? super K> k = comparable(key);
+		Node<K, V> curr = acquire(this.root,self); 
+		while(curr!=null){
+			int res = k.compareTo(curr.key);
+			if(res == 0) break; 
+			if(res > 0){ //key > x.key
+				curr = assign(curr, curr.right, self); 
+			}else{
+				curr = assign(curr, curr.left, self); 
+			}
+		}
+		if(curr!=null){
+			release(curr);
+			return curr.value;
+		}
+		return null; 
+	
+	}
 
 	@Override
 	public boolean isEmpty() {
@@ -379,10 +405,15 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		final Comparable<K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = putImpl(key, k, val, self.get(), err);
 			if(!err.isSet()) break; 
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return putDomImpl(key, val, self.get());
+			}
 		}
 		return value;  
 	}
@@ -456,6 +487,44 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		}
 	}
 	
+	public V putDomImpl(K key, V val, Thread self) {
+		final Comparable<? super K> k = comparable(key);
+		
+		V oldValue = null;
+		Node<K, V> prev = null;
+		Node<K, V> curr = acquire(this.root, self); 
+		int res = -1;
+		while(curr!=null){
+			prev = assign(prev,curr,self);
+			res = k.compareTo(curr.key);
+			if(res == 0) {
+				oldValue = curr.value;
+				break; 
+			}
+			if(res > 0){ //key > x.key
+				curr = assign(curr, curr.right, self) ; 
+			}else{
+				curr = assign(curr, curr.left, self) ; 
+			}
+		}
+		if(res == 0) {
+			curr.value = val; 
+			release(prev);
+			release(curr);
+			return oldValue;
+		}
+		Node<K, V> node = acquire(new Node<K, V>(key,val),self);
+		if (res > 0 ) { 
+			prev.setChild(Node.Direction.RIGHT,node,self); 
+		} else {
+			prev.setChild(Node.Direction.LEFT,node,self); 
+		}
+		release(prev);
+		release(curr);
+		release(node);
+		return oldValue;
+	}
+	
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		//NOT LINEARIZABLE
@@ -470,10 +539,15 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		final Comparable<K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0; 
 		while(true){
 			err.clean();
 			value = removeImpl(k, self.get(), err);
-			if(!err.isSet()) break; 
+			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return removeDomImpl(key, self.get());
+			}
 		}
 		return value;  
 	}
@@ -624,6 +698,91 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		}
 	}
 	
+	public V removeDomImpl(Object key,Thread self) {
+		final Comparable<? super K> k = comparable(key);
+		V oldValue = null;
+		Node<K, V> prev = null;
+		Node<K, V> curr = acquire(this.root, self); 
+		int res = -1;
+		while(curr!=null){
+			res = k.compareTo(curr.key);
+			if(res == 0) {
+				oldValue = curr.value;
+				break; 
+			}
+			prev = assign(prev,curr,self);
+			if(res > 0){ //key > x.key
+				curr = assign(curr, curr.right, self) ; 
+			}else{
+				curr = assign(curr, curr.left, self) ; 
+			}
+		}
+		
+		if(res!= 0) {	
+			release(prev);
+			release(curr);
+			return oldValue;
+		}
+		Node<K, V> currL = acquire(curr.left,self); 
+		Node<K, V> currR = acquire(curr.right,self); 
+		boolean isLeft = prev.left == curr; 
+		if (currL == null){ //no left child
+			if(isLeft){
+				prev.setChild(Node.Direction.LEFT,currR,self);
+			}else {
+				prev.setChild(Node.Direction.RIGHT,currR,self);
+			}
+			curr.setChild(Node.Direction.RIGHT,null,self);
+		} else if (currR == null){ //no right child
+			if(isLeft){
+				prev.setChild(Node.Direction.LEFT,currL,self);
+			}else {
+				prev.setChild(Node.Direction.RIGHT,currL,self);
+			}
+			curr.setChild(Node.Direction.LEFT,null,self);
+		}else { //both children
+			Node<K, V> prevSucc = acquire(curr,self); //TODO re-acquire ?? 
+			Node<K, V> succ =acquire(currR,self);  //TODO re-acquire ?? 
+			Node<K, V> succL = acquire(succ.left,self); 
+			while(succL != null){
+				prevSucc =assign(prevSucc,succ,self);
+				succ = assign(succ,succL,self);
+				succL =  assign(succL,succ.left,self);
+			}
+			
+			if (prevSucc != curr){	
+				Node<K, V> succR=  acquire(succ.right,self); 
+				prevSucc.setChild(Node.Direction.LEFT,succR,self);				
+				succ.setChild(Node.Direction.RIGHT,currR,self);
+				release(succR);
+			}
+			succ.setChild(Node.Direction.LEFT,currL,self);
+			if (isLeft){
+				prev.setChild(Node.Direction.LEFT,succ,self); 
+			} else{
+				prev.setChild(Node.Direction.RIGHT,succ,self); 
+			}
+			
+			curr.setChild(Node.Direction.RIGHT,null,self);
+			curr.setChild(Node.Direction.LEFT,null,self);
+			release(prevSucc);
+			release(succ);
+			release(succL);
+			
+		}
+		
+		release(prev);
+		release(curr);
+		release(currL);
+		release(currR);
+		assert(prev ==null || prev.lockedBy()!=self );
+		assert(curr ==null || curr.lockedBy()!=self);
+		assert(currL ==null || currL.lockedBy()!=self);
+		assert(currR ==null || currR.lockedBy()!=self);
+		return oldValue; 
+	}
+
+	
 	@Override
 	public Collection<V> values() {
 		 throw new RuntimeException("unimplemented method");
@@ -636,10 +795,15 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		final Comparable<K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0; 
 		while(true){
 			err.clean();
 			value = putIfAbsentImpl(key, k, val, self.get(), err);
 			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return putIfAbsentDomImpl(key,val, self.get());
+			}
 		}
 		return value; 
 	}
@@ -712,6 +876,43 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			err.set();
 			return null;			
 		}
+	}
+	
+	public V putIfAbsentDomImpl(K key, V val, Thread self) {
+		final Comparable<? super K> k = comparable(key);
+		V oldValue = null;
+		Node<K, V> prev = null;
+		Node<K, V> curr = acquire(this.root, self); 
+		int res = -1;
+		while(curr!=null){
+			prev = assign(prev,curr,self);
+			res = k.compareTo(curr.key);
+			if(res == 0) {
+				oldValue = curr.value;
+				break; 
+			}
+			if(res > 0){ //key > x.key
+				curr = assign(curr, curr.right, self) ; 
+			}else{
+				curr = assign(curr, curr.left, self) ; 
+			}
+		}
+		if(res == 0) {
+			//curr.value = val; 
+			release(prev);
+			release(curr);
+			return oldValue;
+		}
+		Node<K, V> node = acquire(new Node<K, V>(key,val),self);
+		if (res > 0 ) { 
+			prev.setChild(Node.Direction.RIGHT,node,self); 
+		} else {
+			prev.setChild(Node.Direction.LEFT,node,self); 
+		}
+		release(prev);
+		release(curr);
+		release(node);
+		return oldValue;
 	}
 	
 	@Override

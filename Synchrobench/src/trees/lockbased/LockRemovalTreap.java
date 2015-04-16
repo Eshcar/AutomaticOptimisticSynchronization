@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.NonSharedFastSimpleRandom;
 import trees.lockbased.lockremovalutils.ReadSet;
@@ -218,10 +219,15 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 		final Comparable<K> k = comparable(key);
 		V value; 
 		Error err = threadError.get();
+		int retryCount = 0;
 		while(true){
 			err.clean();
 			value = getImpl(k, self.get(), err);
 			if(!err.isSet()) break;
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return getDomImpl(k, self.get());
+			}
 		}
 		return value; 
 	}
@@ -278,6 +284,32 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 		}
     }
 
+	private V getDomImpl(final Comparable<K> key, Thread self) {
+    	TreapNode<K,V> parent;
+    	TreapNode<K,V> node;
+
+        parent = (TreapNode<K, V>) acquire(this.rootHolder,self);
+        node = (TreapNode<K, V>) acquire(parent.right,self);
+        
+        while (node != null) {
+            final int c = key.compareTo(node.key);
+            if (c == 0) {
+                break;
+            }
+            parent = (TreapNode<K, V>) assign(parent, node, self); 
+            if (c < 0) {
+                node = (TreapNode<K, V>) assign(node, node.left, self);
+            }
+            else {
+                node = (TreapNode<K, V>) assign(node, node.right, self);
+            }
+        }
+        final V v = (node == null) ? null : node.value;
+        release(parent);
+        release(node);
+        return v;
+    }
+	
 	@Override
 	public boolean isEmpty() {
 		return rootHolder.right == null;
@@ -303,11 +335,16 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	public V put(K key, V value) {
 		final Comparable<K> k = comparable(key);
 		V val; 
+		int retryCount = 0;
 		while(true){
 			Error err = threadError.get();
 			err.clean();
 			val = putImpl(key, k, value, self.get(), err);
 			if(!err.isSet()) break; 
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return putDomImpl(k, key, value, self.get());
+			}
 		}
 		return val;  
 	}
@@ -449,6 +486,118 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 		}    
     }
 
+	private V putDomImpl(final Comparable<K> cmp, final K key, final V value, Thread self) {
+        V prevValue = null;
+        
+        final int prio = fastRandom.get().nextInt();
+        
+        TreapNode<K,V> parent;
+        TreapNode<K,V> node;
+        TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+
+
+        parent = acquire(this.rootHolder,self);
+        node = acquire(parent.right,self);
+        
+        int cmpRes;
+        while (node != null && prio <= node.priority) {
+        	cmpRes = cmp.compareTo(node.key);
+            if (cmpRes == 0) {
+                break;
+            }
+            parent = assign(parent, node, self); 
+            if (cmpRes < 0) {
+                node = assign(node, node.left, self);
+                dir = TreapNode.Direction.LEFT;
+            }
+            else {
+                node = assign(node, node.right, self);
+                dir = TreapNode.Direction.RIGHT;
+            }
+        }
+
+        TreapNode<K,V> x = acquire(new TreapNode<K,V>(key, value, prio), self);
+		TreapNode<K,V> lessParent = null;
+		TreapNode<K,V> moreParent = null;
+		TreapNode.Direction lessDir;
+        TreapNode.Direction moreDir;      
+        
+        if (node == null){
+            // simple
+            parent.setChild(dir, x, self);
+        }
+        else {
+            final int c0 = cmp.compareTo(node.key);
+            if (c0 == 0) {
+                // TODO: remove this node, then insert later with the new priority (prio must be > node.priority)
+
+                // The update logic results in the post-update priority being
+                // the minimum of the existing entry's and x's.  This skews the
+                // uniform distribution slightly.
+            	
+            	//this is the old version:
+            	prevValue = node.value;
+            	node.value = value;
+            }
+            else {
+                // TODO: update the existing node if it is a child of the current node
+                parent.setChild(dir, x, self); // add the new node
+                if (c0 < 0) {
+                    x.setChild(TreapNode.Direction.RIGHT, node, self);  
+                    moreParent = assign(moreParent,node,self);
+                    moreDir = TreapNode.Direction.LEFT;
+                    lessParent = assign(lessParent,x,self);
+                    lessDir = TreapNode.Direction.LEFT;
+                    node = assign(node,node.left,self);
+                    
+                    moreParent.setChild(TreapNode.Direction.LEFT, null, self);
+                } else {
+                	x.setChild(TreapNode.Direction.LEFT, node, self); 
+                    lessParent = assign(lessParent,node,self);
+                    lessDir = TreapNode.Direction.RIGHT;
+                    moreParent =assign(moreParent,x,self);
+                    moreDir = TreapNode.Direction.RIGHT;
+                    node = assign(node,node.right,self);
+                   
+                    lessParent.setChild(TreapNode.Direction.RIGHT,null,self);
+                }
+
+                while (node != null) {
+                    cmpRes = cmp.compareTo(node.key);
+                    if (cmpRes == 0) {
+                        lessParent.setChild(lessDir, node.left, self);
+                        moreParent.setChild(moreDir, node.right, self);                
+                        node.setChild(TreapNode.Direction.LEFT, null, self); //added 4/8/2014
+                        node.setChild(TreapNode.Direction.RIGHT, null, self);
+                        prevValue = node.value;
+                        break;
+                    }
+                    else if (cmpRes < 0) {
+                        moreParent.setChild(moreDir, node, self);
+                        moreParent = assign(moreParent,node,self);
+                        moreDir = TreapNode.Direction.LEFT;
+                        node = assign(node,moreParent.left,self);
+                        moreParent.setChild(TreapNode.Direction.LEFT, null, self);
+                    }
+                    else {
+                        lessParent.setChild(lessDir, node, self);
+                        lessParent = assign(lessParent,node,self);
+                        lessDir = TreapNode.Direction.RIGHT;
+                        node = assign(node,lessParent.right,self);
+                        lessParent.setChild(TreapNode.Direction.RIGHT, null, self);
+                    }
+                }
+            }
+        }
+        release(parent);
+        release(node);
+        release(moreParent);
+        release(lessParent);
+        release(x);
+        return prevValue;
+    }
+
+	
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		//NOT LINEARIZABLE
@@ -462,11 +611,16 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	public V remove(Object key) {
 		final Comparable<K> k = comparable(key);
 		V value; 
+		int retryCount = 0;
 		while(true){
 			Error err = threadError.get();
 			err.clean();
 			value = removeImpl(k, self.get(), err);
 			if(!err.isSet()) break; 
+			retryCount ++;
+			if(retryCount > LIMIT){
+				return removeDomImpl(k, self.get());
+			}
 		}
 		return value; 
 	}
@@ -574,6 +728,83 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 			err.set();
 			return null;			
 		}
+    }
+	
+	private V removeDomImpl(final Comparable<K> cmp, Thread self) {
+        V prevValue = null;
+       
+        TreapNode<K,V> parent;
+        TreapNode<K,V> node;
+        TreapNode<K,V> nL = null;
+        TreapNode<K,V> nR = null;
+        TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+
+        parent = acquire(this.rootHolder,self);
+        node = acquire(parent.right,self);
+        
+        int cmpRes;
+        while (node != null) {
+        	cmpRes = cmp.compareTo(node.key);
+            if (cmpRes == 0) {
+            	prevValue = node.value;
+            	break;
+            }
+            parent = assign(parent, node, self); 
+            if (cmpRes < 0) {
+                node = assign(node, node.left, self);
+                dir = TreapNode.Direction.LEFT;
+            }
+            else {
+                node = assign(node, node.right, self);
+                dir = TreapNode.Direction.RIGHT;
+            }
+        }
+
+        while (node != null) {
+            if (node.left == null) {
+                parent.setChild(dir, node.right, self);
+                break;
+            }
+            else if (node.right == null) {
+                parent.setChild(dir, node.left, self);
+                break;
+            }
+            else {
+                nL = assign(nL,node.left,self);
+                nR = assign(nR,node.right,self);
+            
+                if (nL.priority > nR.priority) {
+                	TreapNode<K, V> nLR = acquire(nL.right,self); // ???
+                    node.setChild(TreapNode.Direction.LEFT, nLR, self);
+                    parent.setChild(dir, nL, self);
+                    nL.setChild(TreapNode.Direction.RIGHT, node, self);
+             
+                    parent = assign(parent,nL,self);
+                    dir = TreapNode.Direction.RIGHT;
+                    release(nLR); //???
+                }
+                else {
+                    node.setChild(TreapNode.Direction.RIGHT, nR.left, self);
+                    parent.setChild(dir, nR, self);
+                    nR.setChild(TreapNode.Direction.LEFT, node, self);
+               
+                    parent = assign(parent,nR,self);
+                    dir = TreapNode.Direction.LEFT;
+                }
+            }
+        }
+
+        // code that prevents treeness violation for an object that happens to
+        // be unreachable
+        if (node != null) {
+            node.setChild(TreapNode.Direction.LEFT, null, self);
+            node.setChild(TreapNode.Direction.RIGHT, null, self);
+        }
+        release(parent);
+        release(node);
+        release(nL);
+        release(nR);
+        return prevValue;
     }
 	
 	@Override
