@@ -227,48 +227,55 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	}
 	
 	private V getImpl(final Comparable<K> key, final Thread self, Error err){
-    	ReadSet<K,V> readSet = threadReadSet.get();
+		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear();
-		
-		long count = 0;
-		
-        TreapNode<K,V> parent;
-        TreapNode<K,V> node;
-  
-        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,err);
-        if(err.isSet()) return null;
-        node = (TreapNode<K, V>) readRef(parent.right,readSet,err);
-    	if(err.isSet()) return null;
-        
-    	while (node != null) {
-            final int c = key.compareTo(node.key);
-            if (c == 0) {
-                break;
-            }
-            parent = node;
-            if (c < 0) {
-                node = (TreapNode<K, V>) readRef(node.left, readSet,err);
-                if(err.isSet()) return null;
-            }
-            else {
-                node = (TreapNode<K, V>) readRef(node.right, readSet,err);
-                if(err.isSet()) return null;
-            }
-            if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{			
+			long count = 0;
+			
+	        TreapNode<K,V> parent;
+	        TreapNode<K,V> node;
+	  
+	        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,err);
+	        if(err.isSet()) return null;
+	        node = (TreapNode<K, V>) readRef(parent.right,readSet,err);
+	    	if(err.isSet()) return null;
+	        
+	    	while (node != null) {
+	            final int c = key.compareTo(node.key);
+	            if (c == 0) {
+	                break;
+	            }
+	            parent = node;
+	            if (c < 0) {
+	                node = (TreapNode<K, V>) readRef(node.left, readSet,err);
+	                if(err.isSet()) return null;
+	            }
+	            else {
+	                node = (TreapNode<K, V>) readRef(node.right, readSet,err);
+	                if(err.isSet()) return null;
+	            }
+	            if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
+	        }
+			
+	    	if(node!=null){
+				V value = node.value;
+				if (!validateReadOnly(readSet, self)) err.set();
+				return value;
 			}
-        }
-		
-    	if(node!=null){
-			V value = node.value;
-			if (!validateReadOnly(readSet, self)) err.set();
-			return value;
+	    	if (!validateReadOnly(readSet, self)) err.set();
+			return null;
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
+			err.set();
+			return null;			
 		}
-    	if (!validateReadOnly(readSet, self)) err.set();
-		return null;
     }
 
 	@Override
@@ -308,130 +315,138 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	private V putImpl(final K key, final Comparable<K> cmp, final V value,final Thread self, Error err){      
     	ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0; 
-        V prevValue = null;      
-        final int prio = fastRandom.get().nextInt();
-        
-        //Read-only phase//
-        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
-        if(err.isSet()) return null;
-        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
-    	if(err.isSet()) return null;
-    	
-    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
-    	
-    	int cmpRes;
-    	
-        while (node != null && prio <= node.priority) { 
-            cmpRes = cmp.compareTo(node.key);
-            if (cmpRes == 0) {
-                break;
-            }        
-            parent = node;
-            if (cmpRes < 0) {
-            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
-                if(err.isSet()) return null;  
-                dir = TreapNode.Direction.LEFT;
-            }
-            else {
-            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
-                if(err.isSet()) return null;              
-                dir = TreapNode.Direction.RIGHT;
-            }
-            if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0; 
+	        V prevValue = null;      
+	        final int prio = fastRandom.get().nextInt();
+	        
+	        //Read-only phase//
+	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+	        if(err.isSet()) return null;
+	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+	    	if(err.isSet()) return null;
+	    	
+	    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+	    	
+	    	int cmpRes;
+	    	
+	        while (node != null && prio <= node.priority) { 
+	            cmpRes = cmp.compareTo(node.key);
+	            if (cmpRes == 0) {
+	                break;
+	            }        
+	            parent = node;
+	            if (cmpRes < 0) {
+	            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+	                if(err.isSet()) return null;  
+	                dir = TreapNode.Direction.LEFT;
+	            }
+	            else {
+	            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+	                if(err.isSet()) return null;              
+	                dir = TreapNode.Direction.RIGHT;
+	            }
+	            if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
+	           
+	        }
+	        
+	        //Validation phase//
+			if(!validateTwo(readSet,parent,node,self)){
+				err.set();
+				return null; 
 			}
-           
-        }
-        
-        //Validation phase//
-		if(!validateTwo(readSet,parent,node,self)){
+	        
+			TreapNode<K,V> x = (TreapNode<K, V>) acquire(new TreapNode<K,V>(key, value, prio), self);
+			TreapNode<K,V> lessParent = null;
+			TreapNode<K,V> moreParent = null;
+			TreapNode.Direction lessDir;
+	        TreapNode.Direction moreDir;      
+	        
+	        if (node == null){
+	            // simple
+	            parent.setChild(dir, x, self);
+	        }
+	        else {
+	            final int c0 = cmp.compareTo(node.key);
+	            if (c0 == 0) {
+	                // TODO: remove this node, then insert later with the new priority (prio must be > node.priority)
+	
+	                // The update logic results in the post-update priority being
+	                // the minimum of the existing entry's and x's.  This skews the
+	                // uniform distribution slightly.
+	            	
+	            	//this is the old version:
+	            	prevValue = node.value;
+	            	node.value = value;
+	            }
+	            else {
+	                // TODO: update the existing node if it is a child of the current node
+	                parent.setChild(dir, x, self); // add the new node
+	                if (c0 < 0) {
+	                    x.setChild(TreapNode.Direction.RIGHT, node, self);  
+	                    moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
+	                    moreDir = TreapNode.Direction.LEFT;
+	                    lessParent = (TreapNode<K, V>) assign(lessParent,x,self);
+	                    lessDir = TreapNode.Direction.LEFT;
+	                    node = (TreapNode<K, V>) assign(node,node.left,self);
+	                    
+	                    moreParent.setChild(TreapNode.Direction.LEFT, null, self);
+	                } else {
+	                	x.setChild(TreapNode.Direction.LEFT, node, self); 
+	                    lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
+	                    lessDir = TreapNode.Direction.RIGHT;
+	                    moreParent = (TreapNode<K, V>) assign(moreParent,x,self);
+	                    moreDir = TreapNode.Direction.RIGHT;
+	                    node = (TreapNode<K, V>) assign(node,node.right,self);
+	                   
+	                    lessParent.setChild(TreapNode.Direction.RIGHT,null,self);
+	                }
+	
+	                while (node != null) {
+	                    cmpRes = cmp.compareTo(node.key);
+	                    if (cmpRes == 0) {
+	                        lessParent.setChild(lessDir, node.left, self);
+	                        moreParent.setChild(moreDir, node.right, self);                
+	                        node.setChild(TreapNode.Direction.LEFT, null, self); //added 4/8/2014
+	                        node.setChild(TreapNode.Direction.RIGHT, null, self);
+	                        prevValue = node.value;
+	                        break;
+	                    }
+	                    else if (cmpRes < 0) {
+	                        moreParent.setChild(moreDir, node, self);
+	                        moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
+	                        moreDir = TreapNode.Direction.LEFT;
+	                        node = (TreapNode<K, V>) assign(node,moreParent.left,self);
+	                        moreParent.setChild(TreapNode.Direction.LEFT, null, self);
+	                    }
+	                    else {
+	                        lessParent.setChild(lessDir, node, self);
+	                        lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
+	                        lessDir = TreapNode.Direction.RIGHT;
+	                        node = (TreapNode<K, V>) assign(node,lessParent.right,self);
+	                        lessParent.setChild(TreapNode.Direction.RIGHT, null, self);
+	                    }
+	                }
+	            }
+	        }
+	        release(parent);
+	        release(node);
+	        release(moreParent);
+	        release(lessParent);
+	        release(x);
+	        return prevValue;
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
 			err.set();
-			return null; 
-		}
-        
-		TreapNode<K,V> x = (TreapNode<K, V>) acquire(new TreapNode<K,V>(key, value, prio), self);
-		TreapNode<K,V> lessParent = null;
-		TreapNode<K,V> moreParent = null;
-		TreapNode.Direction lessDir;
-        TreapNode.Direction moreDir;      
-        
-        if (node == null){
-            // simple
-            parent.setChild(dir, x, self);
-        }
-        else {
-            final int c0 = cmp.compareTo(node.key);
-            if (c0 == 0) {
-                // TODO: remove this node, then insert later with the new priority (prio must be > node.priority)
-
-                // The update logic results in the post-update priority being
-                // the minimum of the existing entry's and x's.  This skews the
-                // uniform distribution slightly.
-            	
-            	//this is the old version:
-            	prevValue = node.value;
-            	node.value = value;
-            }
-            else {
-                // TODO: update the existing node if it is a child of the current node
-                parent.setChild(dir, x, self); // add the new node
-                if (c0 < 0) {
-                    x.setChild(TreapNode.Direction.RIGHT, node, self);  
-                    moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
-                    moreDir = TreapNode.Direction.LEFT;
-                    lessParent = (TreapNode<K, V>) assign(lessParent,x,self);
-                    lessDir = TreapNode.Direction.LEFT;
-                    node = (TreapNode<K, V>) assign(node,node.left,self);
-                    
-                    moreParent.setChild(TreapNode.Direction.LEFT, null, self);
-                } else {
-                	x.setChild(TreapNode.Direction.LEFT, node, self); 
-                    lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
-                    lessDir = TreapNode.Direction.RIGHT;
-                    moreParent = (TreapNode<K, V>) assign(moreParent,x,self);
-                    moreDir = TreapNode.Direction.RIGHT;
-                    node = (TreapNode<K, V>) assign(node,node.right,self);
-                   
-                    lessParent.setChild(TreapNode.Direction.RIGHT,null,self);
-                }
-
-                while (node != null) {
-                    cmpRes = cmp.compareTo(node.key);
-                    if (cmpRes == 0) {
-                        lessParent.setChild(lessDir, node.left, self);
-                        moreParent.setChild(moreDir, node.right, self);                
-                        node.setChild(TreapNode.Direction.LEFT, null, self); //added 4/8/2014
-                        node.setChild(TreapNode.Direction.RIGHT, null, self);
-                        prevValue = node.value;
-                        break;
-                    }
-                    else if (cmpRes < 0) {
-                        moreParent.setChild(moreDir, node, self);
-                        moreParent = (TreapNode<K, V>) assign(moreParent,node,self);
-                        moreDir = TreapNode.Direction.LEFT;
-                        node = (TreapNode<K, V>) assign(node,moreParent.left,self);
-                        moreParent.setChild(TreapNode.Direction.LEFT, null, self);
-                    }
-                    else {
-                        lessParent.setChild(lessDir, node, self);
-                        lessParent = (TreapNode<K, V>) assign(lessParent,node,self);
-                        lessDir = TreapNode.Direction.RIGHT;
-                        node = (TreapNode<K, V>) assign(node,lessParent.right,self);
-                        lessParent.setChild(TreapNode.Direction.RIGHT, null, self);
-                    }
-                }
-            }
-        }
-        release(parent);
-        release(node);
-        release(moreParent);
-        release(lessParent);
-        release(x);
-        return prevValue;
+			return null;			
+		}    
     }
 
 	@Override
@@ -459,97 +474,106 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	private V removeImpl(final Comparable<K> cmp ,final Thread self,Error err){
     	ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0;     
-
-        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
-        if(err.isSet()) return null;
-        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
-    	if(err.isSet()) return null;
-    	
-    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
-         V prevValue = null; 
-        
-        while (node != null) {
-            final int c = cmp.compareTo(node.key);
-            if (c == 0) {
-            	prevValue = node.value;
-    			if(err.isSet()) return null;
-                break;
-            }
-            parent = node;
-            if (c < 0) {
-            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
-                if(err.isSet()) return null;  
-                dir = TreapNode.Direction.LEFT;
-            }
-            else {
-            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
-                if(err.isSet()) return null;  
-                dir = TreapNode.Direction.RIGHT;
-            }
-            if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0;     
+	
+	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+	        if(err.isSet()) return null;
+	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+	    	if(err.isSet()) return null;
+	    	
+	    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
+	         V prevValue = null; 
+	        
+	        while (node != null) {
+	            final int c = cmp.compareTo(node.key);
+	            if (c == 0) {
+	            	prevValue = node.value;
+	    			if(err.isSet()) return null;
+	                break;
+	            }
+	            parent = node;
+	            if (c < 0) {
+	            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+	                if(err.isSet()) return null;  
+	                dir = TreapNode.Direction.LEFT;
+	            }
+	            else {
+	            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+	                if(err.isSet()) return null;  
+	                dir = TreapNode.Direction.RIGHT;
+	            }
+	            if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
-			}
-        }
-        
-
-        //Validation phase//
-      	if(!validateTwo(readSet,parent,node,self)){
-      		err.set();
-      		return null; 
-      	}
-        
-		TreapNode<K,V> nL = null;
-        TreapNode<K,V> nR = null;
+	        }
+	        
+	
+	        //Validation phase//
+	      	if(!validateTwo(readSet,parent,node,self)){
+	      		err.set();
+	      		return null; 
+	      	}
+	        
+			TreapNode<K,V> nL = null;
+	        TreapNode<K,V> nR = null;
+			
+	        while (node != null) {
+	            if (node.left == null) {
+	                parent.setChild(dir, node.right, self);
+	                break;
+	            }
+	            else if (node.right == null) {
+	                parent.setChild(dir, node.left, self);
+	                break;
+	            }
+	            else {
+	                nL = (TreapNode<K, V>) assign(nL,node.left,self);
+	                nR = (TreapNode<K, V>) assign(nR,node.right,self);
+	            
+	                if (nL.priority > nR.priority) {
+	                	TreapNode<K, V> nLR =  (TreapNode<K, V>) acquire(nL.right,self); // ???
+	                    node.setChild(TreapNode.Direction.LEFT, nLR, self);
+	                    parent.setChild(dir, nL, self);
+	                    nL.setChild(TreapNode.Direction.RIGHT, node, self);
+	             
+	                    parent = (TreapNode<K, V>) assign(parent,nL,self);
+	                    dir = TreapNode.Direction.RIGHT;
+	                    release(nLR); //???
+	                }
+	                else {
+	                    node.setChild(TreapNode.Direction.RIGHT, nR.left, self);
+	                    parent.setChild(dir, nR, self);
+	                    nR.setChild(TreapNode.Direction.LEFT, node, self);
+	               
+	                    parent = (TreapNode<K, V>) assign(parent,nR,self);
+	                    dir = TreapNode.Direction.LEFT;
+	                }
+	            }
+	        }
+	
+	        // code that prevents treeness violation for an object that happens to
+	        // be unreachable
+	        if (node != null) {
+	            node.setChild(TreapNode.Direction.LEFT, null, self);
+	            node.setChild(TreapNode.Direction.RIGHT, null, self);
+	        }
+	        release(parent);
+	        release(node);
+	        release(nL);
+	        release(nR);
+	        return prevValue;
 		
-        while (node != null) {
-            if (node.left == null) {
-                parent.setChild(dir, node.right, self);
-                break;
-            }
-            else if (node.right == null) {
-                parent.setChild(dir, node.left, self);
-                break;
-            }
-            else {
-                nL = (TreapNode<K, V>) assign(nL,node.left,self);
-                nR = (TreapNode<K, V>) assign(nR,node.right,self);
-            
-                if (nL.priority > nR.priority) {
-                	TreapNode<K, V> nLR =  (TreapNode<K, V>) acquire(nL.right,self); // ???
-                    node.setChild(TreapNode.Direction.LEFT, nLR, self);
-                    parent.setChild(dir, nL, self);
-                    nL.setChild(TreapNode.Direction.RIGHT, node, self);
-             
-                    parent = (TreapNode<K, V>) assign(parent,nL,self);
-                    dir = TreapNode.Direction.RIGHT;
-                    release(nLR); //???
-                }
-                else {
-                    node.setChild(TreapNode.Direction.RIGHT, nR.left, self);
-                    parent.setChild(dir, nR, self);
-                    nR.setChild(TreapNode.Direction.LEFT, node, self);
-               
-                    parent = (TreapNode<K, V>) assign(parent,nR,self);
-                    dir = TreapNode.Direction.LEFT;
-                }
-            }
-        }
-
-        // code that prevents treeness violation for an object that happens to
-        // be unreachable
-        if (node != null) {
-            node.setChild(TreapNode.Direction.LEFT, null, self);
-            node.setChild(TreapNode.Direction.RIGHT, null, self);
-        }
-        release(parent);
-        release(node);
-        release(nL);
-        release(nR);
-        return prevValue;
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
+			err.set();
+			return null;			
+		}
     }
 	
 	@Override
