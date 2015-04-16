@@ -12,7 +12,7 @@ public class ReadSet<K,V>{
 	private SpinHeapReentrant readSetObjects[];
 	private int readSetVersions[]; 
 	private int count; 
-	private HashMap<SpinHeapReentrant,Integer> set = new HashMap<SpinHeapReentrant,Integer>(); 
+	private HashMap<SpinHeapReentrant,Integer> readSetHash = new HashMap<SpinHeapReentrant,Integer>(); 
 
 	public ReadSet(){
 		readSetObjects = new SpinHeapReentrant[READ_SET_SIZE];
@@ -30,8 +30,8 @@ public class ReadSet<K,V>{
 	
 	public void clear(){
 		count = 0;
-		if (!set.isEmpty()){
-			set.clear();
+		if (!readSetHash.isEmpty()){
+			readSetHash.clear();
 		}
 	}
 	
@@ -41,7 +41,7 @@ public class ReadSet<K,V>{
 			readSetVersions[count] = version;
 			count++;
 		}else{
-			set.putIfAbsent(node, version); 
+			readSetHash.putIfAbsent(node, version);
 		}
 	}
 	
@@ -56,8 +56,8 @@ public class ReadSet<K,V>{
 			if(readSetVersions[i]!= node.getVersion()) return false;
 		
 		}
-		if(!set.isEmpty()){
-			for(Entry<SpinHeapReentrant, Integer> entry : set.entrySet()) {
+		if(!readSetHash.isEmpty()){
+			for(Entry<SpinHeapReentrant, Integer> entry : readSetHash.entrySet()) {
 				node = entry.getKey();
 			    int version = entry.getValue();
 			    if (node.lockedBy()!= self && node.isLocked()){
@@ -77,21 +77,21 @@ public class ReadSet<K,V>{
 				readSetVersions[i]++;
 			}
 		}
-		if(!set.isEmpty()){
-			for(Entry<SpinHeapReentrant, Integer> entry : set.entrySet()) {
+		if(!readSetHash.isEmpty()){
+			for(Entry<SpinHeapReentrant, Integer> entry : readSetHash.entrySet()) {
 				node = entry.getKey();
 			    int version = entry.getValue();
 			    version++;
-			    set.put(node, version);
+			    readSetHash.put(node, version);
 			}
 		}
 	}
 
 	public int getCount() {
-		if(set.isEmpty()){
+		if(readSetHash.isEmpty()){
 			return count; 
 		}else{
-			return count + set.size();
+			return count + readSetHash.size();
 		}
 	}
 	
@@ -102,7 +102,7 @@ public class ReadSet<K,V>{
 				return true; 
 			}
 		}
-		if(set.containsKey(node)){
+		if(readSetHash.containsKey(node)){
 			return true; 
 		}
 		return false; 
