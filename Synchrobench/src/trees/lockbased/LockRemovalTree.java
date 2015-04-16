@@ -8,6 +8,10 @@ import java.util.Set;
 
 
 
+
+
+
+
 import trees.lockbased.lockremovalutils.Error;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -310,35 +314,43 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	private V getImpl(Comparable<K> k, final Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0; 
-		
-		Node<K, V> curr = readRef(this.root,readSet ,err);
-		if(err.isSet()) return null;
-		while(curr!=null){
-			int res = k.compareTo(curr.key);
-			if(res == 0) break; 
-			if(res > 0){ //key > x.key
-				curr=readRef(curr.right,readSet,err);
-				if(err.isSet()) return null;
-			}else{
-				curr=readRef(curr.left,readSet,err);
-				if(err.isSet()) return null;
-			}
-			if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0; 
+			
+			Node<K, V> curr = readRef(this.root,readSet ,err);
+			if(err.isSet()) return null;
+			while(curr!=null){
+				int res = k.compareTo(curr.key);
+				if(res == 0) break; 
+				if(res > 0){ //key > x.key
+					curr=readRef(curr.right,readSet,err);
+					if(err.isSet()) return null;
+				}else{
+					curr=readRef(curr.left,readSet,err);
+					if(err.isSet()) return null;
+				}
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
 			}
-		}
-
-		if(curr!=null){
-			V value = curr.value;
+	
+			if(curr!=null){
+				V value = curr.value;
+				if (!validateReadOnly(readSet, self)) err.set();
+				return value;
+			}
 			if (!validateReadOnly(readSet, self)) err.set();
-			return value;
+			return null;
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
+			err.set();
+			return null;			
 		}
-		if (!validateReadOnly(readSet, self)) err.set();
-		return null;
 	}
 
 	@Override
@@ -378,62 +390,70 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	private V putImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0; 
-		V oldValue = null; 
-		
-		//Read-only phase//
-		Node<K, V> prev = null;
-		Node<K, V> curr = readRef(this.root,readSet,err); 
-		if(err.isSet()) return null;
-		int res = -1;
-		while(curr!=null){
-			prev = curr;
-			res = k.compareTo(curr.key);
-			if(res == 0){
-				oldValue = prev.value;
-				break; 
-			}
-			if(res > 0){ //key > x.key
-				curr= readRef(curr.right,readSet,err);
-				if(err.isSet()) return null;
-			}else{
-				curr= readRef(curr.left,readSet,err);
-				if(err.isSet()) return null;
-			}
-			if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0; 
+			V oldValue = null; 
+			
+			//Read-only phase//
+			Node<K, V> prev = null;
+			Node<K, V> curr = readRef(this.root,readSet,err); 
+			if(err.isSet()) return null;
+			int res = -1;
+			while(curr!=null){
+				prev = curr;
+				res = k.compareTo(curr.key);
+				if(res == 0){
+					oldValue = prev.value;
+					break; 
+				}
+				if(res > 0){ //key > x.key
+					curr= readRef(curr.right,readSet,err);
+					if(err.isSet()) return null;
+				}else{
+					curr= readRef(curr.left,readSet,err);
+					if(err.isSet()) return null;
+				}
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
 			}
-		}
-		
-		//Validation phase
-		if(!validateTwo(readSet,prev,curr,self)){
-			err.set();
-			return null; 
-		}
-		
-		//Read-write phase//
-		if(res == 0){
-			prev.value = val;
+			
+			//Validation phase
+			if(!validateTwo(readSet,prev,curr,self)){
+				err.set();
+				return null; 
+			}
+			
+			//Read-write phase//
+			if(res == 0){
+				prev.value = val;
+				release(prev);
+				release(curr);
+				return oldValue;
+			}
+			Node<K, V> node = acquire(new Node<K, V>(key,val),self);
+			if (res > 0 ) { 
+				prev.setChild(Node.Direction.RIGHT,node,self); 
+			} else {
+				prev.setChild(Node.Direction.LEFT,node,self); 
+			}
 			release(prev);
 			release(curr);
+			release(node);
+			//assert(prev ==null || prev.lockedBy()!=self);
+			//assert(curr ==null || curr.lockedBy()!=self);
+			//assert(node ==null || node.lockedBy()!=self);
 			return oldValue;
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
+			err.set();
+			return null;			
 		}
-		Node<K, V> node = acquire(new Node<K, V>(key,val),self);
-		if (res > 0 ) { 
-			prev.setChild(Node.Direction.RIGHT,node,self); 
-		} else {
-			prev.setChild(Node.Direction.LEFT,node,self); 
-		}
-		release(prev);
-		release(curr);
-		release(node);
-		assert(prev ==null || prev.lockedBy()!=self);
-		assert(curr ==null || curr.lockedBy()!=self);
-		assert(node ==null || node.lockedBy()!=self);
-		return oldValue;
 	}
 	
 	@Override
@@ -461,138 +481,147 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	private V removeImpl(Comparable<K> k, final Thread self, Error err){
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0; 
-		V oldValue = null;		
-		
-		//Read-only phase//
-		Node<K, V> prev = null;
-		Node<K, V> curr = readRef(this.root,readSet,err); 
-		int res = -1;
-		while(curr!=null){			
-			res = k.compareTo(curr.key);	
-			if(res == 0){
-				oldValue = curr.value;			
-				break; 
-			}
-			prev=curr;
-			if(res > 0){ //key > x.key
-				curr= readRef(curr.right,readSet,err); 
-				if(err.isSet()) return null;
-			}else{
-				curr= readRef(curr.left,readSet,err);
-				if(err.isSet()) return null;
-			}
-			if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0; 
+			V oldValue = null;		
+			
+			//Read-only phase//
+			Node<K, V> prev = null;
+			Node<K, V> curr = readRef(this.root,readSet,err); 
+			int res = -1;
+			while(curr!=null){			
+				res = k.compareTo(curr.key);	
+				if(res == 0){
+					oldValue = curr.value;			
+					break; 
+				}
+				prev=curr;
+				if(res > 0){ //key > x.key
+					curr= readRef(curr.right,readSet,err); 
+					if(err.isSet()) return null;
+				}else{
+					curr= readRef(curr.left,readSet,err);
+					if(err.isSet()) return null;
+				}
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
 			}
-		}
-		if(res!= 0) {
-			if(!validateReadOnly(readSet, self)) err.set();
-			return oldValue;
-		}
-		
-		
-		Node<K, V> currL = readRef(curr.left,readSet,err); 
-		if(err.isSet()) return null;
-		Node<K, V> currR = readRef(curr.right,readSet,err);
-		if(err.isSet()) return null;
-		
-		boolean isLeft = prev.left == curr; 
-		if (currL == null){ //no left child
-			
-			//Validation phase//
-			if(!validateFour(readSet,prev,curr,currL, currR, self)){
-				err.set();
-				return null; 
-			}			
-			
-			if(isLeft){
-				prev.setChild(Node.Direction.LEFT,currR,self);
-			}else {
-				prev.setChild(Node.Direction.RIGHT,currR,self);
+			if(res!= 0) {
+				if(!validateReadOnly(readSet, self)) err.set();
+				return oldValue;
 			}
-			curr.setChild(Node.Direction.RIGHT,null,self);
 			
-			release(prev);
-			release(curr);
-			release(currL);
-			release(currR);
-			return oldValue;
-		} 
-		
-		
-		if (currR == null){ //no right child
+			
+			Node<K, V> currL = readRef(curr.left,readSet,err); 
+			if(err.isSet()) return null;
+			Node<K, V> currR = readRef(curr.right,readSet,err);
+			if(err.isSet()) return null;
+			
+			boolean isLeft = prev.left == curr; 
+			if (currL == null){ //no left child
+				
+				//Validation phase//
+				if(!validateFour(readSet,prev,curr,currL, currR, self)){
+					err.set();
+					return null; 
+				}			
+				
+				if(isLeft){
+					prev.setChild(Node.Direction.LEFT,currR,self);
+				}else {
+					prev.setChild(Node.Direction.RIGHT,currR,self);
+				}
+				curr.setChild(Node.Direction.RIGHT,null,self);
+				
+				release(prev);
+				release(curr);
+				release(currL);
+				release(currR);
+				return oldValue;
+			} 
+			
+			
+			if (currR == null){ //no right child
+				
+				//Validation phase//
+				if(!validateFour(readSet,prev,curr,currL, currR, self)){
+					err.set();
+					return null; 
+				}	
+				
+				if(isLeft){
+					prev.setChild(Node.Direction.LEFT,currL,self);
+				}else {
+					prev.setChild(Node.Direction.RIGHT,currL,self);
+				}
+				curr.setChild(Node.Direction.LEFT,null,self);
+				
+				release(prev);
+				release(curr);
+				release(currL);
+				release(currR);
+				return oldValue;
+				
+			}   
+			//both children
+			Node<K, V> prevSucc =  curr; 
+			Node<K, V> succ = currR;
+			Node<K, V> succL =  readRef(succ.left,readSet,err); 
+			if(err.isSet()) return null;
+			
+			while(succL != null){
+				prevSucc = succ;
+				succ = succL;
+				succL =  readRef(succ.left,readSet,err);
+				if(err.isSet()) return null;
+			}
 			
 			//Validation phase//
-			if(!validateFour(readSet,prev,curr,currL, currR, self)){
+			if(!validateSix(readSet,prev,curr,currL,currR,prevSucc,succ, self)){
 				err.set();
 				return null; 
 			}	
 			
-			if(isLeft){
-				prev.setChild(Node.Direction.LEFT,currL,self);
-			}else {
-				prev.setChild(Node.Direction.RIGHT,currL,self);
+			if (prevSucc != curr){	
+				Node<K, V> succR=  acquire(succ.right,self); 
+				prevSucc.setChild(Node.Direction.LEFT,succR,self);				
+				succ.setChild(Node.Direction.RIGHT,currR,self);
+				release(succR);
 			}
-			curr.setChild(Node.Direction.LEFT,null,self);
+			succ.setChild(Node.Direction.LEFT,currL,self);
+			if (isLeft){
+				prev.setChild(Node.Direction.LEFT,succ,self); 
+			} else{
+				prev.setChild(Node.Direction.RIGHT,succ,self); 
+			}
 			
+			curr.setChild(Node.Direction.RIGHT,null,self);
+			curr.setChild(Node.Direction.LEFT,null,self);
+			release(prevSucc);
+			release(succ);
+			release(succL);		
 			release(prev);
 			release(curr);
 			release(currL);
 			release(currR);
-			return oldValue;
 			
-		}   
-		//both children
-		Node<K, V> prevSucc =  curr; 
-		Node<K, V> succ = currR;
-		Node<K, V> succL =  readRef(succ.left,readSet,err); 
-		if(err.isSet()) return null;
+			//assert(prev ==null || prev.lockedBy()!=self );
+			//assert(curr ==null || curr.lockedBy()!=self);
+			//assert(currL ==null || currL.lockedBy()!=self);
+			//assert(currR ==null || currR.lockedBy()!=self);
+			return oldValue; 
 		
-		while(succL != null){
-			prevSucc = succ;
-			succ = succL;
-			succL =  readRef(succ.left,readSet,err);
-			if(err.isSet()) return null;
-		}
-		
-		//Validation phase//
-		if(!validateSix(readSet,prev,curr,currL,currR,prevSucc,succ, self)){
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
 			err.set();
-			return null; 
-		}	
-		
-		if (prevSucc != curr){	
-			Node<K, V> succR=  acquire(succ.right,self); 
-			prevSucc.setChild(Node.Direction.LEFT,succR,self);				
-			succ.setChild(Node.Direction.RIGHT,currR,self);
-			release(succR);
+			return null;			
 		}
-		succ.setChild(Node.Direction.LEFT,currL,self);
-		if (isLeft){
-			prev.setChild(Node.Direction.LEFT,succ,self); 
-		} else{
-			prev.setChild(Node.Direction.RIGHT,succ,self); 
-		}
-		
-		curr.setChild(Node.Direction.RIGHT,null,self);
-		curr.setChild(Node.Direction.LEFT,null,self);
-		release(prevSucc);
-		release(succ);
-		release(succL);		
-		release(prev);
-		release(curr);
-		release(currL);
-		release(currR);
-		
-		assert(prev ==null || prev.lockedBy()!=self );
-		assert(curr ==null || curr.lockedBy()!=self);
-		assert(currL ==null || currL.lockedBy()!=self);
-		assert(currR ==null || currR.lockedBy()!=self);
-		return oldValue; 
 	}
 	
 	@Override
@@ -618,62 +647,71 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	private V putIfAbsentImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		long count = 0; 
-		V oldValue = null; 
-		
-		//Read-only phase//
-		Node<K, V> prev = null;
-		Node<K, V> curr = readRef(this.root,readSet,err); 
-		if(err.isSet()) return null;
-		int res = -1;
-		while(curr!=null){
-			prev = curr;
-			res = k.compareTo(curr.key);
-			if(res == 0){
-				//key was found
-				oldValue = prev.value;
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
-				}				
-				return oldValue; 
-			}
-			if(res > 0){ //key > x.key
-				curr= readRef(curr.right,readSet,err);
-				if(err.isSet()) return null;
-			}else{
-				curr= readRef(curr.left,readSet,err);
-				if(err.isSet()) return null;
-			}
-			if(count++ == LIMIT){
-				if (!validateReadOnly(readSet, self)){
-					err.set();
-					return null;
+		try{
+			long count = 0; 
+			V oldValue = null; 
+			
+			//Read-only phase//
+			Node<K, V> prev = null;
+			Node<K, V> curr = readRef(this.root,readSet,err); 
+			if(err.isSet()) return null;
+			int res = -1;
+			while(curr!=null){
+				prev = curr;
+				res = k.compareTo(curr.key);
+				if(res == 0){
+					//key was found
+					oldValue = prev.value;
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}				
+					return oldValue; 
+				}
+				if(res > 0){ //key > x.key
+					curr= readRef(curr.right,readSet,err);
+					if(err.isSet()) return null;
+				}else{
+					curr= readRef(curr.left,readSet,err);
+					if(err.isSet()) return null;
+				}
+				if(count++ == LIMIT){
+					if (!validateReadOnly(readSet, self)){
+						err.set();
+						return null;
+					}
 				}
 			}
-		}
+			
+			//Validation phase
+			if(!validateTwo(readSet,prev,curr,self)){
+				err.set();
+				return null; 
+			}
+			
+			//Read-write phase//
 		
-		//Validation phase
-		if(!validateTwo(readSet,prev,curr,self)){
+			Node<K, V> node = acquire(new Node<K, V>(key,val),self);
+			if (res > 0 ) { 
+				prev.setChild(Node.Direction.RIGHT,node,self); 
+			} else {
+				prev.setChild(Node.Direction.LEFT,node,self); 
+			}
+			release(prev);
+			release(curr);
+			release(node);
+			//assert(prev ==null || prev.lockedBy()!=self);
+			//assert(curr ==null || curr.lockedBy()!=self);
+			//assert(node ==null || node.lockedBy()!=self);
+			return oldValue;
+			
+		}catch(Exception e){
+			if(readSet.validate(self)){
+				throw e; 
+			}
 			err.set();
-			return null; 
+			return null;			
 		}
-		
-		//Read-write phase//
-	
-		Node<K, V> node = acquire(new Node<K, V>(key,val),self);
-		if (res > 0 ) { 
-			prev.setChild(Node.Direction.RIGHT,node,self); 
-		} else {
-			prev.setChild(Node.Direction.LEFT,node,self); 
-		}
-		release(prev);
-		release(curr);
-		release(node);
-		assert(prev ==null || prev.lockedBy()!=self);
-		assert(curr ==null || curr.lockedBy()!=self);
-		assert(node ==null || node.lockedBy()!=self);
-		return oldValue;
 	}
 	
 	@Override
