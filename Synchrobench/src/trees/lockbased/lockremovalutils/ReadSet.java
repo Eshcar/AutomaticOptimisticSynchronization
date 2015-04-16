@@ -41,7 +41,10 @@ public class ReadSet<K,V>{
 			readSetVersions[count] = version;
 			count++;
 		}else{
-			readSetHash.putIfAbsent(node, version);
+			if(!readSetHash.containsKey(node)){
+				readSetHash.put(node, version);
+			}
+			//readSetHash.putIfAbsent(node, version);
 		}
 	}
 	
