@@ -6,8 +6,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-
 import trees.lockbased.lockremovalutils.Error;
+import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.NonSharedFastSimpleRandom;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -118,6 +118,14 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
             return new ReadSet<K,V>(); 
         }
     };
+    
+    private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
+        @Override
+        protected LockSet initialValue()
+        {
+            return new LockSet(3); 
+        }
+    };
 	
     /*Helper functions*/
 	
@@ -153,18 +161,34 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
         return true;
     }
 	
-	private TreapNode<K,V> readRef(TreapNode<K,V> newNode,ReadSet<K,V> readSet, Error err) {
-		
+	private TreapNode<K,V> readRef(TreapNode<K,V> newNode, TreapNode<K,V> oldNode ,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
+		//use for assign 
 		if(newNode!=null){
 			int version = newNode.getVersion();
 			if(newNode.isLocked()){
 				err.set();
 				return null;
 			}
-			
+			lockSet.add(newNode);
 			readSet.add(newNode, version);
 		}
-		
+		if(oldNode!=null){
+			lockSet.remove(oldNode);
+		}
+		return newNode;
+	}
+	
+	private TreapNode<K,V> readRef(TreapNode<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
+		//use for acquire
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			lockSet.add(newNode);
+			readSet.add(newNode, version);
+		}
 		return newNode;
 	}
 	
@@ -234,16 +258,18 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	
 	private V getImpl(final Comparable<K> key, final Thread self, Error err){
 		ReadSet<K,V> readSet = threadReadSet.get();
-		readSet.clear();
+		LockSet lockSet = threadLockSet.get();
+		readSet.clear(); 
+		lockSet.clear();
 		try{			
 			long count = 0;
 			
 	        TreapNode<K,V> parent;
 	        TreapNode<K,V> node;
 	  
-	        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,err);
+	        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,lockSet,err);
 	        if(err.isSet()) return null;
-	        node = (TreapNode<K, V>) readRef(parent.right,readSet,err);
+	        node = (TreapNode<K, V>) readRef(parent.right,readSet,lockSet, err);
 	    	if(err.isSet()) return null;
 	        
 	    	while (node != null) {
@@ -251,13 +277,14 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	            if (c == 0) {
 	                break;
 	            }
-	            parent = node;
+	            parent = readRef(node,parent,readSet,lockSet,err);
+	            if(err.isSet()) return null;
 	            if (c < 0) {
-	                node = (TreapNode<K, V>) readRef(node.left, readSet,err);
+	                node = (TreapNode<K, V>) readRef(node.left,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;
 	            }
 	            else {
-	                node = (TreapNode<K, V>) readRef(node.right, readSet,err);
+	                node = (TreapNode<K, V>) readRef(node.right,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;
 	            }
 	            if(count++ == LIMIT){
@@ -350,17 +377,19 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	}
 	
 	private V putImpl(final K key, final Comparable<K> cmp, final V value,final Thread self, Error err){      
-    	ReadSet<K,V> readSet = threadReadSet.get();
+		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0; 
 	        V prevValue = null;      
 	        final int prio = fastRandom.get().nextInt();
 	        
 	        //Read-only phase//
-	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet,lockSet, err);
 	        if(err.isSet()) return null;
-	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet,lockSet, err);
 	    	if(err.isSet()) return null;
 	    	
 	    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
@@ -372,14 +401,14 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	            if (cmpRes == 0) {
 	                break;
 	            }        
-	            parent = node;
+	            parent = readRef(node,parent,readSet,lockSet,err);
 	            if (cmpRes < 0) {
-	            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+	            	node = (TreapNode<K, V>) readRef(node.left,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;  
 	                dir = TreapNode.Direction.LEFT;
 	            }
 	            else {
-	            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+	            	node = (TreapNode<K, V>) readRef(node.right,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;              
 	                dir = TreapNode.Direction.RIGHT;
 	            }
@@ -393,9 +422,19 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	        }
 	        
 	        //Validation phase//
+	        /*old validation
 			if(!validateTwo(readSet,parent,node,self)){
 				err.set();
 				return null; 
+			}*/
+	        if(!lockSet.tryLockAll(self)){
+				err.set();
+				return null; 
+			}
+			if (!validateReadOnly(readSet, self)){
+				lockSet.releaseAll();
+				err.set();
+				return null;
 			}
 	        
 			TreapNode<K,V> x = (TreapNode<K, V>) acquire(new TreapNode<K,V>(key, value, prio), self);
@@ -626,14 +665,16 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	}
 
 	private V removeImpl(final Comparable<K> cmp ,final Thread self,Error err){
-    	ReadSet<K,V> readSet = threadReadSet.get();
+		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0;     
 	
-	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder, readSet, err);
+	        TreapNode<K,V> parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,lockSet, err);
 	        if(err.isSet()) return null;
-	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet, err);
+	        TreapNode<K,V> node = (TreapNode<K, V>) readRef(parent.right, readSet,lockSet, err);
 	    	if(err.isSet()) return null;
 	    	
 	    	TreapNode.Direction dir = TreapNode.Direction.RIGHT;
@@ -646,14 +687,14 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	    			if(err.isSet()) return null;
 	                break;
 	            }
-	            parent = node;
+	            parent = readRef(node,parent,readSet,lockSet,err);
 	            if (c < 0) {
-	            	node = (TreapNode<K, V>) readRef(node.left, readSet, err);
+	            	node = (TreapNode<K, V>) readRef(node.left,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;  
 	                dir = TreapNode.Direction.LEFT;
 	            }
 	            else {
-	            	node = (TreapNode<K, V>) readRef(node.right, readSet, err);
+	            	node = (TreapNode<K, V>) readRef(node.right,node,readSet,lockSet,err);
 	                if(err.isSet()) return null;  
 	                dir = TreapNode.Direction.RIGHT;
 	            }
