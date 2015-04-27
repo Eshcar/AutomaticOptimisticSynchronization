@@ -317,7 +317,9 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 					pred.release();
 					pred = (Node<K, V>) pred.next[i];
 				}	
-				
+			}
+			
+			for(int i = layerFound ; i > -1 ; i--){	
 				Node<K,V> curr = (Node<K,V>)succs[i];
 				pred = ((Node<K,V>) preds[i]);
 				if( cmp.compareTo(curr.key )!= 0 ){
@@ -342,15 +344,19 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			((Node<K,V>)succs[i]).release();
 		}
 		
-		Node<K,V> node = new Node<K,V>(key,value,height);
-		node.acquire(self);
+		
 		for(int i = height-1 ; i > -1 ; i--){
 			pred = (Node<K,V>)firsts[i];
 			while (!pred.equals((Node<K,V>)preds[i])){
 				pred.release();
 				pred = (Node<K, V>) pred.next[i];
 			}
-			
+		
+		}
+		
+		Node<K,V> node = new Node<K,V>(key,value,height);
+		node.acquire(self);
+		for(int i = height-1 ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
 			Node<K,V> succ = ((Node<K,V>) succs[i]);
 			node.next[i] = succ;	
