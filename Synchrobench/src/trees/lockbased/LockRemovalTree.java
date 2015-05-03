@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import trees.lockbased.lockremovalutils.Error;
+import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
@@ -100,6 +101,14 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
         }
     };
     
+    private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
+        @Override
+        protected LockSet initialValue()
+        {
+            return new LockSet(8); 
+        }
+    };
+    
     @SuppressWarnings("unchecked")
 	private Comparable<K> comparable(final Object object) {
 
@@ -150,18 +159,34 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
         return true;
     }
 	
-	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet, Error err) {
-		
+	private Node<K,V> readRef(Node<K,V> newNode, Node<K,V> oldNode ,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
+		//use for assign 
 		if(newNode!=null){
 			int version = newNode.getVersion();
 			if(newNode.isLocked()){
 				err.set();
 				return null;
 			}
-			
+			lockSet.add(newNode);
 			readSet.add(newNode, version);
 		}
-		
+		if(oldNode!=null){
+			lockSet.remove(oldNode);
+		}
+		return newNode;
+	}
+	
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
+		//use for acquire
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			lockSet.add(newNode);
+			readSet.add(newNode, version);
+		}
 		return newNode;
 	}
 	
@@ -319,20 +344,22 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 
 	private V getImpl(Comparable<K> k, final Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0; 
 			
-			Node<K, V> curr = readRef(this.root,readSet ,err);
+			Node<K, V> curr = readRef(this.root,readSet, lockSet ,err);
 			if(err.isSet()) return null;
 			while(curr!=null){
 				int res = k.compareTo(curr.key);
 				if(res == 0) break; 
 				if(res > 0){ //key > x.key
-					curr=readRef(curr.right,readSet,err);
+					curr=readRef(curr.right,curr, readSet, lockSet, err);
 					if(err.isSet()) return null;
 				}else{
-					curr=readRef(curr.left,readSet,err);
+					curr=readRef(curr.left, curr, readSet, lockSet, err);
 					if(err.isSet()) return null;
 				}
 				if(count++ == LIMIT){
@@ -344,12 +371,14 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			}
 	
 			if(curr!=null){
+				lockSet.remove(curr);
 				V value = curr.value;
 				if (!validateReadOnly(readSet, self)) err.set();
 				return value;
 			}
 			if (!validateReadOnly(readSet, self)) err.set();
 			return null;
+			
 		}catch(Exception e){
 			if(readSet.validate(self)){
 				throw e; 
@@ -420,28 +449,31 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	
 	private V putImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
 		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0; 
 			V oldValue = null; 
 			
 			//Read-only phase//
 			Node<K, V> prev = null;
-			Node<K, V> curr = readRef(this.root,readSet,err); 
+			Node<K, V> curr = readRef(this.root,readSet,lockSet,err); 
 			if(err.isSet()) return null;
 			int res = -1;
 			while(curr!=null){
-				prev = curr;
+				prev = readRef(curr,prev,readSet,lockSet,err);
+				if(err.isSet()) return null;
 				res = k.compareTo(curr.key);
 				if(res == 0){
 					oldValue = prev.value;
 					break; 
 				}
 				if(res > 0){ //key > x.key
-					curr= readRef(curr.right,readSet,err);
+					curr= readRef(curr.right,curr,readSet,lockSet,err);
 					if(err.isSet()) return null;
 				}else{
-					curr= readRef(curr.left,readSet,err);
+					curr= readRef(curr.left,curr,readSet,lockSet,err);
 					if(err.isSet()) return null;
 				}
 				if(count++ == LIMIT){
@@ -453,9 +485,19 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			}
 			
 			//Validation phase
+			/* old Version:
 			if(!validateTwo(readSet,prev,curr,self)){
 				err.set();
 				return null; 
+			}*/
+			if(!lockSet.tryLockAll(self)){
+				err.set();
+				return null; 
+			}
+			if (!validateReadOnly(readSet, self)){
+				lockSet.releaseAll();
+				err.set();
+				return null;
 			}
 			
 			//Read-write phase//
@@ -554,14 +596,17 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 
 	private V removeImpl(Comparable<K> k, final Thread self, Error err){
 		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0; 
 			V oldValue = null;		
 			
 			//Read-only phase//
 			Node<K, V> prev = null;
-			Node<K, V> curr = readRef(this.root,readSet,err); 
+			Node<K, V> curr = readRef(this.root,readSet,lockSet,err);
+			if(err.isSet()) return null;
 			int res = -1;
 			while(curr!=null){			
 				res = k.compareTo(curr.key);	
@@ -569,12 +614,13 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 					oldValue = curr.value;			
 					break; 
 				}
-				prev=curr;
+				prev=readRef(curr,prev,readSet,lockSet,err);
+				if(err.isSet()) return null;
 				if(res > 0){ //key > x.key
-					curr= readRef(curr.right,readSet,err); 
+					curr= readRef(curr.right,curr,readSet,lockSet,err); 
 					if(err.isSet()) return null;
 				}else{
-					curr= readRef(curr.left,readSet,err);
+					curr= readRef(curr.left,curr,readSet,lockSet,err);
 					if(err.isSet()) return null;
 				}
 				if(count++ == LIMIT){
@@ -590,19 +636,29 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			}
 			
 			
-			Node<K, V> currL = readRef(curr.left,readSet,err); 
+			Node<K, V> currL = readRef(curr.left,readSet,lockSet,err); 
 			if(err.isSet()) return null;
-			Node<K, V> currR = readRef(curr.right,readSet,err);
+			Node<K, V> currR = readRef(curr.right,readSet,lockSet,err);
 			if(err.isSet()) return null;
 			
 			boolean isLeft = prev.left == curr; 
 			if (currL == null){ //no left child
 				
 				//Validation phase//
+				/*old validation
 				if(!validateFour(readSet,prev,curr,currL, currR, self)){
 					err.set();
 					return null; 
-				}			
+				}*/
+				if(!lockSet.tryLockAll(self)){
+					err.set();
+					return null; 
+				}
+				if (!validateReadOnly(readSet, self)){
+					lockSet.releaseAll();
+					err.set();
+					return null;
+				}
 				
 				if(isLeft){
 					prev.setChild(Node.Direction.LEFT,currR,self);
@@ -622,10 +678,20 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			if (currR == null){ //no right child
 				
 				//Validation phase//
+				/*old validation
 				if(!validateFour(readSet,prev,curr,currL, currR, self)){
 					err.set();
 					return null; 
-				}	
+				}*/
+				if(!lockSet.tryLockAll(self)){
+					err.set();
+					return null; 
+				}
+				if (!validateReadOnly(readSet, self)){
+					lockSet.releaseAll();
+					err.set();
+					return null;
+				}
 				
 				if(isLeft){
 					prev.setChild(Node.Direction.LEFT,currL,self);
@@ -642,23 +708,37 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 				
 			}   
 			//both children
-			Node<K, V> prevSucc =  curr; 
-			Node<K, V> succ = currR;
-			Node<K, V> succL =  readRef(succ.left,readSet,err); 
+			Node<K, V> prevSucc = readRef(curr,readSet,lockSet,err);
+			if(err.isSet()) return null;
+			Node<K, V> succ = readRef(currR,readSet,lockSet,err); 
+			if(err.isSet()) return null;
+			Node<K, V> succL =  readRef(succ.left,readSet,lockSet,err); 
 			if(err.isSet()) return null;
 			
 			while(succL != null){
-				prevSucc = succ;
-				succ = succL;
-				succL =  readRef(succ.left,readSet,err);
+				prevSucc = readRef(succ,prevSucc,readSet,lockSet,err);
+				if(err.isSet()) return null;
+				succ = readRef(succL,succ,readSet,lockSet,err); 
+				if(err.isSet()) return null;
+				succL =  readRef(succ.left,succL,readSet,lockSet,err);
 				if(err.isSet()) return null;
 			}
 			
 			//Validation phase//
+			/*old validation
 			if(!validateSix(readSet,prev,curr,currL,currR,prevSucc,succ, self)){
 				err.set();
 				return null; 
-			}	
+			}*/
+			if(!lockSet.tryLockAll(self)){
+				err.set();
+				return null; 
+			}
+			if (!validateReadOnly(readSet, self)){
+				lockSet.releaseAll();
+				err.set();
+				return null;
+			}
 			
 			if (prevSucc != curr){	
 				Node<K, V> succR=  acquire(succ.right,self); 
@@ -683,10 +763,10 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			release(currL);
 			release(currR);
 			
-			//assert(prev ==null || prev.lockedBy()!=self );
-			//assert(curr ==null || curr.lockedBy()!=self);
-			//assert(currL ==null || currL.lockedBy()!=self);
-			//assert(currR ==null || currR.lockedBy()!=self);
+			assert(prev ==null || prev.lockedBy()!=self );
+			assert(curr ==null || curr.lockedBy()!=self);
+			assert(currL ==null || currL.lockedBy()!=self);
+			assert(currR ==null || currR.lockedBy()!=self);
 			return oldValue; 
 		
 		}catch(Exception e){
@@ -810,22 +890,27 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 
 	private V putIfAbsentImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
 		ReadSet<K,V> readSet = threadReadSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
+		lockSet.clear();
 		try{
 			long count = 0; 
 			V oldValue = null; 
 			
 			//Read-only phase//
 			Node<K, V> prev = null;
-			Node<K, V> curr = readRef(this.root,readSet,err); 
+			Node<K, V> curr = readRef(this.root,readSet,lockSet,err); 
 			if(err.isSet()) return null;
 			int res = -1;
 			while(curr!=null){
-				prev = curr;
+				prev = readRef(curr,prev,readSet,lockSet,err);
+				if(err.isSet()) return null;
 				res = k.compareTo(curr.key);
 				if(res == 0){
 					//key was found
 					oldValue = prev.value;
+					lockSet.remove(prev);
+					lockSet.remove(curr);
 					if (!validateReadOnly(readSet, self)){
 						err.set();
 						return null;
@@ -833,10 +918,10 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 					return oldValue; 
 				}
 				if(res > 0){ //key > x.key
-					curr= readRef(curr.right,readSet,err);
+					curr= readRef(curr.right,curr,readSet,lockSet,err);
 					if(err.isSet()) return null;
 				}else{
-					curr= readRef(curr.left,readSet,err);
+					curr= readRef(curr.left,curr,readSet,lockSet,err);
 					if(err.isSet()) return null;
 				}
 				if(count++ == LIMIT){
@@ -848,13 +933,22 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			}
 			
 			//Validation phase
+			/* old validation
 			if(!validateTwo(readSet,prev,curr,self)){
 				err.set();
 				return null; 
+			}*/
+			if(!lockSet.tryLockAll(self)){
+				err.set();
+				return null; 
+			}
+			if (!validateReadOnly(readSet, self)){
+				lockSet.releaseAll();
+				err.set();
+				return null;
 			}
 			
 			//Read-write phase//
-		
 			Node<K, V> node = acquire(new Node<K, V>(key,val),self);
 			if (res > 0 ) { 
 				prev.setChild(Node.Direction.RIGHT,node,self); 
@@ -864,9 +958,9 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			release(prev);
 			release(curr);
 			release(node);
-			//assert(prev ==null || prev.lockedBy()!=self);
-			//assert(curr ==null || curr.lockedBy()!=self);
-			//assert(node ==null || node.lockedBy()!=self);
+			assert(prev ==null || prev.lockedBy()!=self);
+			assert(curr ==null || curr.lockedBy()!=self);
+			assert(node ==null || node.lockedBy()!=self);
 			return oldValue;
 			
 		}catch(Exception e){

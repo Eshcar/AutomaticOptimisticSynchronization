@@ -20,7 +20,7 @@ iterations="5"
 # Extracts values
 ###############################
 
-benchs="trees.lockbased.LockRemovalSkipList trees.lockbased.DominationLockingSkipList trees.lockfree.LockFreeKSTRQ trees.lockfree.LockFreeJavaSkipList" 
+benchs="trees.lockbased.LockRemovalSkipList trees.lockbased.DominationLockingSkipList trees.lockbased.TwoPLLockRemovalSkiplist trees.lockbased.TwoPLSkiplist trees.lockfree.LockFreeKSTRQ trees.lockfree.LockFreeJavaSkipList" 
 ds="rangeQueries_numOfRangeQueries"
 
 # write header

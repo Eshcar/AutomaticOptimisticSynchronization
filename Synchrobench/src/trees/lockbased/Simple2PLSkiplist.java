@@ -7,15 +7,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-
-
-
-import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 import contention.benchmark.Parameters;
 
-public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
+public class Simple2PLSkiplist<K,V> implements CompositionalMap<K, V> {
 	private final Comparator<? super K> comparator;
 	private final int maxKey;
 	private final int maxLevel;
@@ -24,9 +20,10 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 	private final int min;
 	private final int max;
 	private final Node<K,V> sentenial;
+
 	
 	/*Constructor*/
-	public TwoPLSkiplist(){
+	public Simple2PLSkiplist(){
 		this.maxKey = Parameters.range;
 		this.maxHeight = (int) Math.ceil(Math.log(maxKey) / Math.log(2));
 		this.maxLevel = maxHeight-1; 
@@ -35,7 +32,7 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		this.sentenial = new Node(max,null,maxHeight);
 		this.root = new Node(min,null,maxHeight,sentenial);
 		//this.maxRangeSize = maxRangeSize;
-        this.comparator = null;      
+        this.comparator = null;
 	}
 	
 	/*Node*/
@@ -108,7 +105,14 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
     
     private final ThreadLocal<Object[]> threadPreds = new ThreadLocal<Object[]>();
 	private final ThreadLocal<Object[]> threadSuccs = new ThreadLocal<Object[]>();
-	private final ThreadLocal<Object[]> threadFirsts = new ThreadLocal<Object[]>();
+	
+	private final ThreadLocal<SpinHeapReentrant[]> threadLocked = new ThreadLocal<SpinHeapReentrant[]>(){
+		 @Override
+        protected SpinHeapReentrant[] initialValue()
+        {
+            return new SpinHeapReentrant[maxHeight*10+Parameters.maxRangeSize];
+        }
+	 };
     
 	/*Helper functions*/
 	
@@ -135,7 +139,7 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
         return node;
 	}
 	
-	private void release(Node<K,V> node) {
+	private void release(SpinHeapReentrant node) {
 		if (node != null){
 	           node.release();
 		}
@@ -168,7 +172,6 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
-			threadFirsts.set(new Object[maxHeight]);
 		}
 		return getImp(comparable(key),(K) key,self.get());
 	}
@@ -177,30 +180,25 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 	private V getImp(Comparable<? super K> cmp, K key, Thread self) {
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
-		Object[] firsts = threadFirsts.get();
-		
+		SpinHeapReentrant[] locked = threadLocked.get();
+		int l =0; 
+	
 		V value = null;
 		Node<K,V> pred = root; 
 		pred.acquire(self);
+		locked[l] = pred;
+		l++;
 		for(int layer = maxLevel ; layer> -1 ; layer-- ){
-			firsts[layer] = pred;
 			Node<K,V> curr = (Node<K, V>) pred.next[layer];
 			curr.acquire(self);
+			locked[l] = curr;
+			l++;
 			while (true) {
 				int res = cmp.compareTo(curr.key);
 				if(res == 0) {
 					value = curr.value;
-					preds[layer] = pred;
-					succs[layer] = curr;
-					
-					for(int i= maxLevel; i >= layer; i--){
-						pred = (Node<K,V>)firsts[i];
-						while (!pred.equals((Node<K,V>)preds[i])){
-							pred.release();
-							pred = (Node<K, V>) pred.next[i];
-						}
-						((Node<K,V>)preds[i]).release();
-						((Node<K,V>)succs[i]).release();
+					for(int j=0;j<l;j++){
+						release(locked[j]);
 					}
 					return value;
 				}
@@ -211,21 +209,19 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 				pred = curr;
 				curr = (Node<K, V>) pred.next[layer];
 				curr.acquire(self);
+				locked[l] = curr;
+				l++;
 			}			
 			preds[layer] = pred;
 			succs[layer] = curr;		
 			if(layer != 0){
 				pred.acquire(self);
+				locked[l] = pred;
+				l++;
 			}
 		}
-		for(int i= maxLevel; i > -1 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
-			((Node<K,V>)preds[i]).release();
-			((Node<K,V>)succs[i]).release();
+		for(int j=0;j<l;j++){
+			release(locked[j]);
 		}
 		return value;
 	}
@@ -235,6 +231,7 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		return root.next[0]==sentenial;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Set<K> keySet() {
 		Set<K> hash = new HashSet<K>(); 
@@ -253,7 +250,6 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
-			threadFirsts.set(new Object[maxHeight]);
 		}
 		return putImpl(comparable(key),key,value,self.get());
 	}
@@ -265,14 +261,18 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
-		Object[] firsts = threadFirsts.get();
+		SpinHeapReentrant[] locked = threadLocked.get();
+		int l =0; 
 		
 		Node<K,V> pred = root; 
 		pred.acquire(self);
-		for(int layer = maxLevel ; layer> -1 ; layer-- ){
-			firsts[layer] = pred; 
+		locked[l] = pred;
+		l++;
+		for(int layer = maxLevel ; layer> -1 ; layer-- ){ 
 			Node<K,V> curr = (Node<K, V>) pred.next[layer];
 			curr.acquire(self);
+			locked[l] = curr;
+			l++;
 			while (true) {
 				int res = cmp.compareTo(curr.key);
 				if(res == 0) {
@@ -289,34 +289,30 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 				pred = curr;
 				curr = (Node<K, V>) pred.next[layer];
 				curr.acquire(self);
+				locked[l] = curr;
+				l++;
 	
 			}
 			preds[layer] = pred;
 			succs[layer] = curr;
 			if(layer != 0){
 				pred.acquire(self);
+				locked[l] = pred;
+				l++;
 			}
 		}
 		
 		if( layerFound!= -1 ){ 	//key was found change value only... 
 			
-			//No early unlocking... 
-			for(int i = maxLevel ; i > layerFound ; i--){
-				pred = (Node<K,V>)firsts[i];
-				while (!pred.equals((Node<K,V>)preds[i])){
-					pred.release();
-					pred = (Node<K, V>) pred.next[i];
-				}				
-				((Node<K,V>)preds[i]).release();
-				((Node<K,V>)succs[i]).release();
+			//Lock needed nodes
+			for(int i = layerFound ; i > -1 ; i--){
+				((Node<K,V>)preds[i]).acquire(self);
+				((Node<K,V>)succs[i]).acquire(self);
 			}
 			
-			for(int i = layerFound ; i > -1 ; i--){
-				pred = (Node<K,V>)firsts[i];
-				while (!pred.equals((Node<K,V>)preds[i])){
-					pred.release();
-					pred = (Node<K, V>) pred.next[i];
-				}	
+			//unlock other nodes
+			for(int i=0;i<l;i++){
+				release(locked[i]);
 			}
 			
 			for(int i = layerFound ; i > -1 ; i--){	
@@ -332,26 +328,15 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			return oldValue;
 		}
 		
-		
-		//no early unlocking 
-		for(int i = maxLevel ; i > height-1 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}				
-			((Node<K,V>)preds[i]).release();
-			((Node<K,V>)succs[i]).release();
+		//Lock needed nodes
+		for(int i = height-1 ; i > -1 ; i--){
+			((Node<K,V>)preds[i]).acquire(self);
+			((Node<K,V>)succs[i]).acquire(self);
 		}
 		
-		
-		for(int i = height-1 ; i > -1 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
-		
+		//unlock other nodes
+		for(int i=0;i<l;i++){
+			release(locked[i]);
 		}
 		
 		Node<K,V> node = new Node<K,V>(key,value,height);
@@ -382,7 +367,6 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
-			threadFirsts.set(new Object[maxHeight]);
 		}
 		return removeImpl(comparable(key),(K) key,self.get());
 	}
@@ -393,15 +377,18 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
-		Object[] firsts = threadFirsts.get();
+		SpinHeapReentrant[] locked = threadLocked.get();
+		int l =0; 
 		
 		Node<K,V> pred = root;
-		
 		pred.acquire(self);
+		locked[l] = pred;
+		l++;
 		for(int layer = maxLevel ; layer > -1 ; layer-- ){
-			firsts[layer] = pred; 
 			Node<K,V> curr = (Node<K, V>) pred.next[layer];
 			curr.acquire(self);
+			locked[l] = curr;
+			l++;
 			while (true) {
 				int res = cmp.compareTo(curr.key);
 				if(res == 0) {
@@ -416,31 +403,31 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 				pred = curr;
 				curr = (Node<K, V>) pred.next[layer];
 				curr.acquire(self);
+				locked[l] = curr;
+				l++;
 			}
 			preds[layer] = pred;
 			succs[layer] = curr;
 			if(layer != 0){
 				pred.acquire(self);
+				locked[l] = pred;
+				l++;
 			}
 		}
 		
-		for(int i = maxLevel ; i > layerFound ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
-			((Node<K,V>)preds[i]).release();
-			((Node<K,V>)succs[i]).release();
+		//lock needed nodes
+		for(int i = layerFound ; i > -1 ; i--){
+			pred = ((Node<K,V>) preds[i]);
+			Node<K,V> succ = ((Node<K,V>) succs[i]);
+			pred.acquire(self);
+			succ.acquire(self);
 		}
 		
-		for(int i = layerFound ; i > -1 ; i--){	
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
+		//unlock other nodes
+		for(int i=0;i<l;i++){
+			release(locked[i]);
 		}
+		
 		for(int i = layerFound ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
 			Node<K,V> succ = ((Node<K,V>) succs[i]);
@@ -464,7 +451,6 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
-			threadFirsts.set(new Object[maxHeight]);
 		}
 		return putIfAbsentImpl(comparable(key),key,value,self.get());
 	}
@@ -476,28 +462,24 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		int height = skipListRandom.get().randomHeight(maxHeight-1);
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
-		Object[] firsts = threadFirsts.get();
+		SpinHeapReentrant[] locked = threadLocked.get();
+		int l =0; 
 		
 		Node<K,V> pred = root; 
 		pred.acquire(self);
+		locked[l] = pred;
+		l++;
 		for(int layer = maxLevel ; layer> -1 ; layer-- ){
-			firsts[layer] = pred; 
 			Node<K,V> curr = (Node<K, V>) pred.next[layer];
 			curr.acquire(self);
+			locked[l] = curr;
+			l++;
 			while (true) {
 				int res = cmp.compareTo(curr.key);
 				if(res == 0) {	
 					oldValue = curr.value;
-					preds[layer] = pred;
-					succs[layer] = curr;
-					for(int i= maxLevel; i >= layer; i--){
-						pred = (Node<K,V>)firsts[i];
-						while (!pred.equals((Node<K,V>)preds[i])){
-							pred.release();
-							pred = (Node<K, V>) pred.next[i];
-						}
-						((Node<K,V>)preds[i]).release();
-						((Node<K,V>)succs[i]).release();
+					for(int i=0;i<l;i++){
+						release(locked[i]);
 					}
 					return oldValue;
 				}
@@ -508,38 +490,32 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 				pred = curr;
 				curr = (Node<K, V>) pred.next[layer];
 				curr.acquire(self);
+				locked[l] = curr;
+				l++;
 	
 			}
 			preds[layer] = pred;
 			succs[layer] = curr;
 			if(layer != 0){
 				pred.acquire(self);
+				locked[l] = pred;
+				l++;
 			}
 		}
 		
-		//no early unlocking 
-		for(int i = maxLevel ; i > height-1 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
-			
-			((Node<K,V>)preds[i]).release();
-			((Node<K,V>)succs[i]).release();
-		}
-		
+		//Lock needed nodes
 		for(int i = height-1 ; i > -1 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
+			((Node<K,V>)preds[i]).acquire(self);
+			((Node<K,V>)succs[i]).acquire(self);
+		}
+		
+		//unlock other nodes
+		for(int i=0;i<l;i++){
+			release(locked[i]);
 		}
 		
 		Node<K,V> node = new Node<K,V>(key,value,height);
 		node.acquire(self);
-		
 		for(int i = height-1 ; i > -1 ; i--){
 			pred = ((Node<K,V>) preds[i]);
 			Node<K,V> succ = ((Node<K,V>) succs[i]);
@@ -571,7 +547,6 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		if(threadPreds.get() == null){
 			threadPreds.set(new Object[maxHeight]);
 			threadSuccs.set(new Object[maxHeight]);
-			threadFirsts.set(new Object[maxHeight]);
 		}
 		return dominationRangeImpl(result, comparable(min), comparable(max),self.get());
 	}
@@ -585,14 +560,18 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 		int layerFound = -1; 
 		Object[] preds = threadPreds.get();
 		Object[] succs = threadSuccs.get();
-		Object[] firsts = threadFirsts.get();
+		SpinHeapReentrant[] locked = threadLocked.get();
+		int l =0;
 		
 		Node<K,V> pred = root; 
 		pred.acquire(self);
+		locked[l] = pred;
+		l++;
 		for(int layer = maxLevel ; layer> -1 ; layer-- ){
-			firsts[layer] = pred; 
 			Node<K,V> curr = (Node<K, V>) pred.next[layer];
 			curr.acquire(self);
+			locked[l] = curr;
+			l++;
 			while (true) {
 				int res = cmpMin.compareTo(curr.key);
 				if(res == 0) {
@@ -608,6 +587,8 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 				pred = curr;
 				curr = (Node<K, V>) pred.next[layer];
 				curr.acquire(self);
+				locked[l] = curr;
+				l++;
 	
 			}
 			preds[layer] = pred;
@@ -615,6 +596,8 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			if(layer != 0){
 				//pred = pred.down;
 				pred.acquire(self);
+				locked[l] = pred;
+				l++;
 			}
 		}
 		
@@ -626,24 +609,13 @@ public class TwoPLSkiplist<K,V> implements CompositionalMap<K, V> {
 			pred = curr; 
 			curr = (Node<K, V>) curr.next[0]; 
 			curr.acquire(self);	
+			locked[l] = curr;
+			l++;
 		}
 		
-		for(int i= maxLevel; i > 0 ; i--){
-			pred = (Node<K,V>)firsts[i];
-			while (!pred.equals((Node<K,V>)preds[i])){
-				pred.release();
-				pred = (Node<K, V>) pred.next[i];
-			}
-			((Node<K,V>)preds[i]).release();
-			((Node<K,V>)succs[i]).release();
+		for(int i=0;i<l;i++){
+			release(locked[i]);
 		}
-		
-		pred = (Node<K,V>)firsts[0];
-		while (!pred.equals(curr)){
-			pred.release();
-			pred = (Node<K, V>) pred.next[0];
-		}
-		curr.release();
 		return rangeCount;
 	}
 }
