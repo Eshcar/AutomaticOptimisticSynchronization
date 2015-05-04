@@ -37,6 +37,23 @@ public class LockSet{
 	
 	public void add(SpinHeapReentrant node){
 		assert(node!=null);
+		
+		//Optimization: try to use the beginning of the array as much as possible
+		//Look at the first two slots
+		if(nextSlot > 1){	
+			if(lockSetObjects[0] == null){
+				lockSetObjects[0] = node;
+				count++;
+				return;
+			}
+			if(lockSetObjects[1] == null){
+				lockSetObjects[1] = node;
+				count++;
+				return;
+			}
+		}
+		
+		
 		//try to just add to the end of the array
 		if(nextSlot < actualSize){
 			lockSetObjects[nextSlot] = node;
@@ -84,7 +101,7 @@ public class LockSet{
 			}
 		}
 		//not found in the array, check hash
-		assert(lockSet.containsKey(node));
+		//assert(lockSet.containsKey(node));
 		int count = lockSet.get(node);
 		if (count >1){
 			count = count -1; 
