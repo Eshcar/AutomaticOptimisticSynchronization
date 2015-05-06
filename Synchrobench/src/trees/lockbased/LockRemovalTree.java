@@ -184,6 +184,21 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
         return true;
     }
 	
+
+	
+	private Node<K,V> readRef(Node<K,V> newNode, ReadSet<K,V> readSet, Error err) {
+		//use for assign 
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			readSet.add(newNode, version);
+		}
+		return newNode;
+	}
+	
 	private Node<K,V> readRef(Node<K,V> newNode, Node<K,V> oldNode ,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
 		//use for assign 
 		if(newNode!=null){
@@ -359,7 +374,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		int retryCount = 0;
 		while(true){
 			err.clean();
-			value = getImpl(k, threadLocals.self, threadLocals.readSet, threadLocals.lockSet, err);
+			value = getImpl(k, threadLocals.self, threadLocals.readSet, err);
 			if(!err.isSet()) break;
 			retryCount ++;
 			if(retryCount > LIMIT){
@@ -369,22 +384,21 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		return value; 
 	}
 
-	private V getImpl(Comparable<K> k, final Thread self, ReadSet<K,V> readSet, LockSet lockSet, Error err) {
+	private V getImpl(Comparable<K> k, final Thread self, ReadSet<K,V> readSet, Error err) {
 		readSet.clear(); 
-		lockSet.clear();
+		//lockSet.clear();
 		try{
 			long count = 0; 
-			
-			Node<K, V> curr = readRef(this.root,readSet, lockSet ,err);
+			Node<K, V> curr = readRef(this.root,readSet, err);
 			if(err.isSet()) return null;
 			while(curr!=null){
 				int res = k.compareTo(curr.key);
 				if(res == 0) break; 
 				if(res > 0){ //key > x.key
-					curr=readRef(curr.right,curr, readSet, lockSet, err);
+					curr=readRef(curr.right, readSet, err);
 					if(err.isSet()) return null;
 				}else{
-					curr=readRef(curr.left, curr, readSet, lockSet, err);
+					curr=readRef(curr.left, readSet, err);
 					if(err.isSet()) return null;
 				}
 				if(count++ == LIMIT){
@@ -396,7 +410,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 			}
 	
 			if(curr!=null){
-				lockSet.remove(curr);
+				//lockSet.remove(curr);
 				V value = curr.value;
 				if (!validateReadOnly(readSet, self)) err.set();
 				return value;

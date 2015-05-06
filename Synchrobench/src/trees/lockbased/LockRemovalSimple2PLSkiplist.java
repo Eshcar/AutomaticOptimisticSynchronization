@@ -173,6 +173,20 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 		}
 	}
 	
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,Error err) {
+		//use for acquire
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			//lockSet.add(newNode);
+			readSet.add(newNode, version);
+		}
+		return newNode;
+	}
+	
 	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
 		//use for acquire
 		if(newNode!=null){
@@ -239,9 +253,9 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 	@SuppressWarnings("unchecked")
 	private V getImp(Comparable<? super K> cmp, K key, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		//LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
-		lockSet.clear();
+		//lockSet.clear();
 		try{
 			long count = 0;
 			
@@ -251,13 +265,13 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 			int l =0; 
 			
 			V value = null;
-			Node<K,V> pred = readRef(root,readSet,lockSet,err);
+			Node<K,V> pred = readRef(root,readSet,err);
 			if(err.isSet()) return null;
 			locked[l] = pred;
 			l++;
 			
 			for(int layer = maxLevel ; layer> -1 ; layer-- ){
-				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,lockSet,err);
+				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
 				if(err.isSet()) return null;
 				locked[l] = curr;
 				l++;
@@ -266,7 +280,7 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 					if(res == 0) {
 						value = curr.value;
 						for(int j=0;j<l;j++){
-							lockSet.remove(locked[j]);
+							//lockSet.remove(locked[j]);
 						}
 						if (!validateReadOnly(readSet, self)) err.set();
 						return value;
@@ -276,7 +290,7 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 					}
 					//pred.release();
 					pred = curr;
-					curr = readRef((Node<K, V>) pred.next[layer], readSet,lockSet, err);
+					curr = readRef((Node<K, V>) pred.next[layer], readSet, err);
 					if(err.isSet()) return null;
 					locked[l] = curr;
 					l++;
@@ -291,14 +305,14 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 				preds[layer] = pred;
 				succs[layer] = curr;		
 				if(layer != 0){
-					pred = readRef(pred,readSet,lockSet,err);
+					pred = readRef(pred,readSet,err);
 					if(err.isSet()) return null;
 					locked[l] = pred;
 					l++;
 				}
 			}
 			for(int j=0;j<l;j++){
-				lockSet.remove(locked[j]);
+				//lockSet.remove(locked[j]);
 			}
 			if (!validateReadOnly(readSet, self)) err.set();
 			return value;
@@ -1089,9 +1103,9 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 	private int rangeImpl(K[] result, Comparable<? super K> cmpMin,
 		Comparable<? super K> cmpMax, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		//LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
-		lockSet.clear(); 
+		//lockSet.clear(); 
 		try{
 			long count = 0;
 			int rangeCount = 0; 
@@ -1101,12 +1115,12 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 			SpinHeapReentrant[] locked = threadLocked.get();
 			int l =0;
 			
-			Node<K,V> pred = readRef(root,readSet,lockSet,err); 
+			Node<K,V> pred = readRef(root,readSet,err); 
 			if(err.isSet()) return -1;
 			locked[l] = pred;
 			l++;
 			for(int layer = maxLevel ; layer> -1 ; layer-- ){
-				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,lockSet,err);
+				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
 				if(err.isSet()) return -1;	
 				locked[l] = curr;
 				l++;
@@ -1123,7 +1137,7 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 					}			
 					//pred.release();
 					pred = curr;
-					curr = readRef((Node<K, V>) pred.next[layer],readSet,lockSet,err);
+					curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
 					if(err.isSet()) return -1;
 					locked[l] = curr;
 					l++;
@@ -1139,7 +1153,7 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 				succs[layer] = curr;
 				if(layer != 0){
 					//pred = pred.down;
-					pred = readRef(pred,readSet,lockSet,err);
+					pred = readRef(pred,readSet,err);
 					if(err.isSet()) return -1;
 					locked[l] = pred;
 					l++;
@@ -1152,14 +1166,14 @@ public class LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMap<K, V>
 				result[rangeCount] = curr.key;
 				rangeCount++;
 				pred = curr; 
-				curr = readRef((Node<K, V>) curr.next[0],readSet,lockSet,err);
+				curr = readRef((Node<K, V>) curr.next[0],readSet,err);
 				if(err.isSet()) return -1;
 				locked[l] = curr;
 				l++;
 			}
 			
 			for(int i=0;i<l;i++){
-				lockSet.remove(locked[i]);
+				//lockSet.remove(locked[i]);
 			}
 			if (!validateReadOnly(readSet, self)) err.set();
 			return rangeCount;

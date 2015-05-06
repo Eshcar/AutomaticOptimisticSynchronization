@@ -161,6 +161,20 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
         return true;
     }
 	
+	private TreapNode<K,V> readRef(TreapNode<K,V> newNode,ReadSet<K,V> readSet, Error err) {
+		//use for acquire
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			//lockSet.add(newNode);
+			readSet.add(newNode, version);
+		}
+		return newNode;
+	}
+	
 	private TreapNode<K,V> readRef(TreapNode<K,V> newNode, TreapNode<K,V> oldNode ,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
 		//use for assign 
 		if(newNode!=null){
@@ -258,18 +272,18 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	
 	private V getImpl(final Comparable<K> key, final Thread self, Error err){
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		//LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
-		lockSet.clear();
+		//lockSet.clear();
 		try{			
 			long count = 0;
 			
 	        TreapNode<K,V> parent;
 	        TreapNode<K,V> node;
 	  
-	        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,lockSet,err);
+	        parent = (TreapNode<K, V>) readRef(this.rootHolder,readSet,err);
 	        if(err.isSet()) return null;
-	        node = (TreapNode<K, V>) readRef(parent.right,readSet,lockSet, err);
+	        node = (TreapNode<K, V>) readRef(parent.right,readSet,err);
 	    	if(err.isSet()) return null;
 	        
 	    	while (node != null) {
@@ -277,14 +291,14 @@ public class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	            if (c == 0) {
 	                break;
 	            }
-	            parent = readRef(node,parent,readSet,lockSet,err);
+	            parent = readRef(node,readSet,err);
 	            if(err.isSet()) return null;
 	            if (c < 0) {
-	                node = (TreapNode<K, V>) readRef(node.left,node,readSet,lockSet,err);
+	                node = (TreapNode<K, V>) readRef(node.left,readSet,err);
 	                if(err.isSet()) return null;
 	            }
 	            else {
-	                node = (TreapNode<K, V>) readRef(node.right,node,readSet,lockSet,err);
+	                node = (TreapNode<K, V>) readRef(node.right,readSet,err);
 	                if(err.isSet()) return null;
 	            }
 	            if(count++ == LIMIT){
