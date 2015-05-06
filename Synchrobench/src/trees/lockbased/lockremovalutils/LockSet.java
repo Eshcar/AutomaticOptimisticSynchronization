@@ -3,7 +3,7 @@ package trees.lockbased.lockremovalutils;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-public class LockSet{
+public final class LockSet{
 	
 	private final static int LOCK_SET_SIZE = 256; 
 	private final int actualSize;

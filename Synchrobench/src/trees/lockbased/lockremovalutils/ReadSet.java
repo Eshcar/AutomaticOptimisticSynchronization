@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 
 
 
-public class ReadSet<K,V>{
+public final class ReadSet<K,V>{
 	
 	private final static int READ_SET_SIZE = 256; 
 	private final int actualSize;

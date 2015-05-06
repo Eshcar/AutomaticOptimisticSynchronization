@@ -14,7 +14,7 @@ import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 import contention.benchmark.Parameters;
 
-public class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, V> {
+public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, V> {
 	
 	private final Comparator<? super K> comparator;
 	private final int maxKey;
@@ -42,7 +42,7 @@ public class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	/*Node*/
-	private static class Node<K, V>  extends SpinHeapReentrant{		
+	private static final class Node<K, V>  extends SpinHeapReentrant{		
 		private static final long serialVersionUID = 1L;
 		
 		public Node(K key, V value, int height) {

@@ -12,7 +12,7 @@ import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 
-public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
+public final class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	private final long LIMIT = 2000; 
 	
 	private final Comparator<K> comparator;
@@ -40,7 +40,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
     }
     
     /*Node*/
-    private static class Node<K, V> extends SpinHeapReentrant {
+    private final static class Node<K, V> extends SpinHeapReentrant {
     	/**
     	 * Default 
     	 */
@@ -79,7 +79,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
     
     
     /*Thread Locals*/
-    private static class TreadLocals<K,V>{
+    private final static class TreadLocals<K,V>{
     	final Thread self;
     	final ReadSet<K,V> readSet;
     	final LockSet lockSet;
