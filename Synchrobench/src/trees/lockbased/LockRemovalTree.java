@@ -77,7 +77,31 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
         }
     }
     
+    
     /*Thread Locals*/
+    private static class TreadLocals<K,V>{
+    	final Thread self;
+    	final ReadSet<K,V> readSet;
+    	final LockSet lockSet;
+    	final Error error; 
+    	
+    	public TreadLocals(){
+    		self = Thread.currentThread();
+    		readSet =  new ReadSet<K,V>(); 
+    		lockSet = new LockSet(8); 
+    		error = new Error();
+    	}
+    }
+    
+    private final ThreadLocal<TreadLocals<K,V>> locals = new ThreadLocal<TreadLocals<K,V>>(){
+        @Override
+        protected TreadLocals<K,V> initialValue()
+        {
+            return new TreadLocals<K,V>();
+        }
+    };
+    
+    /*
     private final ThreadLocal<Thread> self = new ThreadLocal<Thread>(){
         @Override
         protected Thread initialValue()
@@ -108,6 +132,7 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
             return new LockSet(8); 
         }
     };
+    */
     
     @SuppressWarnings("unchecked")
 	private Comparable<K> comparable(final Object object) {
@@ -324,27 +349,27 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 		//return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public V get(Object key) {
 		final Comparable<K> k = comparable(key);
 		V value; 
-		Error err = threadError.get();
+		TreadLocals<K, V> threadLocals = locals.get();
+		Error err = threadLocals.error;
 		int retryCount = 0;
 		while(true){
 			err.clean();
-			value = getImpl(k, self.get(), err);
+			value = getImpl(k, threadLocals.self, threadLocals.readSet, threadLocals.lockSet, err);
 			if(!err.isSet()) break;
 			retryCount ++;
 			if(retryCount > LIMIT){
-				return getDomImpl((K) key,self.get());
+				return getDomImpl((K)key,threadLocals.self);
 			}
 		}
 		return value; 
 	}
 
-	private V getImpl(Comparable<K> k, final Thread self, Error err) {
-		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+	private V getImpl(Comparable<K> k, final Thread self, ReadSet<K,V> readSet, LockSet lockSet, Error err) {
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -433,23 +458,22 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	public V put(K key, V val) {
 		final Comparable<K> k = comparable(key);
 		V value; 
-		Error err = threadError.get();
+		TreadLocals<K, V> threadLocals = locals.get();
+		Error err = threadLocals.error;
 		int retryCount = 0;
 		while(true){
 			err.clean();
-			value = putImpl(key, k, val, self.get(), err);
+			value = putImpl(key, k, val, threadLocals.self, threadLocals.readSet, threadLocals.lockSet , err);
 			if(!err.isSet()) break; 
 			retryCount ++;
 			if(retryCount > LIMIT){
-				return putDomImpl(key, val, self.get());
+				return putDomImpl(key, val, threadLocals.self);
 			}
 		}
 		return value;  
 	}
 	
-	private V putImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
-		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+	private V putImpl(K key, final Comparable<K> k , V val , final Thread self, ReadSet<K,V> readSet,LockSet lockSet, Error err) {		
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -580,23 +604,22 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	public V remove(Object key) {
 		final Comparable<K> k = comparable(key);
 		V value; 
-		Error err = threadError.get();
+		TreadLocals<K, V> threadLocals = locals.get();
+		Error err = threadLocals.error;
 		int retryCount = 0; 
 		while(true){
 			err.clean();
-			value = removeImpl(k, self.get(), err);
+			value = removeImpl(k, threadLocals.self,threadLocals.readSet,threadLocals.lockSet, err);
 			if(!err.isSet()) break;
 			retryCount ++;
 			if(retryCount > LIMIT){
-				return removeDomImpl(key, self.get());
+				return removeDomImpl(key, threadLocals.self);
 			}
 		}
 		return value;  
 	}
 
-	private V removeImpl(Comparable<K> k, final Thread self, Error err){
-		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+	private V removeImpl(Comparable<K> k, final Thread self, ReadSet<K,V> readSet,LockSet lockSet,  Error err){
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -874,23 +897,22 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	public V putIfAbsent(K key, V val) {
 		final Comparable<K> k = comparable(key);
 		V value; 
-		Error err = threadError.get();
+		TreadLocals<K, V> threadLocals = locals.get();
+		Error err = threadLocals.error;
 		int retryCount = 0; 
 		while(true){
 			err.clean();
-			value = putIfAbsentImpl(key, k, val, self.get(), err);
+			value = putIfAbsentImpl(key, k, val, threadLocals.self, threadLocals.readSet,threadLocals.lockSet, err);
 			if(!err.isSet()) break;
 			retryCount ++;
 			if(retryCount > LIMIT){
-				return putIfAbsentDomImpl(key,val, self.get());
+				return putIfAbsentDomImpl(key,val, threadLocals.self);
 			}
 		}
 		return value; 
 	}
 
-	private V putIfAbsentImpl(K key, final Comparable<K> k , V val , final Thread self, Error err) {		
-		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+	private V putIfAbsentImpl(K key, final Comparable<K> k , V val , final Thread self, ReadSet<K,V> readSet, LockSet lockSet, Error err) {		
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -1011,9 +1033,8 @@ public class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 	
 	@Override
 	public void clear() {
-		acquire(root,self.get()); 
-		root.setChild(Node.Direction.LEFT,null,self.get());
-		release(root);
+		//NOT LINEARIZABLE
+		root.left =null;
 	}
 
 	@Override
