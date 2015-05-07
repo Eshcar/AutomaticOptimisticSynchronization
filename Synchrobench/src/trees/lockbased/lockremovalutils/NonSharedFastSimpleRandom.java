@@ -1,6 +1,6 @@
 package trees.lockbased.lockremovalutils;
 
-public class NonSharedFastSimpleRandom {
+public final class NonSharedFastSimpleRandom {
 	private long state;
     
     public NonSharedFastSimpleRandom(long l){

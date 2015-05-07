@@ -1,6 +1,6 @@
 package trees.lockbased.lockremovalutils;
 
-public class Error {
+public final class Error {
 	boolean error = false; 
 	public void set(){
 		error = true; 

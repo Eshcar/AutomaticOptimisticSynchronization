@@ -1,0 +1,18 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Generic Lock Removal}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Towards Fully Automatic Parallelization}{section.1}% 3
+\BOOKMARK [2][-]{subsection.1.3}{Evaluation}{section.1}% 4
+\BOOKMARK [1][-]{section.2}{Transformation}{}% 5
+\BOOKMARK [2][-]{subsection.2.1}{Lock-based Data Structures}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.2}{Combining Optimism and Pessimism}{section.2}% 7
+\BOOKMARK [2][-]{subsection.2.3}{Transforming the Code Phases}{section.2}% 8
+\BOOKMARK [3][-]{subsubsection.2.3.1}{Normal Flow}{subsection.2.3}% 9
+\BOOKMARK [3][-]{subsubsection.2.3.2}{Exceptions from Regular Flow}{subsection.2.3}% 10
+\BOOKMARK [1][-]{section.3}{Analysis}{}% 11
+\BOOKMARK [1][-]{section.4}{Evaluation}{}% 12
+\BOOKMARK [2][-]{subsection.4.1}{Insert-Delete-Get Operations}{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.2}{Range Queries}{section.4}% 14
+\BOOKMARK [1][-]{section.5}{Related Work}{}% 15
+\BOOKMARK [1][-]{section.6}{Discussion}{}% 16
+\BOOKMARK [1][-]{section.7}{References}{}% 17
+\BOOKMARK [1][-]{appendix.A}{Formal Correctness Proof}{}% 18

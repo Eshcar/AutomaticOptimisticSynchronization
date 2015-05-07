@@ -14,7 +14,7 @@ import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
 import contention.benchmark.Parameters;
 
-public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
+public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	
 	private final Comparator<? super K> comparator;
 	private final int maxKey;
@@ -42,7 +42,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	}
 	
 	/*Node*/
-	private static class Node<K, V>  extends SpinHeapReentrant{		
+	private static final class Node<K, V>  extends SpinHeapReentrant{		
 		private static final long serialVersionUID = 1L;
 		
 		public Node(K key, V value, int height) {
@@ -204,6 +204,20 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		return newNode;
 	}*/
 	
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet, Error err) {
+		//use for acquire
+		if(newNode!=null){
+			int version = newNode.getVersion();
+			if(newNode.isLocked()){
+				err.set();
+				return null;
+			}
+			//lockSet.add(newNode);
+			readSet.add(newNode, version);
+		}
+		return newNode;
+	}
+	
 	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
 		//use for acquire
 		if(newNode!=null){
@@ -327,9 +341,9 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	@SuppressWarnings("unchecked")
 	private V getImp(Comparable<? super K> cmp, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		//LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
-		lockSet.clear();
+		//lockSet.clear();
 		
 		try{
 			long count = 0; 
@@ -337,11 +351,11 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			Object[] preds = threadPreds.get();
 			Object[] succs = threadSuccs.get();
 			V value = null;
-			Node<K,V> pred = readRef(root,readSet,lockSet,err);
+			Node<K,V> pred = readRef(root,readSet,err);
 			if(err.isSet()) return null;
 			
 			for(int layer = maxLevel ; layer> -1 ; layer-- ){
-				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,lockSet,err);
+				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
 				if(err.isSet()) return null;
 				
 				while (true) {
@@ -349,20 +363,20 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 					if(res == 0) {
 						value = curr.value;
 						for(int i= maxLevel; i > layer; i--){
-							lockSet.remove(((Node<K,V>)preds[i]));
-							lockSet.remove(((Node<K,V>)succs[i]));
+							//lockSet.remove(((Node<K,V>)preds[i]));
+							//lockSet.remove(((Node<K,V>)succs[i]));
 						}
-						lockSet.remove(pred);
-						lockSet.remove(curr);
+						//lockSet.remove(pred);
+						//lockSet.remove(curr);
 						if (!validateReadOnly(readSet, self)) err.set();
 						return value;
 					}
 					if(res < 0){ //key < curr.key
 						break;
 					}
-					lockSet.remove(pred);
+					//lockSet.remove(pred);
 					pred = curr;
-					curr = readRef((Node<K, V>) pred.next[layer], readSet,lockSet, err);
+					curr = readRef((Node<K, V>) pred.next[layer], readSet, err);
 					if(err.isSet()) return null;
 					
 					if(count++ == LIMIT){
@@ -375,14 +389,14 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 				preds[layer] = pred;
 				succs[layer] = curr;		
 				if(layer != 0){
-					pred = readRef(pred,readSet,lockSet,err);
+					pred = readRef(pred,readSet,err);
 					if(err.isSet()) return null;
 					
 				}
 			}
 			for(int i= maxLevel; i > -1; i--){
-				lockSet.remove(((Node<K,V>)preds[i]));
-				lockSet.remove(((Node<K,V>)succs[i]));
+				//lockSet.remove(((Node<K,V>)preds[i]));
+				//lockSet.remove(((Node<K,V>)succs[i]));
 			}			
 			if (!validateReadOnly(readSet, self)) err.set();
 			return value;
@@ -1192,20 +1206,20 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	private int optRangeImpl(K[] result, Comparable<? super K> cmpMin,
 			Comparable<? super K> cmpMax, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		//LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
-		lockSet.clear(); 
+		//lockSet.clear(); 
 		try{
 			long count = 0; 
 			Object[] preds = threadPreds.get();
 			Object[] succs = threadSuccs.get();
 			int layerFound = -1; 
 			
-			Node<K,V> pred = readRef(root,readSet,lockSet,err); 
+			Node<K,V> pred = readRef(root,readSet,err); 
 			if(err.isSet()) return -1;
 			
 			for(int layer = maxLevel ; layer > -1 ; layer-- ){
-				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,lockSet,err);
+				Node<K,V> curr = readRef((Node<K, V>)pred.next[layer],readSet,err);
 				if(err.isSet()) return -1;			
 				while (true) {
 					int res = cmpMin.compareTo(curr.key);
@@ -1218,9 +1232,9 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 					if(res < 0){ //key < x.key
 						break;
 					}		
-					lockSet.remove(pred);
+					//lockSet.remove(pred);
 					pred = curr;
-					curr = readRef((Node<K, V>) pred.next[layer],readSet,lockSet,err);
+					curr = readRef((Node<K, V>) pred.next[layer],readSet,err);
 					if(err.isSet()) return -1;
 					
 					if(count++ == LIMIT){
@@ -1233,7 +1247,7 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 				preds[layer] = pred;
 				succs[layer] = curr;
 				if(layer != 0){
-					pred = readRef(pred,readSet,lockSet,err);
+					pred = readRef(pred,readSet,err);
 					if(err.isSet()) return -1;
 				}
 				
@@ -1260,33 +1274,33 @@ public class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 			for(int i = maxLevel ; i > lockLayer ; i--){
 				Node<K,V> curr = (Node<K,V>)succs[i];
 				pred = ((Node<K,V>) preds[i]);
-				lockSet.remove(pred);
-				lockSet.remove(curr);
+				//lockSet.remove(pred);
+				//lockSet.remove(curr);
 			}
 			
 			
-			pred = readRef((Node<K, V>) preds[0],readSet,lockSet,err);
+			pred = readRef((Node<K, V>) preds[0],readSet,err);
 			if(err.isSet()) return -1;
-			Node<K, V> curr = readRef((Node<K, V>) succs[0],readSet,lockSet,err); 
+			Node<K, V> curr = readRef((Node<K, V>) succs[0],readSet,err); 
 			if(err.isSet()) return -1;
 			
 			int rangeCount = 0;
 			while(cmpMax.compareTo(curr.key) >= 0){		
 				result[rangeCount] = curr.key;
 				rangeCount++;
-				lockSet.remove(pred);
+				//lockSet.remove(pred);
 				pred = curr; 
-				curr = readRef((Node<K, V>) curr.next[0],readSet,lockSet,err); 
+				curr = readRef((Node<K, V>) curr.next[0],readSet,err); 
 				if(err.isSet()) return -1;
 			}
-			lockSet.remove(curr);
-			lockSet.remove(pred);
+			//lockSet.remove(curr);
+			//lockSet.remove(pred);
 			
 			for(int i = lockLayer ; i > -1 ; i--){
 				curr = (Node<K,V>)succs[i];
 				pred = ((Node<K,V>) preds[i]);
-				lockSet.remove(pred);
-				lockSet.remove(curr);
+				//lockSet.remove(pred);
+				//lockSet.remove(curr);
 			}
 		
 			if (!validateReadOnly(readSet, self)) err.set();

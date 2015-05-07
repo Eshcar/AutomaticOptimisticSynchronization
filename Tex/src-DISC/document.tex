@@ -1,0 +1,115 @@
+%
+\documentclass{sig-alternate}
+
+%
+% the following standard packages may be helpful, but are not required
+%
+
+%\usepackage{SIunits}            % typset units correctly
+%\usepackage{courier}            % standard fixed width font
+%\usepackage[scaled]{helvet} % see www.ctan.org/get/macros/latex/required/psnfss/psnfss2e.pdf
+\usepackage{url}                  % format URLs
+%\usepackage{listings}          % format code
+%\usepackage{enumitem}      % adjust spacing in enums
+\usepackage[colorlinks=true,allcolors=blue,breaklinks,draft=false]{hyperref}   % hyperlinks, including DOIs and URLs in bibliography
+
+\usepackage{amsmath}
+
+\usepackage{xspace}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\input{plotsStyle}
+
+\input{macros}
+
+% Add page numbers, remove copyright box.  For submitted version only.
+\pagenumbering{arabic}
+\makeatletter
+\def\@copyrightspace{\relax}
+\makeatother
+
+\begin{document}
+
+%\special{papersize=8.5in,11in}
+%\setlength{\pdfpageheight}{\paperheight}
+%\setlength{\pdfpagewidth}{\paperwidth}
+
+%\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country}
+%\copyrightyear{20yy}
+%\copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
+%\doi{nnnnnnn.nnnnnnn}
+
+\title{Towards Automatic Lock Removal\\ for Scalable Synchronization}
+\author{
+Maya Arbel\footnotemark[1] \footnotemark[2] \hspace{0.3in} 
+Guy Golan Gueta\footnotemark[1]  \hspace{0.3in}
+Eshcar Hillel\footnotemark[1]  \hspace{0.3in}
+Idit Keidar\footnotemark[1] \footnotemark[2]\\
+\\
+\large{
+\footnotemark[1]Yahoo Labs, Haifa, Israel \hspace{0.3in} 
+\footnotemark[2]The Technion, Haifa, Israel
+}
+}
+
+
+\maketitle
+
+\begin{abstract}
+We present a \emph{code transformation} for concurrent data structures,
+which increases their scalability without sacrificing correctness.
+Our transformation takes lock-based code, and replaces some of the
+locking steps therein with optimistic synchronization, in order to reduce contention. The main idea is to
+have each operation perform an optimistic traversal of the data structure
+as long as no shared memory locations are updated, and then proceed with
+pessimistic code. The transformed code inherits essential
+properties of the original one, including linearizability, serializability,
+and deadlock freedom.
+%It reduces contention, both on locks and on access to shared memory locations.
+%When applying our transformation to
+%hand-over-hand locking solutions, we obtain significantly superior scalability.
+
+Our work complements existing pessimistic transformations that make
+sequential code thread-safe by adding locks.
+In essence, we provide a way to optimize such transformations by reducing
+synchronization bottlenecks (for example, locking the root of a tree).
+The resulting code scales well and significantly outperforms
+pessimistic approaches. We further compare our synthesized code to state-of-the-art
+data structures implemented by experts.
+We find that its performance is comparable %, and sometimes even superior,
+to that achieved by the custom-tailored implementations.
+Our work thus shows the promise that automated approaches
+bear for overcoming the difficulty involved in manually
+hand-crafting concurrent data structures.
+
+\end{abstract}
+
+
+\input{introduction}
+%\input{preliminariesB}
+\input{algorithmB}
+\input{proof2}
+\input{evaluation2}
+\input{related}
+\input{discussion}
+%\section{Appendix Title}
+
+%This is the text of the appendix, if you need one.
+
+%\acks
+
+\bibliography{myRef}
+\bibliographystyle{abbrv}
+%
+
+\appendix
+\input{proof-appendix}
+\input{results-appendix}
+
+
+\end{document}
