@@ -1,0 +1,51 @@
+
+\begin{tikzpicture}
+\begin{axis}[mystyle,balanced,
+ ylabel = { million ops/sec},
+ title={\textbf{write-dominated}}]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutTreap}]
+{results/0C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={DanaAVL}]
+{results/0C2000K.txt}; 
+\addplot [darkspringgreen,mark=triangle] table [x={threads}, y={Bronson}]
+{results/0C2000K.txt}; 
+\addplot [coralred,mark=asterisk] table [x={threads}, y={JavaSkipList}]
+{results/0C2000K.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTreap}]
+{results/0C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,balanced,title={\textbf{mixed workload}}]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutTreap}]
+{results/50C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={DanaAVL}]
+{results/50C2000K.txt}; 
+\addplot [darkspringgreen,mark=triangle] table [x={threads}, y={Bronson}]
+{results/50C2000K.txt}; 
+\addplot [coralred,mark=asterisk] table [x={threads}, y={JavaSkipList}]
+{results/50C2000K.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTreap}]
+{results/50C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,balanced, 
+				 title={\textbf{read-only}},]
+\addplot [black,mark=square*] table [x={threads}, y={TimeoutTreap}]
+{results/100C2000K.txt}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={DanaAVL}]
+{results/100C2000K.txt}; 
+\addplot [darkspringgreen,mark=triangle] table [x={threads}, y={Bronson}]
+{results/100C2000K.txt}; 
+\addplot [coralred,mark=asterisk] table [x={threads}, y={JavaSkipList}]
+{results/100C2000K.txt};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTreap}]
+{results/100C2000K.txt};
+\end{axis}
+\end{tikzpicture}
+
+
+\ref{balancedLegened}
+
+
