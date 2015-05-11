@@ -120,26 +120,30 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
         	if (Parameters.maxRangeSize == 2000){
         		return new ReadSet<K,V>(2256); 
         	}
-            return new ReadSet<K,V>(); 
+            return new ReadSet<K,V>(1000); 
         }
     };
     
+    /*
     private final ThreadLocal<HashLockSet> threadLockSet = new ThreadLocal<HashLockSet>(){
         @Override
         protected HashLockSet initialValue()
         {
             return new HashLockSet(32); 
         }
-    };
+    }; */
     
-    /*
+    
     private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
         @Override
         protected LockSet initialValue()
         {
-            return new LockSet(maxHeight*10 + Parameters.maxRangeSize); 
+        	if (Parameters.maxRangeSize == 2000){
+        		return new LockSet(2256); 
+        	}
+            return new LockSet(1000); 
         }
-    };*/
+    };
     
     private final ThreadLocal<Object[]> threadPreds = new ThreadLocal<Object[]>();
 	private final ThreadLocal<Object[]> threadSuccs = new ThreadLocal<Object[]>();
@@ -197,7 +201,7 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
 		return newNode;
 	}
 	
-	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,HashLockSet lockSet, Error err) {
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
 		//use for acquire
 		if(newNode!=null){
 			int version = newNode.getVersion();
@@ -430,7 +434,7 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
 	@SuppressWarnings("unchecked")
 	private V putImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -703,7 +707,7 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
 	@SuppressWarnings("unchecked")
 	private V removeImpl(Comparable<? super K> cmp, K key, Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -898,7 +902,7 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
 	private V putIfAbsentImpl(Comparable<? super K> cmp, K key, V value,
 			Thread self, Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{

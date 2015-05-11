@@ -128,15 +128,16 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
         }
     };
     
+    /*
     private final ThreadLocal<HashLockSet> threadLockSet = new ThreadLocal<HashLockSet>(){
         @Override
         protected HashLockSet initialValue()
         {
             return new HashLockSet(32); 
         }
-    };
+    };*/
     
-    /*
+    
     private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
         @Override
         protected LockSet initialValue()
@@ -144,9 +145,9 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
         	if (Parameters.maxRangeSize == 2000){
         		return new LockSet(2256); 
         	}
-            return new LockSet(); 
+            return new LockSet(1000); 
         }
-    };*/
+    };
 
     //private final ThreadLocal<Object[]> rangeSet = new ThreadLocal<Object[]>();
     //private final ThreadLocal<ReadSet<K,V>> threadLargeReadSet = new ThreadLocal<ReadSet<K,V>>();
@@ -212,7 +213,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
 		return newNode;
 	}
 	
-	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,HashLockSet lockSet, Error err) {		
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {		
 		if(newNode!=null){
 			int version = newNode.getVersion();
 			if(newNode.isLocked()){
@@ -518,7 +519,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
 	private V putImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear();
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		lockSet.clear();
 		
 		try{
@@ -816,7 +817,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
 	private V removeImpl(Comparable<? super K> cmp, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		lockSet.clear();
 		try{
 			long count = 0; 
@@ -1006,7 +1007,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
 	private V putIfAbsentImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
 		readSet.clear(); 
-		HashLockSet lockSet = threadLockSet.get();
+		LockSet lockSet = threadLockSet.get();
 		lockSet.clear();
 		try{
 			long count = 0; 
