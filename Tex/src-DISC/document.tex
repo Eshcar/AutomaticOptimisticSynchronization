@@ -1,20 +1,7 @@
-%
-\documentclass{sig-alternate}
-
-%
-% the following standard packages may be helpful, but are not required
-%
-
-%\usepackage{SIunits}            % typset units correctly
-%\usepackage{courier}            % standard fixed width font
-%\usepackage[scaled]{helvet} % see www.ctan.org/get/macros/latex/required/psnfss/psnfss2e.pdf
+\documentclass[11pt]{article}
 \usepackage{url}                  % format URLs
-%\usepackage{listings}          % format code
-%\usepackage{enumitem}      % adjust spacing in enums
 \usepackage[colorlinks=true,allcolors=blue,breaklinks,draft=false]{hyperref}   % hyperlinks, including DOIs and URLs in bibliography
-
 \usepackage{amsmath}
-
 \usepackage{xspace}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
@@ -24,25 +11,19 @@
 \usepackage{pgfplots}
 
 \input{plotsStyle}
-
 \input{macros}
+\usepackage{fullpage}
 
-% Add page numbers, remove copyright box.  For submitted version only.
-\pagenumbering{arabic}
-\makeatletter
-\def\@copyrightspace{\relax}
-\makeatother
+\def\denseformat{
+\setlength{\textheight}{9.8in} \setlength{\textwidth}{6.8in}
+\setlength{\oddsidemargin}{-0.3in} \setlength{\headsep}{0pt}
+\setlength{\topmargin}{-34pt} \setlength{\columnsep}{0.375in}
+}
+\denseformat
 
 \begin{document}
 
-%\special{papersize=8.5in,11in}
-%\setlength{\pdfpageheight}{\paperheight}
-%\setlength{\pdfpagewidth}{\paperwidth}
-
-%\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country}
-%\copyrightyear{20yy}
-%\copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
-%\doi{nnnnnnn.nnnnnnn}
+\begin{titlepage}
 
 \title{Towards Automatic Lock Removal\\ for Scalable Synchronization}
 \author{
@@ -56,7 +37,7 @@ Idit Keidar\footnotemark[1] \footnotemark[2]\\
 \footnotemark[2]The Technion, Haifa, Israel
 }
 }
-
+\date{}
 
 \maketitle
 
@@ -88,6 +69,18 @@ bear for overcoming the difficulty involved in manually
 hand-crafting concurrent data structures.
 
 \end{abstract}
+
+\bigskip\bigskip
+\noindent
+{\bf
+This is a submission to the regular track.\\
+It can be considered for the best student paper award:
+Maya Arbel is a full-time student.}
+
+\thispagestyle{empty}
+\end{titlepage}	
+
+
 
 
 \input{introduction}

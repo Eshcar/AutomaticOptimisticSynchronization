@@ -284,6 +284,9 @@ Similarly, it is  checked to be unlocked, and the operation restarts if it is lo
 
 
 \begin{figure}
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
 \codesize
 \begin{algorithmic}[1]{}
 		{\ttfamily
@@ -308,7 +311,31 @@ Similarly, it is  checked to be unlocked, and the operation restarts if it is lo
 tracking locks and read
 objects' versions.
 \label{figure::track}}
+\end{minipage}\hfill
+\begin{minipage}{0.47\textwidth}
+\centering
+\codesize
+\begin{algorithmic}[1]{}
+		{\ttfamily
+		\Function{validateReadSet}{}()
+		\ForAll {$\langle$obj,ver$\rangle$ in readSet}
+			\If{obj.isLockedByAnother()}
+			\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyUnlocked}
+			\State \Comment{\textrm{(locked object)}}
+			\EndIf
+			\If{obj.getVersion() != ver} 
+				\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyVersion}
+				\State \Comment{\textrm{(different version)}}
+			\EndIf
+		\EndFor
+		\State retrun true \Comment{\textrm{validation succeed}}
+		\EndFunction
+		}
+\end{algorithmic}
+\caption{Read set validation.\label{figure::validate}}
+\end{minipage}
 \end{figure}
+
 
 \paragraph{Validation Phase}
 The code of the validation phase is invoked between the read-only phase and the update phase.
@@ -350,29 +377,6 @@ In this phase our transformation preserves the original locking while maintainin
 Here, (i.e., in case  \textbf{opt} is false with dynamic phase transitions), 
 before each unlock instruction \emph{\ttfamily x.unlock()} we insert the code \emph{\ttfamily x.incVersion()} .
 An example is shown in lines \ref{code:beginUpdate}-\ref{code:endUpdate} of Figure~\ref{figure:transformation:after}.
-
-\begin{figure}
-\codesize
-\begin{algorithmic}[1]{}
-		{\ttfamily
-		\Function{validateReadSet}{}()
-		\ForAll {$\langle$obj,ver$\rangle$ in readSet}
-			\If{obj.isLockedByAnother()}
-			\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyUnlocked}
-			\State \Comment{\textrm{(locked object)}}
-			\EndIf
-			\If{obj.getVersion() != ver} 
-				\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyVersion}
-				\State \Comment{\textrm{(different version)}}
-			\EndIf
-		\EndFor
-		\State retrun true \Comment{\textrm{validation succeed}}
-		\EndFunction
-		}
-\end{algorithmic}
-\caption{Read set validation.\label{figure::validate}}
-\end{figure}
-
 
 
 \subsubsection{Exceptions from Regular Flow}
