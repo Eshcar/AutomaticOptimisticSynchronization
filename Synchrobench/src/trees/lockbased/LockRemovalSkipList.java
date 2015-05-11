@@ -8,7 +8,8 @@ import java.util.Random;
 import java.util.Set;
 
 import trees.lockbased.lockremovalutils.Error;
-import trees.lockbased.lockremovalutils.LockSet;
+import trees.lockbased.lockremovalutils.HashLockSet;
+//import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
@@ -127,14 +128,11 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
         }
     };
     
-    private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
+    private final ThreadLocal<HashLockSet> threadLockSet = new ThreadLocal<HashLockSet>(){
         @Override
-        protected LockSet initialValue()
+        protected HashLockSet initialValue()
         {
-        	if (Parameters.maxRangeSize == 2000){
-        		new LockSet(2256); 
-        	}
-            return new LockSet(maxHeight*5); 
+            return new HashLockSet(); 
         }
     };
 
@@ -218,7 +216,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 		return newNode;
 	}
 	
-	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,LockSet lockSet, Error err) {
+	private Node<K,V> readRef(Node<K,V> newNode,ReadSet<K,V> readSet,HashLockSet lockSet, Error err) {
 		//use for acquire
 		if(newNode!=null){
 			int version = newNode.getVersion();
@@ -494,7 +492,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	@SuppressWarnings("unchecked")
 	private V putImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		HashLockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -742,7 +740,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	@SuppressWarnings("unchecked")
 	private V removeImpl(Comparable<? super K> cmp, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		HashLockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{
@@ -916,7 +914,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
 	@SuppressWarnings("unchecked")
 	private V putIfAbsentImpl(final Comparable<? super K> cmp, final K key, final V value, Thread self,Error err) {
 		ReadSet<K,V> readSet = threadReadSet.get();
-		LockSet lockSet = threadLockSet.get();
+		HashLockSet lockSet = threadLockSet.get();
 		readSet.clear(); 
 		lockSet.clear();
 		try{
