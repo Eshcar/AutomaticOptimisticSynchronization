@@ -128,7 +128,7 @@ public final class  LockRemovalSimple2PLSkiplist<K,V> implements CompositionalMa
         @Override
         protected HashLockSet initialValue()
         {
-            return new HashLockSet(); 
+            return new HashLockSet(32); 
         }
     };
     

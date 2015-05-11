@@ -132,7 +132,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
         @Override
         protected HashLockSet initialValue()
         {
-            return new HashLockSet(); 
+            return new HashLockSet(32); 
         }
     };
     

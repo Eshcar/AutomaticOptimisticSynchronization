@@ -4,10 +4,18 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 public class HashLockSet {
-	private HashMap<SpinHeapReentrant,Integer> lockSet = new HashMap<SpinHeapReentrant,Integer>();
-	private HashMap<SpinHeapReentrant,Integer> successfullyLocked = new HashMap<SpinHeapReentrant,Integer>(); 
+	private HashMap<SpinHeapReentrant,Integer> lockSet;
+	private HashMap<SpinHeapReentrant,Integer> successfullyLocked;
 	
-	public HashLockSet(){}
+	public HashLockSet(){
+		lockSet = new HashMap<SpinHeapReentrant,Integer>();
+		successfullyLocked = new HashMap<SpinHeapReentrant,Integer>(); 
+	}
+	
+	public HashLockSet(int size){
+		lockSet = new HashMap<SpinHeapReentrant,Integer>(size);
+		successfullyLocked = new HashMap<SpinHeapReentrant,Integer>(size); 
+	}
 
 	
 	public void clear(){

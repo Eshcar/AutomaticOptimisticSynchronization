@@ -132,7 +132,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
         @Override
         protected HashLockSet initialValue()
         {
-            return new HashLockSet(); 
+            return new HashLockSet(32); 
         }
     };
 
