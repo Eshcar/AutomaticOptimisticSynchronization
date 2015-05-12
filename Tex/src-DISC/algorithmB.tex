@@ -411,8 +411,8 @@ If this number exceeds a certain threshold, we perform the entire operation opti
 Second, this property offers the optimistic implementation the liberty of
 failing spuriously, even in the absence of conflicts, because it can always fall back on the safe pessimistic version
 of the code.
-We take advantage of this liberty, and implement the \emph{readSet} using a constant size array.
+One can take advantage of this liberty, and implement the \emph{readSet} using a constant size array.
 %Our implementation takes advantage of this liberty, and uses constant size arrays for the \emph{lockedSet} and \emph{readSet}.
-In case the array becomes full, we cannot proceed with the optimistic version, but also
-do not need to start the operation anew.
-Instead, we immediately perform the validation phase, which, if successful, switches to a pessimistic modus operandi, after having acquired all the needed locks.
+In case the array becomes full,  the optimistic version cannot proceed, but there is no 
+need to start the operation anew.
+Instead, one can immediately perform the validation phase, which, if successful, switches to a pessimistic modus operandi, after having acquired all the needed locks.
