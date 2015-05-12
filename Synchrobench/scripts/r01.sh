@@ -7,6 +7,7 @@ agent=${dir}/lib/deuceAgent-1.3.0.jar
 bin=${dir}/bin
 java=java
 javaopt=-server
+#javaopt="-server -XX:+AggressiveOpts"
 
 ### javac options
 # -O (dead-code erasure, constants pre-computation...)
@@ -19,10 +20,10 @@ javaopt=-server
 ###
 
 thread="1 2 4 8 16 32"
-size="10000 1000000"
+size="1000000"
 writes="100 50 0"
 l="5000" 
-warmup="0"
+warmup="5"
 snapshot="0"
 writeall="0"
 iterations="5" 

@@ -8,7 +8,9 @@ import java.util.Random;
 import java.util.Set;
 
 import trees.lockbased.lockremovalutils.Error;
+import trees.lockbased.lockremovalutils.HashLockSet;
 import trees.lockbased.lockremovalutils.LockSet;
+//import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
@@ -123,7 +125,7 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
         	if (Parameters.maxRangeSize == 2000){
         		return new ReadSet<K,V>(2256); 
         	}
-            return new ReadSet<K,V>(); 
+            return new ReadSet<K,V>(1000); 
         }
     };
     
@@ -132,11 +134,20 @@ public final class LockRemovalSkipList<K,V> implements CompositionalMap<K, V> {
         protected LockSet initialValue()
         {
         	if (Parameters.maxRangeSize == 2000){
-        		new LockSet(2256); 
+        		return new LockSet(2256); 
         	}
-            return new LockSet(maxHeight*5); 
+            return new LockSet(1000); 
         }
     };
+    
+    /*
+    private final ThreadLocal<HashLockSet> threadLockSet = new ThreadLocal<HashLockSet>(){
+        @Override
+        protected HashLockSet initialValue()
+        {
+            return new HashLockSet(32); 
+        }
+    };*/
 
     //private final ThreadLocal<Object[]> rangeSet = new ThreadLocal<Object[]>();
     //private final ThreadLocal<ReadSet<K,V>> threadLargeReadSet = new ThreadLocal<ReadSet<K,V>>();

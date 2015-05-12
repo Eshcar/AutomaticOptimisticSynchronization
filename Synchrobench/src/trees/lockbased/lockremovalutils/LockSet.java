@@ -160,6 +160,7 @@ public final class LockSet{
 			    	node.reacquire();
 			    }
 			}	
+			successfullyLocked.clear();
 		}
 		return true; 
 	}

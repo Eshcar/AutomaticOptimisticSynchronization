@@ -33,7 +33,8 @@ mkdir ${output}/log ${output}/data ${output}/plot ${output}/ps
 ###############################
 
 # benchmarks
- benchs="trees.lockbased.LockRemovalSkipList trees.lockbased.DominationLockingSkipList trees.lockfree.LockFreeKSTRQ trees.lockfree.LockFreeJavaSkipList" 
+benchs="trees.lockbased.LockRemovalSkipList trees.lockbased.DominationLockingSkipList trees.lockbased.TwoPLLockRemovalSkiplist trees.lockbased.TwoPLSkiplist trees.lockbased.LockRemovalSimple2PLSkiplist trees.lockbased.Simple2PLSkiplist trees.lockfree.LockFreeKSTRQ trees.lockfree.LockFreeJavaSkipList"
+# benchs="trees.lockbased.LockRemovalSkipList trees.lockbased.DominationLockingSkipList trees.lockfree.LockFreeKSTRQ trees.lockfree.LockFreeJavaSkipList" 
 # benchs="trees.lockbased.LockRemovalSkipList" 
  
  for bench in ${benchs}; do

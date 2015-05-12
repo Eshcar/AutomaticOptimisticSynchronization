@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.Set;
 
 import trees.lockbased.lockremovalutils.Error;
+import trees.lockbased.lockremovalutils.HashLockSet;
 import trees.lockbased.lockremovalutils.LockSet;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
@@ -127,6 +128,16 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
         }
     };
     
+    /*
+    private final ThreadLocal<HashLockSet> threadLockSet = new ThreadLocal<HashLockSet>(){
+        @Override
+        protected HashLockSet initialValue()
+        {
+            return new HashLockSet(32); 
+        }
+    };*/
+    
+    
     private final ThreadLocal<LockSet> threadLockSet = new ThreadLocal<LockSet>(){
         @Override
         protected LockSet initialValue()
@@ -134,7 +145,7 @@ public final class TwoPLLockRemovalSkiplist<K,V> implements CompositionalMap<K, 
         	if (Parameters.maxRangeSize == 2000){
         		return new LockSet(2256); 
         	}
-            return new LockSet(); 
+            return new LockSet(1000); 
         }
     };
 
