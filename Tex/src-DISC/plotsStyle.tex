@@ -11,7 +11,7 @@
 \definecolor{coralred}{rgb}{1.0, 0.25, 0.25}
 
 \pgfplotsset{mystyle/.style={%
-        %width=6cm,
+        width=0.35\textwidth,
         %ylabel={mystyle (kg)},
         %xlabel={Eggs (no.)},
         xmin=1,xmax=32,
@@ -26,22 +26,22 @@
         scaled y ticks=base 10:-6,
         ytick scale label code/.code={},
     	yticklabel={\pgfmathprintnumber{\tick}}
-        %tick align=outside,
+        %tick align=outside,    
 }}
 
 \pgfplotsset{unbalanced/.style={%
-	   width=0.35\textwidth,
+	   %width=0.35\textwidth,
        legend columns=-1,
-	   legend entries={\autoTree, \danaTree ,\lockfreeTree, \stmTree, \domTree, },
+	   legend entries={\autoTree, \danaTree ,\lockfreeTree, \stmTree, \domTree, \optAutoTree, },
 	   legend to name=unbalancedLegened,
 }}
 
 
 \pgfplotsset{balanced/.style={%
-	   width=0.35\textwidth,
+	   %width=0.35\textwidth,
        legend columns=-1,
 	   legend entries={\autoTreap, \danaAVL,\bronson, \friendly,  \stmTreap,
-	   \domTreap, \globalTreap}, legend to name=balancedLegened,
+	   \domTreap, \optAutoTreap}, legend to name=balancedLegened,
 }}
 
 \pgfplotsset{skiplist/.style={%
