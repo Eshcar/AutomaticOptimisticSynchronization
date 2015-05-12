@@ -12,6 +12,8 @@ ylabel = { million ops/sec}]
 {results/trees-i1000000-u100.log};
 \addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTree}]
 {results/trees-i1000000-u100.log};
+\addplot [black,mark=square] table [x={threads}, y={OptLockRemovalTree}]
+{results/trees-i1000000-u100.log};
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
@@ -26,10 +28,11 @@ ylabel = { million ops/sec}]
 {results/trees-i1000000-u50.log};
 \addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTree}]
 {results/trees-i1000000-u50.log};
+\addplot [black,mark=square] table [x={threads}, y={OptLockRemovalTree}]{results/trees-i1000000-u50.log};
 \end{axis}
 \end{tikzpicture}
 \begin{tikzpicture}
-\begin{axis}[mystyle,unbalanced,
+\begin{axis}[mystyle,
 title= { \textbf{read-only}}]
 \addplot [black,mark=square*] table [x={threads}, y={LockRemovalTree}]
 {results/trees-i1000000-u0.log};
