@@ -9,13 +9,10 @@ The input for our transformation is a conventional lock-based concurrent program
 synthesized from sequential code. Our source-to-source transformation then makes judicious use of optimism in order to
 eliminate principal concurrency bottlenecks in the given program and improve its scalability. 
 
-We have illustrated our method for a number of data structures -- unbalanced and balanced search trees,  as well as
-skip lists supporting range queries. 
-In all cases, the transformed code performed significantly better than the original
-lock-based one. It also scaled comparably  to hand-crafted
+We have illustrated our method for unbalanced and balanced search trees.
+The transformed code performs significantly better than the original
+lock-based one, and scales comparably  to hand-crafted
 implementations that took considerably more effort to produce.
-Moreover, extending the synthesized code with new functionalities
-such as range queries was immediate. 
 In these examples, we have manually applied our transformation (according to the algorithm presented in Section~\ref{sec:algorithm}). An interesting direction for future work would be to create a tool that automatically applies our transformation at compile time.
 
 Our approach makes use of a common pattern in data structures, where an operation typically begins with a long read-only traversal, followed by a handful of (usually local) modifications.
