@@ -89,11 +89,11 @@ solution, both optimized and unoptimized,
  is far superior to the fully-pessimistic automated approach; it successfully overcomes the bottlenecks associated with lock contention
 in  \domTree and \domTreap. 
 
-Our approach  also outperforms STM by 2x to 3x.
+Our approach  also outperforms STM by 1.5x to 2.5x.
 The additional overhead of STM most likely stems from two reasons: deferring writes to commit time, and 
 using a global clock to ensure a consistent view of the read set. The latter is done in order to satisfy opacity~\cite{GuerraouiK2008}, 
 which we avoid by ``sandboxing''.
-\Idit{Can we say the following sentence?} In our experiments, the code \emph{never} incurred a spurious exception or timeout due to
+In our experiments, the code \emph{never} incurred a spurious exception or timeout due to
 inconsistent reads, and so the sandboxing was not associated with a performance penalty. 
 
 %might be due to the tradeoff between validation overhead and no internal consistency.
@@ -102,11 +102,11 @@ inconsistent reads, and so the sandboxing was not associated with a performance 
 %This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 Our solution comes close to custom-tailored implementations, and the optimized version is even superior to some of them.
-The throughput of our read-only operations is \Idit{how much?} lower than that achieved by the best-in-class. 
+The throughput of our read-only operations is up to 1.8x lower than that achieved by the best-in-class. 
 By profiling the code, we learned that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations, which have small overhead on reads that complete without any retries. 
-In  workloads that include update operations, our solution is  \Idit{how much?} slower.
+In  workloads that include update operations, our solution is  up to 2.2x slower.
 \Idit{Can we say that this only stems from tracking read and locked sets, because we got very few restarts? Can we say what percentage of restarts was?}
 
 
