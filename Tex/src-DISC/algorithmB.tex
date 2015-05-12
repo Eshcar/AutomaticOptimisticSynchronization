@@ -42,38 +42,34 @@ The operations interact via \emph{shared memory variables}, which are also calle
 Each shared object supports atomic \emph{read} (load) and \emph{write} (store) instructions.
 %
 %Below, we extend shared objects to also support locks.
-More formal definitions of the model appear in Appendix~\ref{sec:formal-proof}. 
+More formal definitions appear in Appendix~\ref{sec:formal-proof}. 
 
-In addition, each shared object is associated with a lock which can be unique to the object or common to several (or even all) objects. 
+In addition, each shared object is associated with a lock, which can be unique to the object or common to several (or even all) objects. 
 The object supports atomic \emph{lock} and \emph{unlock} instructions.
-Locks are exclusive (i.e., a lock can be held by at most one thread at a time).
-The execution of a thread
-trying to acquire a lock (by a \emph{lock} instruction) which is
-held by another thread is blocked until a time when the
-lock is available (i.e., is not held by any thread).
+Locks are exclusive (i.e., a lock can be held by at most one thread at a time), and blocking.
 We assume that in the given code every (read
 or write) access by an operation to a shared object is performed when the
 executing thread holds the lock associated with that object.
 
 
-The locking in the given code only uses the \emph{lock} and \emph{unlock} instructions, while the transformed code can apply in addition atomic
-%(i.e., the other locking instructions are not used).
-\emph{tryLock}  and \emph{isLockedByAnother} instructions.
-The latter instructions never block.
-The \emph{tryLock} instruction returns \emph{false} if the lock is currently held by another thread, otherwise it acquires the lock and returns \emph{true}.
-The \emph{isLockedByAnother} instruction returns \emph{true}, if and only if, the lock is currently held by another thread.
+The given code only uses the \emph{lock} and \emph{unlock} instructions, while the transformed code can apply in addition atomic non-blocking
+\emph{tryLock}  and \emph{isLockedByAnother} instructions: 
+ \emph{tryLock}  returns \emph{false} if the lock is currently held by another thread, otherwise it acquires the lock and returns \emph{true};
+ \emph{isLockedByAnother}  returns \emph{true} if and only if the lock is currently held by another thread.
 
 
 \subsection{Combining Optimism and Pessimism}\label{ssec:overview}
 
 % Optimism
-Generally speaking, optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using version numbers. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approaches induce significant overhead~\cite{Cascaval:2008}. We therefore refrain from speculative shared memory updates.
+%Generally speaking, 
+Optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using \emph{version numbers}. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approaches induce significant overhead~\cite{Cascaval:2008}. We therefore refrain from speculative shared memory updates.
 
 %The main idea:
-The main idea behind our approach is judicious use of optimistic synchronization for reading
-shared variables without locks, but only as long as the operation does not update shared state. Once an operation
+The main idea behind our approach is to judiciously use optimistic synchronization only as long as an operation does not update shared state;
+we use a standard approach based on version numbers to allow validation of optimistic reads.
+Once an operation
 writes to shared memory, we revert to pessimistic (lock-based) synchronization. In
-other words, we rely on validation based on version numbers at the end of the read-only prefix of an operation in order to render redundant
+other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant
 locks that would have been acquired and freed before the first update.
 This scheme is particularly suitable for data structures,
 since the common behavior of their operations
@@ -86,7 +82,7 @@ The read-only phase traverses the data structure without taking any locks, while
 in thread-local variables
 sufficient information to later ensure the correctness of the traversal.
 The read phase is \emph{invisible} to other threads, as it updates no shared variables.
-The update phase uses the original pessimistic (lock-based) synchronization and installs new version numbers.
+The update phase uses the original pessimistic (lock-based) synchronization, with the addition of updating version numbers.
 The validation phase bridges between the optimistic and pessimistic ones.
 It first locks the objects for which a lock would have been held at this point by
 the original locking code, and then validates the correctness
@@ -102,12 +98,12 @@ with the fully pessimistic one.
 
 \paragraph{Phase Transition}
 %\label{ssec:extendedTran}
-In many cases, the transition from the read-only phase to the update phase in the original code occurs at a statically-defined code location. For example, many data structure operations begin with a read-only traversal to locate the key of interest, and when it is found, proceed to execute code that modifies the data structure. This is the case in all the examples we consider in Section~\ref{sec:eval} below.
+In many cases, the transition from the read-only phase to the update phase occurs at a statically-defined code location. For example, many data structure operations begin with a read-only traversal to locate the key of interest, and when it is found, proceed to execute code that modifies the data structure. This is the case in all the examples we consider in Section~\ref{sec:eval} below.
 
-More generally, it is possible to switch from the optimistic read-only phase (via the validation phase) to pessimistic execution at any point before the first update. Moreover, the phase transition point can be determined dynamically at run time.
+More generally, it is possible to switch from the optimistic read-only execution (via the validation phase) to pessimistic execution at any point before the first update. Moreover, the phase transition point can be determined dynamically at run time.
 
 One possible way to dynamically track the execution mode is using a flag \textbf{opt}, initialized to true, indicating the optimistic phase. 
-Every shared memory update operation is instrumented with code that checks \textbf{opt}, and if it is true, executes the validation phase followed by setting \textbf{opt} to false and continuing the execution from the same location. 
+Every shared memory update operation is then instrumented with code that checks \textbf{opt}, and if it is true, executes the validation phase followed by setting \textbf{opt} to false and continuing the execution from the same location. 
 %Every lock operation is instrumented with a check of \textbf{opt} to determine whether it is to be executed optimistically or pessimistically. 
 
 \subsection{Transforming the Code Phases}\label{ssec:transformation}
@@ -117,11 +113,11 @@ Every shared memory update operation is instrumented with code that checks \text
 \begin{figure*}
 \codesize
 	\begin{center}
-	\begin{subfigure}[b]{.45\textwidth}
+	\begin{subfigure}[b]{.47\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-			\Statex ----------------------------
+			\Statex -----------------------
 				\Comment{\textrm{read-only phase}}
 			\State                               \label{code:beginRead}
             \State{\spOne}\textbf{list.lock()}
@@ -134,7 +130,7 @@ Every shared memory update operation is instrumented with code that checks \text
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{succ.lock()}  \label{code:endRead}
-			\Statex ----------------------------
+			\Statex -----------------------
 			\State                               \label{code:beginValidation}
 			\State
 			\State
@@ -143,7 +139,7 @@ Every shared memory update operation is instrumented with code that checks \text
 			\State
 			\State
             \State                               \label{code:endValidation}
-			\Statex ----------------------------
+			\Statex -----------------------
 							\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new       \label{code:beginUpdate}
 			\State{\spZero}\textbf{new.lock()}
@@ -159,11 +155,12 @@ Every shared memory update operation is instrumented with code that checks \text
 		\end{algorithmic}
 		\caption{Code with original locking} \label{figure:transformation:before}
 	\end{subfigure}
-	\begin{subfigure}[b]{.45\textwidth}
+\hspace{0.03\textwidth}
+	\begin{subfigure}[b]{.47\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-			\Statex ----------------------------
+			\Statex -----------------------
 			\Comment{\textrm{read-only phase}}
             \State{\spOne}\textbf{lockedSet.init(), readSet.init()} \label{code:initSets}
             \State{\spOne}\textbf{if !track(list)  then {goto} \ref{code:begin}} \label{code:readGhaseGoto0}
@@ -176,7 +173,7 @@ Every shared memory update operation is instrumented with code that checks \text
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
-			\Statex ----------------------------
+			\Statex -----------------------
 			\Comment{\textrm{validation phase}}
 			\State{\spZero}\textbf{read fence} \label{code:fence}
 			\State{\spZero}\textbf{for all obj in lockedSet do} \label{code:validateLockedSet}	
@@ -187,7 +184,7 @@ Every shared memory update operation is instrumented with code that checks \text
 				\State{\spZero}\ \ \textbf{unlockAll()}
 				\State{\spZero}\ \ \textbf{{goto} \ref{code:begin}} \label{code:validateGoto2}
 				%\Comment Restart Operation
-			\Statex ----------------------------
+			\Statex -----------------------
 			\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new
 			\State{\spZero}\textbf{new.lock()}
@@ -208,80 +205,10 @@ Every shared memory update operation is instrumented with code that checks \text
 	%\hline
 	\end{center}
 \vspace{-4mm}
-	\caption{Code example.
+	\caption{Code transformation example.
 	The synchronization code is in bold.
 			\label{figure:transformation}}
 \end{figure*}
-
-We now describe how we synthesize the code for each of the phases. The regular three-phase flow is described in
-Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
-
-\subsubsection{Normal Flow}
-\label{sssec:alg-normal}
-
-We illustrate the transformation for a simple code snippet that adds a new element as the third node in a linked list. In this example each object is associated with a unique lock.
-The original and transformed code are provided in Figure \ref{figure:transformation}. The latter uses
-the tracking and validation functions in Figures \ref{figure::track} and
-\ref{figure::validate}, resp.
-For clarity of exposition, we present a statically instrumented version, without tracking the phases using \textbf{opt}.
-
-%\paragraph{Version Numbers}
-We use \emph{version numbers} to validate the correctness of the optimistic execution of the read-only phase.
-Our transformation instruments each lock with an additional field \emph{version}. We assume each object supports \emph{getVersion} and \emph{incVersion} instruction to read and increment the version number of the lock associated with the object. We make sure to invoke \emph{incVersion} only when holding the lock and therefore need not care for contention.
-%Later we will show that
-%If $o$ is not locked, then this field  represents the current version number of $o$.
-Note that each lock has its own version --- i.e., version numbers of different locks are independent of each other.
-
-\paragraph{Read-only Phase}
-In this phase, we replace all the lock and unlock instructions with local tracking.
-In this phase the executing thread is invisible to other thread, i.e., 
- avoids any contention on shared memory both in terms of writing and in terms of locking.
-During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
-The \emph{lockedSet} tracks the objects that were supposed to be locked by the original synchronization.
-%
-The \emph{readSet} tracks versions of all objects read by the
-operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
-
-At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
-In the read-only phase, (i.e., when \textbf{opt} is true with dynamic phase transitions), 
-We replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
-A lock instruction on object $o$ is replaced with code that tracks the object and the version of its lock in
- \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figure::track}).
-An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet}.
-An example for a transformed code is shown in lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}.
-
-\begin{table}
-\codesize
-\ttfamily
-{\tt
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\textbf{Original code} & \textbf{Transformed Code}\\
-\hline
-\textit{x.lock()}&
-\textit{if !track(x) then goto $S$}
-\\
-\hline
-\textit{x.unlock()}&
-\textit{lockedSet.remove(x)}
-\\
-\hline
-\end{tabular}
-\end{center}
-}
-\caption{Transformation for read-only phase:
-each locking instruction (left side) is replaced with the corresponding code on the right;
- $S$  denotes the beginning of the operation.
-}
-\label{Ta:readOnlyTransformation}
-\end{table}
-
-In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlockedB}), we use an eager validation scheme\footnote{This validation scheme may be omitted, since it is not required for correctness.}: 
-If the object already exists in \emph{readSet}, we check that the current version of its lock is equal
-to the version in \emph{readSet}; and if the versions are different  the operation restarts (line~\ref{code:track:verifyVersion}).
-Similarly, it is  checked to be unlocked, and the operation restarts if it is locked (line~\ref{code:track:verifyUnlocked}).
-
 
 \begin{figure}
 \centering
@@ -308,8 +235,7 @@ Similarly, it is  checked to be unlocked, and the operation restarts if it is lo
 		}
 \end{algorithmic}
 \caption{In read-only phase, locking is replaced by
-tracking locks and read
-objects' versions.
+tracking locks and read objects' versions.
 \label{figure::track}}
 \end{minipage}\hfill
 \begin{minipage}{0.47\textwidth}
@@ -332,22 +258,93 @@ objects' versions.
 		\EndFunction
 		}
 \end{algorithmic}
-\caption{Read set validation.\label{figure::validate}}
+\caption{Read set validation: verify that  objects are unlocked and their versions are unchanged.\label{figure::validate}}
 \end{minipage}
 \end{figure}
 
+We now describe how we synthesize the code for each of the phases. The regular three-phase flow is described in
+Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
+
+\subsubsection{Normal Flow}
+\label{sssec:alg-normal}
+
+We illustrate the transformation for a simple code snippet that adds a new element as the third node in a linked list. Each node is associated with a  lock.
+The original and transformed code are provided in Figure \ref{figure:transformation}. The latter uses
+the tracking and validation functions in Figures \ref{figure::track} and
+\ref{figure::validate}, resp.
+For clarity of exposition, we present a statically instrumented version, without tracking the phases using \textbf{opt}.
+
+%\paragraph{Version Numbers}
+
+Our transformation instruments each lock with an additional field \emph{version}. We assume each object supports \emph{getVersion} and \emph{incVersion} instruction to read and increment the version number of the lock associated with the object. We invoke \emph{incVersion} when holding the lock, and are therefore are not concerned about contention.
+%Later we will show that
+%If $o$ is not locked, then this field  represents the current version number of $o$.
+Note that each lock has its own version, i.e., version numbers of different locks are independent of each other.
+
+\paragraph{Read-only Phase}
+% In this phase, we replace all the lock and unlock instructions with local tracking.
+In this phase the executing thread is invisible to other thread, i.e., 
+ avoids  contention on shared memory both in terms of writing and in terms of locking.
+During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
+The \emph{lockedSet} tracks the objects that were supposed to be locked by the original synchronization.
+%
+The \emph{readSet} tracks versions of all objects read by the
+operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
+
+At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
+Throughout the read-only phase, (i.e., when \textbf{opt} is true with dynamic phase transitions), 
+we replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
+A lock instruction on object $o$ is replaced with code that tracks the object and the version of its lock in
+ \emph{lockedSet} and \emph{readSet} (see Figure~\ref{figure::track}).
+An unlock instruction on object $o$ is replaced with code that removes $o$ from \emph{lockedSet} (see
+lines \ref{code:beginRead}-\ref{code:endRead} of Figure~\ref{figure:transformation:after}).
+
+\begin{table}
+\codesize
+\ttfamily
+{\tt
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Original code} & \textbf{Transformed Code}\\
+\hline
+\textit{x.lock()}&
+\textit{if !track(x) then goto $S$}
+\\
+\hline
+\textit{x.unlock()}&
+\textit{lockedSet.remove(x)}
+\\
+\hline
+\end{tabular}
+\end{center}
+}
+\caption{Transformation for read-only phase:
+each locking instruction (left column) is replaced with the corresponding code on the right;
+ $S$  denotes the beginning of the operation.
+}
+\label{Ta:readOnlyTransformation}
+\end{table}
+
+In Figure~\ref{figure::track} (lines \ref{code:track:verifyVersion}-\ref{code:track:verifyUnlockedB}), we use an eager validation scheme\footnote{Eager validation is not required for correctness.}: 
+If the object already exists in \emph{readSet}, we check that the current version of its lock is equal
+to the version in \emph{readSet}; and if the versions are different  the operation restarts (line~\ref{code:track:verifyVersion}).
+Similarly, it is  checked to be unlocked, and the operation restarts if it is locked (line~\ref{code:track:verifyUnlocked}).
+
+% Optimization
+Although it only accesses thread-local data structures, lock tracking induces a certain overhead due to the need to search a lock in the \emph{lockedSet} when it is unlocked. (In our experiments presented below, in large data structures, this overhead slows the operation down by up to $25\%$). We can avoid this overhead in specific cases by relying on the structure of the transformed code. For example if the lock-based code is created from sequential code 
+using domination locking~\cite{Gueta2011}, then at any given time in the execution, it holds locks on a well-defined set of nodes, which are the ones to which it also holds pointers. When applying our transformation to code generated by this scheme, we can optimize it to remove lock-tracking, and instead populate the \emph{lockedSet} with the appropriate locks immediately before executing the validation phase.
 
 \paragraph{Validation Phase}
-The code of the validation phase is invoked between the read-only phase and the update phase.
-This code is shown in lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}.
+The code of the validation phase is invoked between the read-only phase and the update phase (lines \ref{code:beginValidation}-\ref{code:endValidation} of Figure~\ref{figure:transformation:after}).
 It locks the objects that are left in \emph{lockedSet} and validates the objects in \emph{readSet}.
-To avoid deadlocks, the locks are acquired using a tryLock
+To avoid deadlocks, the locks are acquired using a \emph{tryLock}
 instruction.
-If a tryLock fails, the code unlocks  all
+If any \emph{tryLock} fails, the code unlocks  all
 previously acquired locks and restarts from the beginning
 (lines \ref{code:validateLockedSet}-\ref{code:validateGoto1}).
 
-The function \emph{validateReadSet} in Figure~\ref{figure::validate} is used to validate past reads: it returns \emph{true} if and only if the objects in the read set have not been updated.
+The function \emph{validateReadSet} in Figure~\ref{figure::validate} verifies that the objects in the read set have not been updated.
 %
 The function checks that each object in the read set is not locked by another thread,
 and that the current version of the lock associated with the object matches the version saved in the
