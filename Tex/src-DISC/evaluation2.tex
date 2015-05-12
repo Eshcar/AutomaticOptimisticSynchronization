@@ -5,30 +5,28 @@ We evaluate the performance of our approach on
 %two types of data structures. In Section~\ref{sec:readwrite} we consider 
 search trees supporting insert, delete, and get operations. 
 %whereas Section~\ref{sec:range}focuses on data structures that, in addition, support range queries that retrieve all keys within a given range. 
-We compare the performance of our approach in terms of
-throughput to fully pessimistic solutions applying fine-grain locking, solutions based on software transactional memory and hand-crafted state-of-the-art data structure
+We compare the throughput of our approach to fully pessimistic solutions applying fine-grain locking, solutions based on software transactional memory, and hand-crafted state-of-the-art data structure
 implementations.
 %Thesealgorithms also serve as the lock-based reference implementation at the base of our semi-optimistic implementations.We furthercompare our approach to software transactional memory and hand-crafted state-of-the-art data structure implementations supporting the same functionality.
 
-\paragraph{Methodology} We use the micro-benchmark suite \textit{Synchrobench}~\cite{Gramoli2015}, configured as described below. 
+\paragraph{Methodology} We use the micro-benchmark suite \textit{Synchrobench}~\cite{Gramoli2015}, configured as follows. 
 %We follow a standard evaluation methodology
 %(\cite{DrachslerVY2014,NatarajanM2014,BrownER2014,ArbelA2014}). 
 Each experiment
 consists of $5$ trials. A trial is a five second run in which each thread continuously executes
 randomly chosen operations drawn from the workload distribution, with keys
 selected uniformly at random from the range $[0,2\cdot10^6]$.
-Each trial begins by initiating a new data structure with
+Each trial is preceded by initiating a new data structure with
 %and applying an untimed pre-filling phase, which continues until the size of the data structure is within 5\% of
-$10^6$ keys and a warm-up of five seconds. The presented results are the average throughput over all trials.
-%(with the pre-filling phase excluded).
-We evaluate performance in three representative workloads distributions: a
+$10^6$ keys and a warm-up of five seconds.  Our graphs present the average throughput over all trials.
+We consider three representative workloads distributions: a
 \emph{read-only} workload comprised of $100\%$ lookup operations, a \emph{write-dominated}
 workload consisting of insert and delete operations ($50\%$ each), and a
 \emph{mixed workload} with $50\%$ lookups, $25\%$ inserts, and $25\%$
 deletes.
 
 
-\paragraph{Platform} All implementations are written in Java. We ran the experiments on a dedicated machine with
+\paragraph{Platform} All implementations are in Java. We ran the experiments on a dedicated machine with
 four Intel Xeon E5-4650 processors, each with $8$ cores, for a total of $32$ threads
 (with hyper-threading disabled).
 We used Ubuntu 12.04.4 LTS and Java Runtime Environment (build
@@ -40,53 +38,37 @@ We used Ubuntu 12.04.4 LTS and Java Runtime Environment (build
 \paragraph{Implementations}
 %We start by benchmarking a search-tree supporting the basic insert,
 %delete, and get (lookup) operations. 
-Our experiments evaluate unbalanced as well as balanced trees.
-
-We employ textbook sequential implementations of an unbalanced internal binary
-tree, and a treap~\cite{AragonS1989}. To
-generate pessimistic lock-based implementations, we synthesize
-concurrent code by applying the domination locking technique to the sequential
+%Our experiments evaluate unbalanced as well as balanced trees.
+We start from textbook sequential implementations of an unbalanced internal binary
+tree and a treap~\cite{AragonS1989}. We next  synthesize 
+concurrent lock-based code by (manually) applying the domination locking technique~\cite{Gueta2011} to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
-Finally, we manually apply our lock-removal transformation to the reference
-implementations to get our semi-optimistic versions of the code, which we call
-\autoTree and \autoTreap, respectively. Our manual transformation was applied line by line without requiring any understanding of the base code. To evaluate the overhead of tracking the \emph{lockedSet} we also applied the optimization described in Section \ref{sssec:alg-normal}, the resulting algorithms are denoted \optAutoTree and \optAutoTreap.   
-We also applied Deuce~\cite{Deuce2010}, which is a Java implementation of the TL2 algorithm~\cite{DiceSS2006} to the sequential implementations. The resulting algorithms are denoted \stmTree and \stmTreap. We further compare our implementations to their hand-crafted state-of-the-art counterparts
+Then, we manually apply our lock-removal transformation to the reference
+implementations by following the algorithm line-by-line (requiring no understading of the base code)
+to get our semi-optimistic versions of the code, which we call
+\autoTree and \autoTreap, respectively. 
+Finally, we apply the optimization described in Section~\ref{sssec:alg-normal}, which eliminates explicit tracking of the \emph{lockedSet} and instead locks 
+all objects the thread holds a pointer to in the validation phase; this optimization is applicable since our parallel implementation is synthesized using
+domination locking. The resulting algorithms are denoted \optAutoTree and \optAutoTreap.   
+
+For the competition, we parallelize the sequential implementations also using 
+Deuce~\cite{Deuce2010}, a Java implementation of  TL2~\cite{DiceSS2006}. The resulting algorithms are denoted \stmTree and \stmTreap. We further compare our implementations to their hand-crafted state-of-the-art counterparts
 listed in Table~\ref{table:hand-crafted}.
 %\footnote{Unless described otherwise implementations are provided by Synchrobench.}. 
 
-\Xomit{
-We compare \autoTree to
-\begin{description}
-\setlength{\itemsep}{0pt}
-\setlength{\parskip}{0pt}
-\item[\danaTree] The locked-based unbalanced tree of Drachsler et al.~\cite{DrachslerVY2014}\footnote{Implementation provided by the authors.}.
-\item [\lockfreeTree] The lock-free unbalanced tree of Ellen et al.~\cite{EllenFRB2010}.
-\end{description}
-\autoTreap is evaluated against three hand-crafted implementations
-\begin{description}
-\setlength{\itemsep}{0pt}
-\setlength{\parskip}{0pt}
-\item[\danaAVL] The locked-based relaxed balanced AVL tree of
-				Drachsler et al.~\cite{DrachslerVY2014}.%\footnote{Implementation available at \\\texttt{https://github.com/logicalordering/trees}}.
-\item[\bronson] The locked based relaxed balanced AVL tree
-				of Bronson et al.~\cite{BronsonCCO2010}.%\footnote{Implementation available at \\texttt{https://github.com/nbronson/snaptree}}.
-\item[\friendly] The Contention-Friendly Tree of Crain et al.~\cite{CrainGR2013}.
-%\item[\skiplist] The non-blocking skip-list in the the Java standard library; based on the work of Fraser and Harris~\cite{fraser2004practical}.
-\end{description}
-}
 
 \begin{table}
-\begin{tabular}{| l p{2.3in} |l  p{2.3in} |}
+\begin{tabular}{| l p{2.25in} |l  p{2.25in} |}
 \hline 
-  Unbalanced && Balanced  &\\  \hline 
-  \textbf{\danaTree} &The locked-based unbalanced tree of Drachsler et al.~\cite{DrachslerVY2014} & \textbf{\danaAVL} &The locked-based relaxed balanced AVL tree of
-				Drachsler et al.~\cite{DrachslerVY2014}  \\
-  \textbf{\lockfreeTree} &The lock-free unbalanced tree of Ellen et al.~\cite{EllenFRB2010}  & \textbf{\bronson} &The locked based relaxed balanced AVL tree of Bronson et al.~\cite{BronsonCCO2010} \\
-   && \textbf{\friendly} &The Contention-Friendly Tree of Crain et al.~\cite{CrainGR2013}  \\
-   && \textbf{Skiplist} & Java lock free skiplist \\
+  {\bf Unbalanced} && {\bf Balanced}  &\\  \hline 
+  \textbf{\danaTree} & Locked-based unbalanced tree~\cite{DrachslerVY2014} & \textbf{\danaAVL} & Lock-based relaxed  AVL  tree~\cite{DrachslerVY2014}  \\ 
+%				Drachsler et al.
+  \textbf{\lockfreeTree} & Lock-free unbalanced tree~\cite{EllenFRB2010}  & \textbf{\bronson} & Lock-based relaxed  AVL tree~\cite{BronsonCCO2010} \\
+   && \textbf{\friendly} & Contention-friendly tree~\cite{CrainGR2013}  \\
+   && \textbf{Skiplist} & Java lock-free skiplist \\
    \hline 
 \end{tabular}
-\caption{Implementations of hand-crafted state-of-the-art data structures. The Implementation of \danaTree was provided by the authors, all other implementations provided by Synchrobenc.\label{table:hand-crafted}}
+\caption{Hand-crafted state-of-the-art data structures. The code of \danaTree was provided by the authors, all other implementations provided by Synchrobench.\label{table:hand-crafted}}
 % ,provided by Synchrobench unless described otherwise
 
 \end{table}
@@ -101,18 +83,20 @@ omitted these results to avoid obscuring the presentation.
 
 
 \paragraph{Results}
-Figure~\ref{evaluation:results:unbalanced}
-shows the throughput of unbalanced data structures and Figure~\ref{evaluation:results:balanced} shows
-the throughput of the balanced ones. We see that our semi-optimistic
-solution is far superior to the previous, fully-pessimistic,
-automated approach; it successfully overcomes the bottlenecks associated with lock contention
-in the \domTree and \domTreap implementations. 
+Figures~\ref{evaluation:results:unbalanced} and~\ref{evaluation:results:balanced}
+show the throughput of unbalanced and balanced data structures, resp. We see that our semi-optimistic
+solution is far superior to the fully-pessimistic automated approach; it successfully overcomes the bottlenecks associated with lock contention
+in  \domTree and \domTreap. 
 
-For both balanced and unbalanced trees, our approach outperforms STM with 2x to 3x throughput.
-This might be due to the tradeoff between validation overhead and no internal consistency.
-To ensure opacity~\cite{GuerraouiK2008}, each time an object is read in STM, the transaction checks that the version of the lock protecting the object is valid. 
-Our algorithms read the version instead of locking the object which happens typically once during the operation.
-This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
+Our approach  also outperforms STM by 2x to 3x.
+The additional overhead of STM most likely stems from two reasons: deferring writes to commit time, and 
+using a global clock to ensure a consistent view of the read set. The latter is done in order to satisfy opacity~\cite{GuerraouiK2008}, 
+which we avoid by ``sandboxing''.
+
+%might be due to the tradeoff between validation overhead and no internal consistency.
+%To ensure opacity~\cite{GuerraouiK2008}, each time an object is read in STM, the transaction checks that the version of the lock protecting the object is valid. 
+%Our algorithms read the version instead of locking the object which happens typically once during the operation.
+%This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 
 %In many scenarios, 
