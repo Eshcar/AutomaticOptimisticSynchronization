@@ -44,8 +44,8 @@ Idit Keidar\footnotemark[1] \footnotemark[2]\\
 \begin{abstract}
 We present a \emph{code transformation} for concurrent data structures,
 which increases their scalability without sacrificing correctness.
-Our transformation takes lock-based code, and replaces some of the
-locking steps therein with optimistic synchronization, in order to reduce contention. The main idea is to
+Our transformation takes lock-based code and replaces some of the
+locking steps therein with optimistic synchronization in order to reduce contention. The main idea is to
 have each operation perform an optimistic traversal of the data structure
 as long as no shared memory locations are updated, and then proceed with
 pessimistic code. The transformed code inherits essential
@@ -71,6 +71,8 @@ hand-crafting concurrent data structures.
 \end{abstract}
 
 \bigskip\bigskip
+\noindent
+Corresponding author: Maya Arbel maya.arbel@gmail.com\\
 \noindent
 {\bf
 This is a submission to the regular track.\\
