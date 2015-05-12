@@ -43,16 +43,15 @@ A.~Braginsky and E.~Petrank.
 \newblock A lock-free {B}+tree.
 \newblock In {\em SPAA}, pages 58--67, 2012.
 
-\bibitem{NathanBronson11}
-N.~Bronson.
-\newblock {\em Composable Operations on High-Performance Concurrent
-  Collections}.
-\newblock PhD thesis, Stanford University, Dec. 2011.
-
 \bibitem{BronsonCCO2010}
 N.~G. Bronson, J.~Casper, H.~Chafi, and K.~Olukotun.
 \newblock A practical concurrent binary search tree.
 \newblock In {\em PPOPP}, pages 257--268, 2010.
+
+\bibitem{BrownA12}
+T.~Brown and H.~Avni.
+\newblock Range queries in non-blocking k-ary search trees.
+\newblock In {\em OPODIS}, pages 31--45, 2012.
 
 \bibitem{BrownER2014}
 T.~Brown, F.~Ellen, and E.~Ruppert.
@@ -80,6 +79,11 @@ T.~Crain, V.~Gramoli, and M.~Raynal.
 D.~Cunningham, K.~Gudka, and S.~Eisenbach.
 \newblock Keep off the grass: Locking the right path for atomicity.
 \newblock In {\em CC}, pages 276--290. 2008.
+
+\bibitem{DiceSS2006}
+D.~Dice, O.~Shalev, and N.~Shavit.
+\newblock Transactional locking ii.
+\newblock In {\em DISC}, pages 194--208, 2006.
 
 \bibitem{Doh:SPAA04}
 S.~Doherty, D.~L. Detlefs, L.~Groves, C.~H. Flood, V.~Luchangco, P.~A. Martin,
@@ -109,6 +113,11 @@ M.~Emmi, J.~S. Fischer, R.~Jhala, and R.~Majumdar.
 \newblock Lock allocation.
 \newblock In {\em POPL}, pages 291--296, 2007.
 
+\bibitem{Deuce2010}
+G.~K. Felber, P. and N.~Shavit.
+\newblock {Deuce}: Noninvasive concurrency with a {Java STM}.
+\newblock In {\em MULTIPROG}, 2010.
+
 \bibitem{FerroJKRY14}
 D.~G. Ferro, F.~Junqueira, I.~Kelly, B.~Reed, and M.~Yabandeh.
 \newblock Omid: Lock-free transactional support for distributed data stores.
@@ -123,6 +132,13 @@ K.~Fraser.
 G.~Golan-Gueta, N.~G. Bronson, A.~Aiken, G.~Ramalingam, M.~Sagiv, and E.~Yahav.
 \newblock Automatic fine-grain locking using shape properties.
 \newblock In {\em OOPSLA}, pages 225--242, 2011.
+
+\bibitem{Gramoli2015}
+V.~Gramoli.
+\newblock More than you ever wanted to know about synchronization:
+  Synchrobench, measuring the impact of the synchronization on concurrent
+  algorithms.
+\newblock In {\em PPoPP}, 2015.
 
 \bibitem{gudka2012lock}
 K.~Gudka, T.~Harris, and S.~Eisenbach.
@@ -139,11 +155,12 @@ T.~Harris, J.~Larus, and R.~Rajwar.
 \newblock Transactional memory, 2nd edition.
 \newblock {\em Synthesis Lectures on Computer Architecture}, 5(1), 2010.
 
-\bibitem{Herlihy:2008}
-M.~Herlihy and E.~Koskinen.
-\newblock Transactional boosting: a methodology for highly-concurrent
-  transactional objects.
-\newblock In {\em PPoPP}, pages 207--216, 2008.
+\bibitem{LazyList}
+S.~Heller, M.~Herlihy, V.~Luchangco, M.~Moir, W.~N. {Scherer III}, and
+  N.~Shavit.
+\newblock A lazy concurrent list-based set algorithm.
+\newblock In {\em 9th International Conference on Principles of Distributed
+  Systems (OPODIS)}, pages 3--16, 2006.
 
 \bibitem{HerlihyLLS2007}
 M.~Herlihy, Y.~Lev, V.~Luchangco, and N.~Shavit.
@@ -162,21 +179,10 @@ M.~Hicks, J.~S. Foster, and P.~Prattikakis.
 \newblock In {\em Proceedings of the First ACM SIGPLAN Workshop on Languages,
   Compilers, and Hardware Support for Transactional Computing}, June 2006.
 
-\bibitem{Israeli:1994:DIS:197917.198079}
-A.~Israeli and L.~Rappoport.
-\newblock Disjoint-access-parallel implementations of strong shared memory
-  primitives.
-\newblock In {\em PODC}, pages 151--160, 1994.
-
 \bibitem{Jin:2012}
 G.~Jin, W.~Zhang, D.~Deng, B.~Liblit, and S.~Lu.
 \newblock Automated concurrency-bug fixing.
 \newblock In {\em OSDI}, 2012.
-
-\bibitem{Koskinen:2010}
-E.~Koskinen, M.~Parkinson, and M.~Herlihy.
-\newblock Coarse-grained transactions.
-\newblock In {\em POPL}, pages 19--30, 2010.
 
 \bibitem{LevAriCK2014}
 K.~Lev-Ari, G.~Chockler, and I.~Keidar.
