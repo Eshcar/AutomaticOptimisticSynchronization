@@ -12,6 +12,7 @@ import trees.lockbased.lockremovalutils.NonSharedFastSimpleRandom;
 import trees.lockbased.lockremovalutils.ReadSet;
 import trees.lockbased.lockremovalutils.SpinHeapReentrant;
 import contention.abstractions.CompositionalMap;
+import contention.abstractions.CompositionalMap.Stats;
 
 public final class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 	
@@ -267,6 +268,12 @@ public final class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 				return getDomImpl(k, self.get());
 			}
 		}
+		
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+				
 		return value; 
 	}
 	
@@ -387,6 +394,12 @@ public final class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 				return putDomImpl(k, key, value, self.get());
 			}
 		}
+		
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+		
 		return val;  
 	}
 	
@@ -675,6 +688,12 @@ public final class LockRemovalTreap<K,V> implements CompositionalMap<K, V>{
 				return removeDomImpl(k, self.get());
 			}
 		}
+		
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+		
 		return value; 
 	}
 

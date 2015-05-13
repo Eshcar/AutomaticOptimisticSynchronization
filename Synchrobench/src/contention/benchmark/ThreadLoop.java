@@ -161,6 +161,8 @@ public class ThreadLoop implements Runnable {
 		this.getCount = CompositionalMap.counts.get().getCount;
 		this.nodesTraversed = CompositionalMap.counts.get().nodesTraversed;
 		this.structMods = CompositionalMap.counts.get().structMods;
+		CompositionalMap.stats.get().avgRetries = CompositionalMap.stats.get().sumRetries /(double) CompositionalMap.stats.get().total;
+		System.out.println("Completed " +CompositionalMap.stats.get().total +" operations total # of retries is "+ CompositionalMap.stats.get().sumRetries +" with avg retries of: "+ CompositionalMap.stats.get().avgRetries);
 		System.out.println("Thread #" + myThreadNum + " finished.");
 	}
 }

@@ -381,6 +381,12 @@ public final class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 				return getDomImpl((K)key,threadLocals.self);
 			}
 		}
+		
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+		
 		return value; 
 	}
 
@@ -484,6 +490,11 @@ public final class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 				return putDomImpl(key, val, threadLocals.self);
 			}
 		}
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+		
 		return value;  
 	}
 	
@@ -630,6 +641,11 @@ public final class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 				return removeDomImpl(key, threadLocals.self);
 			}
 		}
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+		
 		return value;  
 	}
 
@@ -923,6 +939,11 @@ public final class LockRemovalTree<K,V> implements CompositionalMap<K, V>{
 				return putIfAbsentDomImpl(key,val, threadLocals.self);
 			}
 		}
+		//some statistics 
+		Stats  statistics = stats.get();
+		statistics.sumRetries = statistics.sumRetries + retryCount;
+		statistics.total = statistics.total+1;
+				
 		return value; 
 	}
 

@@ -20,10 +20,25 @@ public interface CompositionalMap<K, V> extends Map<K, V> {
     	public long structMods = 0;
     }
     
+    public class Stats{
+    	public double avgRetries = 0;
+    	public long sumRetries = 0; 
+    	//public long avgReadRetries = 0; 
+    	//public long avgUpdateRetries = 0; 
+    	public long total = 0;
+    }
+    
     public final static ThreadLocal<Vars> counts = new ThreadLocal<Vars>() {
         @Override
         protected synchronized Vars initialValue() {
             return new Vars();
+        }
+    };
+    
+    public final static ThreadLocal<Stats> stats = new ThreadLocal<Stats>() {
+        @Override
+        protected synchronized Stats initialValue() {
+            return new Stats();
         }
     };
 	
