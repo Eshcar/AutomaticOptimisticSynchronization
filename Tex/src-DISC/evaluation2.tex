@@ -43,9 +43,9 @@ tree and a treap~\cite{AragonS1989}. We next  synthesize
 concurrent lock-based code by (manually) applying the domination locking technique~\cite{Gueta2011} to the sequential
 data structures. The resulting algorithms are denoted \domTree and \domTreap.
 Then, we manually apply our lock-removal transformation to the reference
-implementations by following the algorithm line-by-line (requiring no understading of the base code)
+implementations by following the algorithm line-by-line (requiring no understanding of the base code)
 to get our semi-optimistic versions of the code, which we call
-\autoTree and \autoTreap, respectively. Note that this solution does not track the  \emph{lockedSet} for read-only operations.
+\autoTree and \autoTreap, respectively. Note that this solution does not track the  \emph{lockedSet} for read-only operations and does not use eager validation of version numbers.
 Finally, we apply the optimization described in Section~\ref{sssec:alg-normal}, which eliminates explicit tracking of the \emph{lockedSet} in update operations,
 and instead locks 
 all objects the thread holds a pointer to in the validation phase; this optimization is applicable since our parallel implementation is synthesized using
@@ -102,12 +102,11 @@ inconsistent reads, and so the sandboxing was not associated with a performance 
 %This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 Our solution comes close to custom-tailored implementations, and the optimized version is even superior to some of them.
-The throughput of our read-only operations is up to 1.8x lower than that achieved by the best-in-class. 
+The throughput of our read-only operations is up to 1.5x lower than that achieved by the best-in-class and  
 By profiling the code, we learned that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations, which have small overhead on reads that complete without any retries. 
-In  workloads that include update operations, our solution is  up to 2.2x slower.
-\Idit{Can we say that this only stems from tracking read and locked sets, because we got very few restarts? Can we say what percentage of restarts was?}
+In workloads that include update operations, our solution is up to 2.2x slower. This stems from tracking read and locked sets and not from retries as the percentage of retries is less than $1\%$. 
 
 
 \Xomit{

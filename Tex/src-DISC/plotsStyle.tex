@@ -11,7 +11,7 @@
 \definecolor{coralred}{rgb}{1.0, 0.25, 0.25}
 
 \pgfplotsset{mystyle/.style={%
-        width=0.35\textwidth,
+        width=0.29\paperwidth,
         %ylabel={mystyle (kg)},
         %xlabel={Eggs (no.)},
         xmin=1,xmax=32,
@@ -39,9 +39,9 @@
 
 \pgfplotsset{balanced/.style={%
 	   %width=0.35\textwidth,
-       legend columns=-1,
-	   legend entries={\autoTreap, \danaAVL,\bronson, \friendly,  \stmTreap,
-	   \domTreap, \optAutoTreap}, legend to name=balancedLegened,
+       legend columns=4,
+	   legend entries={\autoTreap, \danaAVL,\bronson, \friendly,  \skiplist, \stmTreap,
+	   \domTreap,\optAutoTreap}, legend to name=balancedLegened,
 }}
 
 \pgfplotsset{skiplist/.style={%
