@@ -102,7 +102,7 @@ inconsistent reads, and so the sandboxing was not associated with a performance 
 %This is where sandboxing pays off -- we allow operations to observe inconsistent views and hence have improved performance.
 
 Our solution comes close to custom-tailored implementations, and the optimized version is even superior to some of them.
-The throughput of our read-only operations is up to 1.5x lower than that achieved by the best-in-class and  
+The throughput of our read-only operations is up to 1.5x lower than that achieved by the best-in-class.
 By profiling the code, we learned that the bulk of this overhead stems from the need to track all read objects,
 which is inherent to our transformation.
 This is in contrast with the hand-crafted implementations, which have small overhead on reads that complete without any retries. 
