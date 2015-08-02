@@ -1,0 +1,51 @@
+\begin{tikzpicture}
+\begin{axis}[mystyle,unbalanced,
+title={\textbf{write-dominated}},
+ylabel = { million ops/sec}]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalTree}]
+{results/trees-i1000000-u100.log}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={LogicalOrderingTree}]
+{results/trees-i1000000-u100.log}; 
+\addplot [blues5,mark=10-pointed star] table [x={threads}, y={NonBlockingTorontoBSTMap}]
+{results/trees-i1000000-u100.log}; 
+\addplot [magenta,mark=+] table [x={threads}, y={STMBinaryTree}]
+{results/trees-i1000000-u100.log};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTree}]
+{results/trees-i1000000-u100.log};
+\addplot [black,mark=square] table [x={threads}, y={OptLockRemovalTree}]
+{results/trees-i1000000-u100.log};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,unbalanced,title={\textbf{mixed workload}}]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalTree}]
+{results/trees-i1000000-u50.log}; 
+\addplot [orange,mark=diamond] table [x={threads}, y={LogicalOrderingTree}]
+{results/trees-i1000000-u50.log}; 
+\addplot [blues5,mark=10-pointed star] table [x={threads}, y={NonBlockingTorontoBSTMap}]
+{results/trees-i1000000-u50.log}; 
+\addplot [magenta,mark=+] table [x={threads}, y={STMBinaryTree}]
+{results/trees-i1000000-u50.log};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTree}]
+{results/trees-i1000000-u50.log};
+\addplot [black,mark=square] table [x={threads}, y={OptLockRemovalTree}]{results/trees-i1000000-u50.log};
+\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+\begin{axis}[mystyle,
+title= { \textbf{read-only}}]
+\addplot [black,mark=square*] table [x={threads}, y={LockRemovalTree}]
+{results/trees-i1000000-u0.log};
+\addplot [orange,mark=diamond] table [x={threads}, y={LogicalOrderingTree}]
+{results/trees-i1000000-u0.log};  
+\addplot [blues5,mark=10-pointed star] table [x={threads}, y={NonBlockingTorontoBSTMap}]
+{results/trees-i1000000-u0.log}; 
+\addplot [magenta,mark=+] table [x={threads}, y={STMBinaryTree}]
+{results/trees-i1000000-u0.log};
+\addplot [blues4,mark=x] table [x={threads}, y={DominationLockingTree}]
+{results/trees-i1000000-u0.log};
+\end{axis}
+\end{tikzpicture}
+
+
+\ref{unbalancedLegened}

@@ -1,0 +1,35 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: document.aux
+White space in argument---line 18 of file document.aux
+ : \citation{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
+ :                                                                                             AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,fraser2004practical,Michael:1996}
+I'm skipping whatever remains of this command
+White space in argument---line 148 of file document.aux
+ : \citation{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
+ :                                                                                             AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,fraser2004practical,Michael:1996}
+I'm skipping whatever remains of this command
+The style file: abbrv.bst
+Database file #1: myRef.bib
+A bad cross reference---entry "Gueta2011"
+refers to entry "DBLP:conf/oopsla/2011", which doesn't exist
+A bad cross reference---entry "DiceSS2006"
+refers to entry "DBLP:conf/wdag/2006", which doesn't exist
+A bad cross reference---entry "GuerraouiK2008"
+refers to entry "DBLP:conf/ppopp/2008", which doesn't exist
+A bad cross reference---entry "Emmi06POPL"
+refers to entry "DBLP:conf/popl/2007", which doesn't exist
+Warning--I didn't find a database entry for "DBLP:conf/wdag/2006"
+Warning--I didn't find a database entry for "DBLP:conf/ppopp/2008"
+Warning--I didn't find a database entry for "DBLP:conf/oopsla/2011"
+Warning--I didn't find a database entry for "DBLP:conf/popl/2007"
+Warning--to sort, need author or key in levelDB
+Warning--to sort, need author or key in jmonkey
+Warning--to sort, need author or key in ConcurrentSkipList
+Name 1 in "Felber, P., G. Korland, and N. Shavit" has a comma at the end for entry Deuce2010
+while executing---line 1049 of file abbrv.bst
+Warning--empty publisher in CGE:CC08
+Warning--empty journal in DuffyTM2010
+Name 1 in "Felber, P., G. Korland, and N. Shavit" has a comma at the end for entry Deuce2010
+while executing---line 1090 of file abbrv.bst
+Warning--empty publisher in gudka2012lock
+Warning--can't use both volume and number fields in zyulkyarov2009atomic
+(There were 8 error messages)
