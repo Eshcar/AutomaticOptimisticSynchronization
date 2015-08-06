@@ -18,6 +18,11 @@ Y.~Afek, H.~Attiya, D.~Dolev, E.~Gafni, M.~Merritt, and N.~Shavit.
 \newblock Atomic snapshots of shared memory.
 \newblock {\em J. ACM}, 40(4):873--890, Sept. 1993.
 
+\bibitem{AfekKKMT2012}
+Y.~Afek, H.~Kaplan, B.~Korenfeld, A.~Morrison, and R.~E. Tarjan.
+\newblock {CBTree}: A practical concurrent self-adjusting search tree.
+\newblock In {\em DISC}, pages 1--15, 2012.
+
 \bibitem{Afek:2014:SHL:2611462.2611482}
 Y.~Afek, A.~Levy, and A.~Morrison.
 \newblock Software-improved hardware lock elision.
@@ -70,6 +75,11 @@ D.~Cunningham, K.~Gudka, and S.~Eisenbach.
 \newblock Keep off the grass: Locking the right path for atomicity.
 \newblock In {\em CC}, pages 276--290. 2008.
 
+\bibitem{DiceHKLM14}
+D.~Dice, T.~L. Harris, A.~Kogan, Y.~Lev, and M.~Moir.
+\newblock Hardware extensions to make lazy subscription safe.
+\newblock {\em CoRR}, abs/1407.6968, 2014.
+
 \bibitem{DiceSS2006}
 D.~Dice, O.~Shalev, and N.~Shavit.
 \newblock Transactional locking ii.
@@ -108,6 +118,11 @@ G.~K. Felber, P. and N.~Shavit.
 \newblock {Deuce}: Noninvasive concurrency with a {Java STM}.
 \newblock In {\em MULTIPROG}, 2010.
 
+\bibitem{fraser2004practical}
+K.~Fraser.
+\newblock {\em Practical lock-freedom}.
+\newblock PhD thesis, University of Cambridge, 2004.
+
 \bibitem{Gueta2011}
 G.~Golan-Gueta, N.~G. Bronson, A.~Aiken, G.~Ramalingam, M.~Sagiv, and E.~Yahav.
 \newblock Automatic fine-grain locking using shape properties.
@@ -141,6 +156,12 @@ S.~Heller, M.~Herlihy, V.~Luchangco, M.~Moir, W.~N. {Scherer III}, and
 \newblock A lazy concurrent list-based set algorithm.
 \newblock In {\em 9th International Conference on Principles of Distributed
   Systems (OPODIS)}, pages 3--16, 2006.
+
+\bibitem{HerlihyLLS2007}
+M.~Herlihy, Y.~Lev, V.~Luchangco, and N.~Shavit.
+\newblock A simple optimistic skiplist algorithm.
+\newblock In {\em 14th International Conference on Structural Information and
+  Communication Complexity (SIROCCO)}, pages 124--138, 2007.
 
 \bibitem{HFP:TRANSACT06}
 M.~Hicks, J.~S. Foster, and P.~Prattikakis.

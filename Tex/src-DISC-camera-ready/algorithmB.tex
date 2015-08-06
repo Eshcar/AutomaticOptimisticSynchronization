@@ -62,21 +62,23 @@ The given code only uses the \emph{lock} and \emph{unlock} instructions, while t
 
 % Optimism
 %Generally speaking, 
-Optimistic concurrency control is a form of lock-free synchronization, which accesses shared variables without locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using \emph{version numbers}. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approaches induce significant overhead~\cite{Cascaval:2008}. We therefore refrain from speculative shared memory updates.
+Optimistic concurrency control is a form of synchronization, which accesses shared variables without using locks in the hope that they will not be modified by others before the end of the operation (or more generally, the transaction). To verify the latter, optimistic concurrency control relies on \emph{validation}, which is typically implemented using \emph{version numbers}. If validation fails, the operation restarts. Optimistic execution of update operations requires either performing roll-back (reverting variables to their old values) upon validation failure, or deferring writes to commit time; both approaches induce significant overhead~\cite{Cascaval:2008}. We therefore refrain from speculative shared memory updates.
 
 %The main idea:
 The main idea behind our approach is to judiciously use optimistic synchronization only as long as an operation does not update shared state;
 we use a standard approach based on version numbers to allow validation of optimistic reads.
 Once an operation
 writes to shared memory, we revert to pessimistic (lock-based) synchronization. In
-other words, we rely on validation at the end of the read-only prefix of an operation in order to render redundant
+other words, we rely on validation %at the end of the read-only prefix of an operation 
+in order to render redundant
 locks that would have been acquired and freed before the first update.
 This scheme is particularly suitable for data structures,
 since the common behavior of their operations
 is to first traverse the data structure, and then
 perform modifications.
+Since the read only prefix has no side effects we can sandbox it by catching exceptions and infinite loops, and defer validation to the end of the phase.
 
-Conceptually, our approach divides an operation into three phases: an optimistic \emph{read-only phase},
+Conceptually, our approach thus divides an operation into three phases: an optimistic \emph{read-only phase},
 a pessimistic \emph{update phase} and a \emph{validation phase} that conjoins them.
 The read-only phase traverses the data structure without taking any locks, while maintaining 
 in thread-local variables
@@ -113,24 +115,27 @@ Every shared memory update operation is then instrumented with code that checks 
 \begin{figure*}
 \codesize
 	\begin{center}
-	\begin{subfigure}[b]{.47\textwidth}
+	\begin{subfigure}[b]{.44\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-			\Statex -----------------------
-				\Comment{\textrm{read-only phase}}
+%			\Statex -----------------------
+			\Statex ----------
+\Comment{\textrm{read-only phase}}
 			\State                               \label{code:beginRead}
+			\State                               
             \State{\spOne}\textbf{list.lock()}
 			\State{\spOne}Node prev = list.head
 			\State{\spOne}\textbf{prev.lock()}
             \State{\spOne}\textbf{list.unlock()}
 			\State{\spOne}Node succ = prev.next
 			\State{\spOne}\textbf{succ.lock()}
-			\State{\spOne}\textbf{prev.unlock()}
+			\State{\spZero}\textbf{prev.unlock()}
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{succ.lock()}  \label{code:endRead}
-			\Statex -----------------------
+%			\Statex -----------------------
+			\Statex ----------
 			\State                               \label{code:beginValidation}
 			\State
 			\State
@@ -139,7 +144,8 @@ Every shared memory update operation is then instrumented with code that checks 
 			\State
 			\State
             \State                               \label{code:endValidation}
-			\Statex -----------------------
+%			\Statex -----------------------
+			\Statex ----------
 							\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new       \label{code:beginUpdate}
 			\State{\spZero}\textbf{new.lock()}
@@ -155,25 +161,28 @@ Every shared memory update operation is then instrumented with code that checks 
 		\end{algorithmic}
 		\caption{Code with original locking} \label{figure:transformation:before}
 	\end{subfigure}
-\hspace{0.03\textwidth}
-	\begin{subfigure}[b]{.47\textwidth}
+\hspace{0.01\textwidth}
+	\begin{subfigure}[b]{.53\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-			\Statex -----------------------
+%			\Statex -----------------------
+			\Statex ----------
 			\Comment{\textrm{read-only phase}}
-            \State{\spOne}\textbf{lockedSet.init(), readSet.init()} \label{code:initSets}
+            \State{\spOne}\textbf{lockedSet.init()} \label{code:initSets1}
+            \State{\spOne}\textbf{readSet.init()} \label{code:initSets2}
             \State{\spOne}\textbf{if !track(list)  then {goto} \ref{code:begin}} \label{code:readGhaseGoto0}
 			\State{\spOne}Node prev = list.head
 			\State{\spOne}\textbf{if !track(prev)  then {goto} \ref{code:begin}} \label{code:readGhaseGoto1}
             \State{\spOne}\textbf{lockedSet.remove(list)} \label{code:lockedSet:remove1}
 			\State{\spOne}Node succ = prev.next
 			\State{\spOne}\textbf{if !track(succ) then {goto} \ref{code:begin}}  \label{code:readGhaseGoto2}
-			\State{\spOne}\textbf{lockedSet.remove(prev)} \label{code:lockedSet:remove2}
+			\State{\spZero}\textbf{lockedSet.remove(prev)} \label{code:lockedSet:remove2}
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
-			\Statex -----------------------
+%			\Statex -----------------------
+			\Statex ----------
 			\Comment{\textrm{validation phase}}
 			\State{\spZero}\textbf{read fence} \label{code:fence}
 			\State{\spZero}\textbf{for all obj in lockedSet do} \label{code:validateLockedSet}	
@@ -184,7 +193,8 @@ Every shared memory update operation is then instrumented with code that checks 
 				\State{\spZero}\ \ \textbf{unlockAll()}
 				\State{\spZero}\ \ \textbf{{goto} \ref{code:begin}} \label{code:validateGoto2}
 				%\Comment Restart Operation
-			\Statex -----------------------
+%			\Statex -----------------------
+			\Statex ----------
 			\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new
 			\State{\spZero}\textbf{new.lock()}
@@ -212,8 +222,8 @@ Every shared memory update operation is then instrumented with code that checks 
 
 \begin{figure}
 \centering
-\begin{minipage}{0.49\textwidth}
-\centering
+%\begin{minipage}{0.49\textwidth}
+%\centering
 \codesize
 \begin{algorithmic}[1]{}
 		{\ttfamily
@@ -225,10 +235,12 @@ Every shared memory update operation is then instrumented with code that checks 
 %			\State if {$\exists$<o,v>$\in$readSet such that o=obj and v!=ver} then
 			% return false \label{code:track:verifyVersion}			
 			\If{$\langle$obj,v$\rangle\in$readSet and v!=ver} \label{code:track:verifyVersion}
-				\State return false
+%				\State return false
+				 return false
 			\EndIf
 			\If{obj.isLockedByAnother()} \label{code:track:verifyUnlocked}
-				\State return false \label{code:track:verifyUnlockedB}
+%				\State return false \label{code:track:verifyUnlockedB}
+				 return false \label{code:track:verifyUnlockedB}
 			\EndIf
 			\State return true
 		\EndFunction
@@ -237,8 +249,10 @@ Every shared memory update operation is then instrumented with code that checks 
 \caption{In read-only phase, locking is replaced by
 tracking locks and read objects' versions.
 \label{figure::track}}
-\end{minipage}\hfill
-\begin{minipage}{0.47\textwidth}
+%\end{minipage}\hfill
+\end{figure}
+\begin{figure}
+%\begin{minipage}{0.47\textwidth}
 \centering
 \codesize
 \begin{algorithmic}[1]{}
@@ -246,12 +260,12 @@ tracking locks and read objects' versions.
 		\Function{validateReadSet}{}()
 		\ForAll {$\langle$obj,ver$\rangle$ in readSet}
 			\If{obj.isLockedByAnother()}
-			\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyUnlocked}
-			\State \Comment{\textrm{(locked object)}}
+			\State return false \Comment{\textrm{validation failed (locked object)}} \label{code:validate:verifyUnlocked}
+%			\State \Comment{\textrm{(locked object)}}
 			\EndIf
 			\If{obj.getVersion() != ver} 
-				\State return false \Comment{\textrm{validation failed}} \label{code:validate:verifyVersion}
-				\State \Comment{\textrm{(different version)}}
+				\State return false \Comment{\textrm{validation failed (different version)}} \label{code:validate:verifyVersion}
+%				\State \Comment{\textrm{(different version)}}
 			\EndIf
 		\EndFor
 		\State retrun true \Comment{\textrm{validation succeed}}
@@ -259,11 +273,13 @@ tracking locks and read objects' versions.
 		}
 \end{algorithmic}
 \caption{Read set validation: verify that  objects are unlocked and their versions are unchanged.\label{figure::validate}}
-\end{minipage}
+%\end{minipage}
 \end{figure}
 
-We now describe how we synthesize the code for each of the phases. The regular three-phase flow is described in
-Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
+We now describe how we synthesize the code for each of the phases. 
+%The regular three-phase flow is described in
+%Section~\ref{sssec:alg-normal}, and exceptions are described in Section~\ref{sssec:alg-abnormal}.
+We first describe the regular three-phase flow, and then continue with describing the exceptional cases.
 
 \subsubsection{Normal Flow}
 \label{sssec:alg-normal}
@@ -291,7 +307,7 @@ The \emph{lockedSet} tracks the objects that were supposed to be locked by the o
 The \emph{readSet} tracks versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
-At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  line~\ref{code:initSets} of Figure~\ref{figure:transformation:after}).
+At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  lines~\ref{code:initSets1}-ref{code:initSets2} of Figure~\ref{figure:transformation:after}).
 Throughout the read-only phase, (i.e., when \textbf{opt} is true with dynamic phase transitions), 
 we replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
 A lock instruction on object $o$ is replaced with code that tracks the object and the version of its lock in
@@ -398,6 +414,21 @@ This is realized by inserting code that examines the timeout in every loop itera
 Similarly, we avoid spurious exceptions by catching all exceptions and
 performing validation. Here too, if the validation fails, the operation is restarted. Otherwise, the exception is handled as in
 the original code.
+
+%rebuttal discussion
+Our sandboxing relies on properties of managed languages like Java or C\#: 
+\begin{enumerate}
+\item We can identify all instructions that may update shared memory and end the read phase before they occur. 
+
+\item The ability to capture all exits from a block via the try-finally mechanism ensures that we never exit the read phase without performing validation. 
+
+\item The code is not self-modifying and hence the tracking and validation code is executed as intended. 
+
+\item The speculative execution does not alter the references to the thread-local variables we introduce (readSet, lockedSet) since they are constant references to well-typed objects. Hence, our tracking and validation code executes correctly. 
+\end{enumerate}
+
+The problem described in the new paper by Dice et al.~\cite{DiceHKLM14} about lock elision does not occur in our solution. The key problem shown there is that access to the object on which the conflict is checked (namely the lock) is deferred until after other unchecked shared accesses, which could potentially be inconsistent and cause the lock not to be accessed. In our case, on the other hand, all accesses to shared data are recorded for validation purposes. If an object that should be accessed (like the lock in the lock elision case) is not accessed because of earlier conflicts, these earlier conflicts will be detected and the transaction will abort. 
+
 
 
 %\paragraph{Early Phase Branching}
