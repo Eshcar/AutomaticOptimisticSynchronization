@@ -76,7 +76,7 @@ This scheme is particularly suitable for data structures,
 since the common behavior of their operations
 is to first traverse the data structure, and then
 perform modifications.
-Since the read only prefix has no side effects we can sandbox it by catching exceptions and infinite loops, and defer validation to the end of the phase.
+Since the read only prefix has no side effects we can sandbox it by catching exceptions and infinite loops, and defer validation to the end of the traversal.
 
 Conceptually, our approach thus divides an operation into three phases: an optimistic \emph{read-only phase},
 a pessimistic \emph{update phase} and a \emph{validation phase} that conjoins them.
@@ -299,7 +299,7 @@ Note that each lock has its own version, i.e., version numbers of different lock
 
 \paragraph{Read-only Phase}
 % In this phase, we replace all the lock and unlock instructions with local tracking.
-In this phase the executing thread is invisible to other thread, i.e., 
+In this phase the executing thread is invisible to other threads, i.e., 
  avoids  contention on shared memory both in terms of writing and in terms of locking.
 During this phase, our synchronization maintains two thread-local multi-sets: \emph{lockedSet} and \emph{readSet}.
 The \emph{lockedSet} tracks the objects that were supposed to be locked by the original synchronization.
@@ -307,7 +307,7 @@ The \emph{lockedSet} tracks the objects that were supposed to be locked by the o
 The \emph{readSet} tracks versions of all objects read by the
 operation, in order to allow us to later validate that the operation has observed a consistent view of shared memory.
 
-At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  lines~\ref{code:initSets1}-ref{code:initSets2} of Figure~\ref{figure:transformation:after}).
+At the beginning of the read-only phase, we insert code that initializes \emph{lockedSet} and \emph{readSet} to be empty (see  lines~\ref{code:initSets1}-\ref{code:initSets2} of Figure~\ref{figure:transformation:after}).
 Throughout the read-only phase, (i.e., when \textbf{opt} is true with dynamic phase transitions), 
 we replace every lock and unlock instruction with the corresponding code in Table~\ref{Ta:readOnlyTransformation}.
 A lock instruction on object $o$ is replaced with code that tracks the object and the version of its lock in
@@ -350,6 +350,7 @@ Similarly, it is  checked to be unlocked, and the operation restarts if it is lo
 
 % Optimization
 Although it only accesses thread-local data structures, lock tracking induces a certain overhead due to the need to search a lock in the \emph{lockedSet} in order to unlock it. (In our experiments presented below, in large data structures, this overhead slows operations down by up to $40\%$).
+We suggest some optimizations to mitigate this cost. 
 First, we observe that 
 the \emph{lockedSet} does not need to be tracked in read-only operations, which a compiler can easily detect. 
  We can further avoid this overhead in update operations in certain 
@@ -424,12 +425,12 @@ Our sandboxing relies on properties of managed languages like Java or C\#:
 
 \item The code is not self-modifying and hence the tracking and validation code is executed as intended. 
 
-\item The speculative execution does not alter the references to the thread-local variables we introduce (readSet, lockedSet) since they are constant references to well-typed objects. Hence, our tracking and validation code executes correctly. 
+\item The speculative execution does not alter the references to the thread-local variables we introduce (readSet, lockedSet) since they are constant references to well-typed objects. 
+
+Hence, our tracking and validation code executes correctly. 
 \end{enumerate}
 
-The problem described in the new paper by Dice et al.~\cite{DiceHKLM14} about lock elision does not occur in our solution. The key problem shown there is that access to the object on which the conflict is checked (namely the lock) is deferred until after other unchecked shared accesses, which could potentially be inconsistent and cause the lock not to be accessed. In our case, on the other hand, all accesses to shared data are recorded for validation purposes. If an object that should be accessed (like the lock in the lock elision case) is not accessed because of earlier conflicts, these earlier conflicts will be detected and the transaction will abort. 
-
-
+While recent work~\cite{DiceHKLM14} has shown that differing validation to the end of a transaction can be unsafe, this problem does not occur in our solution. The key problem shown there is that access to the object on which the conflict is checked (namely the lock) is deferred until after other unchecked shared accesses, which could potentially be inconsistent and cause the lock not to be accessed. In our case, on the other hand, all accesses to shared data are recorded for validation purposes. If an object that should be accessed (like the lock in the lock elision case) is not accessed because of earlier conflicts, these earlier conflicts will be detected and the transaction will abort. 
 
 %\paragraph{Early Phase Branching}
 Note that, using our transformation, the shared state at the end of the validation phase
