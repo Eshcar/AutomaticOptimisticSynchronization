@@ -1,12 +1,6 @@
-This is BibTeX, Version 0.99dThe top-level auxiliary file: document.aux
-White space in argument---line 18 of file document.aux
- : \citation{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
- :                                                                                             AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,fraser2004practical,Michael:1996}
-I'm skipping whatever remains of this command
-White space in argument---line 148 of file document.aux
- : \citation{ArbelA2014,DrachslerVY2014,NatarajanM2014,BrownER2014,CrainGR2013,BraginskyP2012,
- :                                                                                             AfekKKMT2012,EllenFRB2010,BronsonCCO2010,HerlihyLLS2007,fraser2004practical,Michael:1996}
-I'm skipping whatever remains of this command
+This is BibTeX, Version 0.99d (TeX Live 2013)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: document.aux
 The style file: abbrv.bst
 Database file #1: myRef.bib
 A bad cross reference---entry "Gueta2011"
@@ -32,4 +26,45 @@ Name 1 in "Felber, P., G. Korland, and N. Shavit" has a comma at the end for ent
 while executing---line 1090 of file abbrv.bst
 Warning--empty publisher in gudka2012lock
 Warning--can't use both volume and number fields in zyulkyarov2009atomic
-(There were 8 error messages)
+You've used 46 entries,
+            2118 wiz_defined-function locations,
+            766 strings with 11160 characters,
+and the built_in function-call counts, 17765 in all, are:
+= -- 1686
+> -- 865
+< -- 23
++ -- 349
+- -- 294
+* -- 1129
+:= -- 2735
+add.period$ -- 140
+call.type$ -- 46
+change.case$ -- 282
+chr.to.int$ -- 0
+cite$ -- 53
+duplicate$ -- 769
+empty$ -- 1460
+format.name$ -- 294
+if$ -- 3895
+int.to.chr$ -- 0
+int.to.str$ -- 46
+missing$ -- 40
+newline$ -- 231
+num.names$ -- 88
+pop$ -- 401
+preamble$ -- 1
+purify$ -- 238
+quote$ -- 0
+skip$ -- 599
+stack$ -- 0
+substring$ -- 937
+swap$ -- 264
+text.length$ -- 23
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 184
+warning$ -- 7
+while$ -- 153
+width$ -- 48
+write$ -- 485
+(There were 6 error messages)

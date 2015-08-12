@@ -38,6 +38,13 @@ M.~Arbel and H.~Attiya.
 \newblock Concurrent updates with {RCU:} search tree as an example.
 \newblock In {\em PODC}, pages 196--205, 2014.
 
+\bibitem{fullversion}
+M.~Arbel, G.~Golan-Gueta, E.~Hillel, and I.~Keidar.
+\newblock Towards automatic lock removal for scalable synchronization (full
+  version).
+\newblock
+  \url{http://admincms.labs.yahoo.com/publications/8476/towards-automatic-lock-removal-scalable-synchronization-full-version}.
+
 \bibitem{BraginskyP2012}
 A.~Braginsky and E.~Petrank.
 \newblock A lock-free {B}+tree.
@@ -179,11 +186,6 @@ A.~Israeli and L.~Rappoport.
 G.~Jin, W.~Zhang, D.~Deng, B.~Liblit, and S.~Lu.
 \newblock Automated concurrency-bug fixing.
 \newblock In {\em OSDI}, 2012.
-
-\bibitem{LevAriCK2014}
-K.~Lev-Ari, G.~Chockler, and I.~Keidar.
-\newblock On correctness of data structures under reads-write concurrency.
-\newblock In {\em DISC}, October 2014.
 
 \bibitem{MZGB:POPL06}
 B.~McCloskey, F.~Zhou, D.~Gay, and E.~Brewer.

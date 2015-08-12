@@ -115,12 +115,12 @@ Every shared memory update operation is then instrumented with code that checks 
 \begin{figure*}
 \codesize
 	\begin{center}
-	\begin{subfigure}[b]{.47\textwidth}
+	\begin{subfigure}[b]{.46\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 \Comment{\textrm{read-only phase}}
 			\State                               \label{code:beginRead}
 			\State                               
@@ -134,8 +134,8 @@ Every shared memory update operation is then instrumented with code that checks 
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{succ.lock()}  \label{code:endRead}
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 			\State                               \label{code:beginValidation}
 			\State
 			\State
@@ -144,8 +144,8 @@ Every shared memory update operation is then instrumented with code that checks 
 			\State
 			\State
             \State                               \label{code:endValidation}
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 							\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new       \label{code:beginUpdate}
 			\State{\spZero}\textbf{new.lock()}
@@ -161,13 +161,13 @@ Every shared memory update operation is then instrumented with code that checks 
 		\end{algorithmic}
 		\caption{Code with original locking} \label{figure:transformation:before}
 	\end{subfigure}
-\hspace{0.01\textwidth}
-	\begin{subfigure}[b]{.47\textwidth}
+\hspace{0.03\textwidth}
+	\begin{subfigure}[b]{.46\textwidth}
 		\begin{algorithmic}[1]{}
 		{\ttfamily
 			\Function{addThird}{List list, Node new} \label{code:begin}
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 			\Comment{\textrm{read-only phase}}
             \State{\spOne}\textbf{lockedSet.init()} \label{code:initSets1}
             \State{\spOne}\textbf{readSet.init()} \label{code:initSets2}
@@ -181,8 +181,8 @@ Every shared memory update operation is then instrumented with code that checks 
 			\State{\spZero}prev = succ
 			\State{\spZero}succ = succ.next
 			\State{\spZero}\textbf{if !track(succ) then {goto} \ref{code:begin}} \label{code:readGhaseGoto3}
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 			\Comment{\textrm{validation phase}}
 			\State{\spZero}\textbf{read fence} \label{code:fence}
 			\State{\spZero}\textbf{for all obj in lockedSet do} \label{code:validateLockedSet}	
@@ -193,8 +193,8 @@ Every shared memory update operation is then instrumented with code that checks 
 				\State{\spZero}\ \ \textbf{unlockAll()}
 				\State{\spZero}\ \ \textbf{{goto} \ref{code:begin}} \label{code:validateGoto2}
 				%\Comment Restart Operation
-%			\Statex -----------------------
-			\Statex ----------
+			\Statex -----------------------
+%			\Statex ----------
 			\Comment{\textrm{update phase}}
 			\State{\spZero}prev.next = new
 			\State{\spZero}\textbf{new.lock()}
